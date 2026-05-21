@@ -1,0 +1,62 @@
+{
+  "img_scandi_1": {
+    "axes": {"color_temperature": 0.6, "brightness": 0.85, "materiality": 0.8, "form_language": 0.6, "density": 0.35, "epoch": 0.8, "atmosphere": 0.75, "color_intensity": 0.3},
+    "atmosphere_density": [0.35, 0.5],
+    "brand": ["scandinavian", "muji"], "design_element": ["wood", "clean_lines", "light_textile"],
+    "object_category": ["sofa", "shelf"], "accessory": ["plant", "rug"]
+  },
+  "img_scandi_2": {
+    "axes": {"color_temperature": 0.55, "brightness": 0.9, "materiality": 0.85, "form_language": 0.65, "density": 0.3, "epoch": 0.8, "atmosphere": 0.8, "color_intensity": 0.25},
+    "atmosphere_density": [0.3, 0.45],
+    "brand": ["scandinavian"], "design_element": ["wood", "clean_lines"],
+    "object_category": ["dining_table", "chair"], "accessory": ["plant", "lamp"]
+  },
+  "img_industrial_1": {
+    "axes": {"color_temperature": 0.35, "brightness": 0.4, "materiality": 0.6, "form_language": 0.2, "density": 0.5, "epoch": 0.7, "atmosphere": 0.4, "color_intensity": 0.4},
+    "atmosphere_density": [0.5, 0.5],
+    "brand": ["industrial"], "design_element": ["metal", "concrete", "hard_lines"],
+    "object_category": ["sofa", "shelf"], "accessory": ["lamp"]
+  },
+  "img_industrial_2": {
+    "axes": {"color_temperature": 0.3, "brightness": 0.35, "materiality": 0.55, "form_language": 0.2, "density": 0.55, "epoch": 0.65, "atmosphere": 0.35, "color_intensity": 0.45},
+    "atmosphere_density": [0.55, 0.55],
+    "brand": ["industrial", "loft"], "design_element": ["metal", "leather", "hard_lines"],
+    "object_category": ["sofa", "tv_unit"], "accessory": ["lamp"]
+  },
+  "img_classic_1": {
+    "axes": {"color_temperature": 0.7, "brightness": 0.5, "materiality": 0.7, "form_language": 0.8, "density": 0.7, "epoch": 0.2, "atmosphere": 0.6, "color_intensity": 0.55},
+    "atmosphere_density": [0.7, 0.45],
+    "brand": ["classic"], "design_element": ["ornament", "wood", "soft_textile"],
+    "object_category": ["sofa", "sideboard"], "accessory": ["rug", "lamp"]
+  },
+  "img_classic_2": {
+    "axes": {"color_temperature": 0.72, "brightness": 0.45, "materiality": 0.72, "form_language": 0.82, "density": 0.75, "epoch": 0.15, "atmosphere": 0.62, "color_intensity": 0.6},
+    "atmosphere_density": [0.75, 0.4],
+    "brand": ["classic", "vintage"], "design_element": ["ornament", "soft_textile"],
+    "object_category": ["dining_table", "sideboard"], "accessory": ["rug"]
+  },
+  "img_minimal_1": {
+    "axes": {"color_temperature": 0.45, "brightness": 0.8, "materiality": 0.5, "form_language": 0.45, "density": 0.15, "epoch": 0.9, "atmosphere": 0.5, "color_intensity": 0.15},
+    "atmosphere_density": [0.15, 0.3],
+    "brand": ["minimal"], "design_element": ["clean_lines", "monochrome"],
+    "object_category": ["sofa"], "accessory": []
+  },
+  "img_minimal_2": {
+    "axes": {"color_temperature": 0.4, "brightness": 0.82, "materiality": 0.48, "form_language": 0.4, "density": 0.18, "epoch": 0.92, "atmosphere": 0.45, "color_intensity": 0.12},
+    "atmosphere_density": [0.18, 0.28],
+    "brand": ["minimal"], "design_element": ["clean_lines", "monochrome"],
+    "object_category": ["shelf", "desk"], "accessory": ["lamp"]
+  },
+  "img_boho_1": {
+    "axes": {"color_temperature": 0.8, "brightness": 0.6, "materiality": 0.9, "form_language": 0.7, "density": 0.85, "epoch": 0.6, "atmosphere": 0.85, "color_intensity": 0.8},
+    "atmosphere_density": [0.85, 0.8],
+    "brand": ["boho"], "design_element": ["wood", "soft_textile", "pattern"],
+    "object_category": ["sofa"], "accessory": ["plant", "rug", "lamp"]
+  },
+  "img_boho_2": {
+    "axes": {"color_temperature": 0.82, "brightness": 0.58, "materiality": 0.92, "form_language": 0.72, "density": 0.9, "epoch": 0.55, "atmosphere": 0.88, "color_intensity": 0.85},
+    "atmosphere_density": [0.9, 0.85],
+    "brand": ["boho", "vintage"], "design_element": ["soft_textile", "pattern"],
+    "object_category": ["sofa", "shelf"], "accessory": ["plant", "rug"]
+  }
+}
