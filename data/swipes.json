@@ -1,0 +1,12 @@
+[
+  {"image_id": "img_scandi_1", "liked": true},
+  {"image_id": "img_scandi_2", "liked": true},
+  {"image_id": "img_minimal_1", "liked": true},
+  {"image_id": "img_minimal_2", "liked": true},
+  {"image_id": "img_industrial_1", "liked": false},
+  {"image_id": "img_industrial_2", "liked": false},
+  {"image_id": "img_classic_1", "liked": false},
+  {"image_id": "img_classic_2", "liked": false},
+  {"image_id": "img_boho_1", "liked": false},
+  {"image_id": "img_boho_2", "liked": true}
+]
