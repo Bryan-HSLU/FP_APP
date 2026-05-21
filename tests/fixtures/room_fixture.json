@@ -1,0 +1,22 @@
+{
+  "units": "meters",
+  "room_type": "living_room",
+  "scale_calibrated": true,
+  "floor_polygon": [[0.0, 0.0, 0.0], [4.0, 0.0, 0.0], [4.0, 5.0, 0.0], [0.0, 5.0, 0.0]],
+  "ceiling_height": 2.6,
+  "walls": [
+    {"id": "wall_south", "plane": {"normal": [0.0, 1.0, 0.0], "d": 0.0},  "polygon": [[0.0,0.0,0.0],[4.0,0.0,0.0],[4.0,0.0,2.6],[0.0,0.0,2.6]]},
+    {"id": "wall_east",  "plane": {"normal": [-1.0, 0.0, 0.0], "d": 4.0}, "polygon": [[4.0,0.0,0.0],[4.0,5.0,0.0],[4.0,5.0,2.6],[4.0,0.0,2.6]]},
+    {"id": "wall_north", "plane": {"normal": [0.0, -1.0, 0.0], "d": 5.0}, "polygon": [[4.0,5.0,0.0],[0.0,5.0,0.0],[0.0,5.0,2.6],[4.0,5.0,2.6]]},
+    {"id": "wall_west",  "plane": {"normal": [1.0, 0.0, 0.0], "d": 0.0},  "polygon": [[0.0,5.0,0.0],[0.0,0.0,0.0],[0.0,0.0,2.6],[0.0,5.0,2.6]]}
+  ],
+  "openings": [
+    {"id": "opening_door_1",   "kind": "door",   "on_wall": "wall_south", "polygon": [[0.5,0.0,0.0],[1.4,0.0,0.0],[1.4,0.0,2.05],[0.5,0.0,2.05]]},
+    {"id": "opening_window_1", "kind": "window", "on_wall": "wall_north", "polygon": [[1.5,5.0,0.9],[3.0,5.0,0.9],[3.0,5.0,2.0],[1.5,5.0,2.0]]}
+  ],
+  "fixpoints": [
+    {"kind": "outlet", "position": [4.0, 1.0, 0.30]}
+  ],
+  "detected_objects": [],
+  "gltf_uri": null
+}
