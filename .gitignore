@@ -1,0 +1,17 @@
+# build / env
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.env
+
+# generated artifacts
+out/
+*.tmp
+
+# data that is large / local only
+data/videos/*.mp4
