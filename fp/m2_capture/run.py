@@ -24,22 +24,49 @@ def _load_ply(path: str | Path) -> np.ndarray:
     return np.asarray(pts)
 
 
-def reconstruct_cloud(video: str, work_dir: str | Path,
-                      scale_ref: float | None, measured: float | None) -> np.ndarray:
-    """Real photogrammetry: frames -> COLMAP SfM -> OpenMVS dense -> metric cloud."""
-    from fp.m2_capture.colmap import run_sfm
+def reconstruct_cloud(
+    video: str,
+    work_dir: str | Path,
+    scale_ref: float | None,
+    measured: float | None,
+    *,
+    engine: str = "auto",
+) -> np.ndarray:
+    """Real photogrammetry: frames -> point cloud.
+
+    engine="mast3r"  – neural (GPU required, no native CLI tools)
+    engine="colmap"  – COLMAP + OpenMVS (CPU, native tools required)
+    engine="auto"    – mast3r if CUDA available, else colmap
+    """
     from fp.m2_capture.frames import extract_frames
-    from fp.m2_capture.openmvs import run_dense
     from fp.m2_capture.scale import apply_scale, pick_scale_interactive, scale_from_reference
 
     work = Path(work_dir)
     frames_dir = work / "frames"
-    frames = extract_frames(video, frames_dir)
-    if len(frames) < 8:
-        raise RuntimeError(f"only {len(frames)} usable frames - film slower / longer")
-    model0 = run_sfm(frames_dir, work / "colmap")
-    dense_ply = run_dense(model0, frames_dir, work / "openmvs")
-    pts = _load_ply(dense_ply)
+
+    if engine == "auto":
+        try:
+            import torch
+            engine = "mast3r" if torch.cuda.is_available() else "colmap"
+        except ImportError:
+            engine = "colmap"
+
+    if engine == "mast3r":
+        frames = extract_frames(video, frames_dir)
+        if len(frames) < 4:
+            raise RuntimeError(f"only {len(frames)} usable frames - film slower / longer")
+        from fp.m2_capture.mast3r import run_mast3r
+        pts = run_mast3r(frames_dir, work)
+    else:
+        from fp.m2_capture.colmap import run_sfm
+        from fp.m2_capture.openmvs import run_dense
+        frames = extract_frames(video, frames_dir)
+        if len(frames) < 8:
+            raise RuntimeError(f"only {len(frames)} usable frames - film slower / longer")
+        model0 = run_sfm(frames_dir, work / "colmap")
+        dense_ply = run_dense(model0, frames_dir, work / "openmvs")
+        pts = _load_ply(dense_ply)
+
     if scale_ref:
         factor = (scale_from_reference(scale_ref, measured) if measured
                   else pick_scale_interactive(pts, scale_ref))
@@ -55,6 +82,7 @@ def run_capture(
     measured: float | None = None,
     synthetic: bool = False,
     room_type: str = "living_room",
+    engine: str = "auto",
 ) -> RoomModel:
     if synthetic or not video:
         from fp.m2_capture.synthetic import generate_room_cloud
@@ -64,7 +92,7 @@ def run_capture(
     else:
         work = Path(tempfile.mkdtemp(prefix="fp_m2_"))
         try:
-            pts = reconstruct_cloud(video, work, scale_ref, measured)
+            pts = reconstruct_cloud(video, work, scale_ref, measured, engine=engine)
         finally:
             shutil.rmtree(work, ignore_errors=True)
 

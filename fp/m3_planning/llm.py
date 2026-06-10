@@ -1,9 +1,12 @@
 """Modul 3, Layer 1 - turn the style profile + room into AI directives.
 
-Primary path: Claude generates the directives (the required "AI in the loop").
-Fallback path: a deterministic heuristic so the pipeline still runs end-to-end
-without an API key (clearly flagged). The fallback is NOT a substitute for the
-AI - it only exists so the solver/visualisation can be demonstrated offline.
+Primary path  (priority order):
+  1. Groq (GROQ_API_KEY)        – free API, Llama 3.3 70B
+  2. Anthropic (ANTHROPIC_API_KEY) – Claude Sonnet, backwards-compat
+  3. Heuristic fallback          – deterministic, no key required
+
+The heuristic is NOT a substitute for the AI; it only exists so the solver
+and visualisation can be demonstrated without any API key.
 """
 
 from __future__ import annotations
@@ -27,7 +30,8 @@ from fp.schemas import (
     Zone,
 )
 
-DEFAULT_MODEL = "claude-sonnet-4-6"
+DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6"
+DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
 
 
 def _validate(raw: str, valid_ids: set[str]) -> Directives:
@@ -39,12 +43,47 @@ def _validate(raw: str, valid_ids: set[str]) -> Directives:
     return directives
 
 
+def generate_directives_groq(
+    profile: StyleProfile,
+    room: RoomModel,
+    catalog: FurnitureCatalog,
+    *,
+    model: str = DEFAULT_GROQ_MODEL,
+    api_key: str | None = None,
+) -> Directives:
+    from groq import Groq
+
+    client = Groq(api_key=api_key or os.environ["GROQ_API_KEY"])
+    valid_ids = set(catalog.by_id())
+    user_msg = build_user_message(profile, room, catalog)
+
+    def _call(extra: str = "") -> str:
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_msg + extra},
+            ],
+            temperature=0.3,
+            max_tokens=2000,
+        )
+        return resp.choices[0].message.content.strip()
+
+    raw = _call()
+    try:
+        return _validate(raw, valid_ids)
+    except (ValidationError, ValueError, json.JSONDecodeError) as exc:
+        raw = _call(f"\n\nDein letzter Output war ungueltig: {exc}\n"
+                    f"Gib NUR korrektes JSON gemaess Schema zurueck.")
+        return _validate(raw, valid_ids)
+
+
 def generate_directives_llm(
     profile: StyleProfile,
     room: RoomModel,
     catalog: FurnitureCatalog,
     *,
-    model: str = DEFAULT_MODEL,
+    model: str = DEFAULT_ANTHROPIC_MODEL,
     api_key: str | None = None,
 ) -> Directives:
     import anthropic
@@ -127,10 +166,17 @@ def generate_directives(
     *,
     use_llm: bool | None = None,
 ) -> tuple[Directives, str]:
-    """Returns (directives, source) where source is 'llm' or 'heuristic'."""
-    has_key = bool(os.environ.get("ANTHROPIC_API_KEY"))
+    """Returns (directives, source) where source is 'llm' or 'heuristic'.
+
+    Priority: Groq (GROQ_API_KEY) → Anthropic (ANTHROPIC_API_KEY) → heuristic.
+    """
+    has_groq = bool(os.environ.get("GROQ_API_KEY"))
+    has_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY"))
+    has_any = has_groq or has_anthropic
     if use_llm is None:
-        use_llm = has_key
-    if use_llm and has_key:
+        use_llm = has_any
+    if use_llm and has_groq:
+        return generate_directives_groq(profile, room, catalog), "llm"
+    if use_llm and has_anthropic:
         return generate_directives_llm(profile, room, catalog), "llm"
     return generate_directives_heuristic(profile, room, catalog), "heuristic"

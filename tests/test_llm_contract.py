@@ -59,13 +59,51 @@ def test_heuristic_is_valid_and_uses_catalog(room, profile, catalog):
 
 def test_generate_falls_back_without_key(room, profile, catalog, monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
     directives, source = generate_directives(profile, room, catalog)
     assert source == "heuristic"
     assert directives.objects
 
 
-def test_generate_llm_path_mocked(room, profile, catalog, monkeypatch):
-    """The Claude path validates and returns directives when the API responds."""
+def test_generate_groq_path_mocked(room, profile, catalog, monkeypatch):
+    """Groq path is chosen when GROQ_API_KEY is set; validates and returns directives."""
+    payload = json.dumps({
+        "room_type": "living_room",
+        "global_params": {"density": 0.5, "symmetry": 0.5},
+        "objects": [{"id": "sofa_1", "catalog_id": "sofa_3seat", "klass": "main", "priority": 1}],
+        "relations": [{"type": "not_blocking", "opening": "opening_door_1"}],
+    })
+
+    class _Choice:
+        class _Msg:
+            content = payload
+        message = _Msg()
+
+    class _Resp:
+        choices = [_Choice()]
+
+    class _Completions:
+        def create(self, **_):
+            return _Resp()
+
+    class _Chat:
+        completions = _Completions()
+
+    class _GroqClient:
+        def __init__(self, *a, **k):
+            self.chat = _Chat()
+
+    import groq as groq_mod
+    monkeypatch.setattr(groq_mod, "Groq", _GroqClient)
+    monkeypatch.setenv("GROQ_API_KEY", "test-groq-key")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    directives, source = generate_directives(profile, room, catalog, use_llm=True)
+    assert source == "llm"
+    assert directives.objects[0].catalog_id == "sofa_3seat"
+
+
+def test_generate_anthropic_path_mocked(room, profile, catalog, monkeypatch):
+    """The Anthropic path is used when only ANTHROPIC_API_KEY is set."""
     payload = json.dumps({
         "room_type": "living_room",
         "global_params": {"density": 0.5, "symmetry": 0.5},
@@ -91,6 +129,7 @@ def test_generate_llm_path_mocked(room, profile, catalog, monkeypatch):
     monkeypatch.setattr(llm.anthropic if hasattr(llm, "anthropic") else __import__("anthropic"),
                         "Anthropic", _Client, raising=False)
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
     directives, source = generate_directives(profile, room, catalog, use_llm=True)
     assert source == "llm"
     assert directives.objects[0].catalog_id == "sofa_3seat"
