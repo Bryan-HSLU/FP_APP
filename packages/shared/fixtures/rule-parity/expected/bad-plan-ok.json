@@ -47,7 +47,9 @@
       "ruleId": "bad-lavabo-hoehe",
       "status": "knapp",
       "margin_cm": 1.0,
-      "placements": ["bbbbbbbb-0002-4000-8000-000000000002"],
+      "placements": [
+        "bbbbbbbb-0002-4000-8000-000000000002"
+      ],
       "hinweis": "Lavabo wandgebunden, Oberkante 0.85–0.95 m."
     },
     {

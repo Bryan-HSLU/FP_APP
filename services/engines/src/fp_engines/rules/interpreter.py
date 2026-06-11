@@ -130,6 +130,15 @@ def _zone_margin(
     return margin
 
 
+def _vertikal_getrennt(a: SceneObject, b: SceneObject) -> bool:
+    """Wandobjekte über Bodenobjekten (Spiegel über Lavabo) kollidieren nicht:
+    Kollision nur, wenn sich die Höhenintervalle [unterkante, oberkante]
+    überlappen (Berührung = getrennt)."""
+    a_lo = a.mount_height or 0.0
+    b_lo = b.mount_height or 0.0
+    return a_lo + a.h <= b_lo or b_lo + b.h <= a_lo
+
+
 def _eval_collision(
     scene: Scene, params: Params, applies_to: str, offenders: list[str]
 ) -> float | None:
@@ -153,6 +162,8 @@ def _eval_collision(
         for j in range(i + 1, len(scene.objects)):
             a = scene.objects[i]
             b = scene.objects[j]
+            if _vertikal_getrennt(a, b):
+                continue
             track(separation(a.quad, b.quad), [a, b])
     return margin
 

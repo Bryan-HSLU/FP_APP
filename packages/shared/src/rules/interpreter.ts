@@ -147,6 +147,15 @@ type Evaluator = (
   offenders: string[],
 ) => number | null;
 
+/** Wandobjekte über Bodenobjekten (Spiegel über Lavabo) kollidieren nicht:
+ *  Kollision nur, wenn sich die Höhenintervalle [unterkante, oberkante]
+ *  überlappen (Berührung = getrennt). */
+function vertikalGetrennt(a: SceneObject, b: SceneObject): boolean {
+  const aLo = a.mountHeight ?? 0;
+  const bLo = b.mountHeight ?? 0;
+  return aLo + a.h <= bLo || bLo + b.h <= aLo;
+}
+
 const evaluators: Record<string, Evaluator | null> = {
   collision(scene, _params, _appliesTo, offenders) {
     let margin: number | null = null;
@@ -167,6 +176,7 @@ const evaluators: Record<string, Evaluator | null> = {
       for (let j = i + 1; j < scene.objects.length; j++) {
         const a = scene.objects[i] as SceneObject;
         const b = scene.objects[j] as SceneObject;
+        if (vertikalGetrennt(a, b)) continue;
         track(separation(a.quad, b.quad), [a, b], thresholdM);
       }
     }

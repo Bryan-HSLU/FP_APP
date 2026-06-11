@@ -9,48 +9,84 @@
     "walls": [
       {
         "id": "cccccccc-0101-4000-8000-000000000101",
-        "start": [0, 0],
-        "end": [1.0, 0],
+        "start": [
+          0,
+          0
+        ],
+        "end": [
+          1.0,
+          0
+        ],
         "height": 2.4,
         "thickness": 0.1,
         "kind": "massiv"
       },
       {
         "id": "cccccccc-0102-4000-8000-000000000102",
-        "start": [1.0, 0],
-        "end": [1.0, 1.0],
+        "start": [
+          1.0,
+          0
+        ],
+        "end": [
+          1.0,
+          1.0
+        ],
         "height": 2.4,
         "thickness": 0.1,
         "kind": "massiv"
       },
       {
         "id": "cccccccc-0103-4000-8000-000000000103",
-        "start": [1.0, 1.0],
-        "end": [0.7, 1.0],
+        "start": [
+          1.0,
+          1.0
+        ],
+        "end": [
+          0.7,
+          1.0
+        ],
         "height": 2.4,
         "thickness": 0.1,
         "kind": "massiv"
       },
       {
         "id": "cccccccc-0104-4000-8000-000000000104",
-        "start": [0.7, 1.0],
-        "end": [0.7, 1.8],
+        "start": [
+          0.7,
+          1.0
+        ],
+        "end": [
+          0.7,
+          1.8
+        ],
         "height": 2.4,
         "thickness": 0.1,
         "kind": "massiv"
       },
       {
         "id": "cccccccc-0105-4000-8000-000000000105",
-        "start": [0.7, 1.8],
-        "end": [0, 1.8],
+        "start": [
+          0.7,
+          1.8
+        ],
+        "end": [
+          0,
+          1.8
+        ],
         "height": 2.4,
         "thickness": 0.1,
         "kind": "massiv"
       },
       {
         "id": "cccccccc-0106-4000-8000-000000000106",
-        "start": [0, 1.8],
-        "end": [0, 0],
+        "start": [
+          0,
+          1.8
+        ],
+        "end": [
+          0,
+          0
+        ],
         "height": 2.4,
         "thickness": 0.1,
         "kind": "massiv"
@@ -58,20 +94,93 @@
     ],
     "floor": {
       "polygon": [
-        [0, 0],
-        [1.0, 0],
-        [1.0, 1.0],
-        [0.7, 1.0],
-        [0.7, 1.8],
-        [0, 1.8]
+        [
+          0,
+          0
+        ],
+        [
+          1.0,
+          0
+        ],
+        [
+          1.0,
+          1.0
+        ],
+        [
+          0.7,
+          1.0
+        ],
+        [
+          0.7,
+          1.8
+        ],
+        [
+          0,
+          1.8
+        ]
       ],
       "area": 1.56
     },
-    "ceiling": { "height": 2.4 }
+    "ceiling": {
+      "height": 2.4
+    }
   },
   "openings": [],
   "zones": [],
-  "fixpoints": [],
+  "fixpoints": [
+    {
+      "id": "eeeeeeee-0101-4000-8000-000000000101",
+      "type": "abwasser",
+      "position": [
+        0.35,
+        1.8
+      ],
+      "wall": "cccccccc-0105-4000-8000-000000000105",
+      "heightFromFloor": 0.2,
+      "mount": "wand",
+      "origin": "manuell",
+      "zone": null
+    },
+    {
+      "id": "eeeeeeee-0102-4000-8000-000000000102",
+      "type": "wasser",
+      "position": [
+        0.35,
+        1.8
+      ],
+      "wall": "cccccccc-0105-4000-8000-000000000105",
+      "heightFromFloor": 0.3,
+      "mount": "wand",
+      "origin": "manuell",
+      "zone": null
+    },
+    {
+      "id": "eeeeeeee-0103-4000-8000-000000000103",
+      "type": "wasser",
+      "position": [
+        1.0,
+        0.5
+      ],
+      "wall": "cccccccc-0102-4000-8000-000000000102",
+      "heightFromFloor": 0.55,
+      "mount": "wand",
+      "origin": "manuell",
+      "zone": null
+    },
+    {
+      "id": "eeeeeeee-0104-4000-8000-000000000104",
+      "type": "abwasser",
+      "position": [
+        1.0,
+        0.5
+      ],
+      "wall": "cccccccc-0102-4000-8000-000000000102",
+      "heightFromFloor": 0.4,
+      "mount": "wand",
+      "origin": "manuell",
+      "zone": null
+    }
+  ],
   "objects": [],
   "meta": {
     "captureMethod": "manuell",

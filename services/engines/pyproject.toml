@@ -7,6 +7,7 @@ dependencies = [
     "fastapi[standard]>=0.115",
     "pydantic>=2.10",
     "jsonschema>=4.23",
+    "reportlab>=4.2",
 ]
 
 [dependency-groups]
@@ -40,3 +41,7 @@ exclude = ["src/fp_engines/generated"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[[tool.mypy.overrides]]
+module = "reportlab.*"
+ignore_missing_imports = true
