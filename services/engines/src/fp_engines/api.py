@@ -347,3 +347,71 @@ def taxonomy() -> Any:
     return json.loads(
         (REPO_ROOT / "data" / "taxonomy" / "stilachsen.json").read_text(encoding="utf-8")
     )
+
+
+@app.post("/export/plan-pdf")
+def export_plan_pdf(req: EvaluateRequest) -> Response:
+    """2D-Grundriss als PDF (Draufsicht mit Massen und Möbel-Footprints)."""
+    from fp_engines.pdf import plan2d_pdf
+
+    katalog = _catalog(req.room["roomType"])
+    return Response(
+        content=plan2d_pdf(req.room, req.plan, katalog),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="grundriss.pdf"'},
+    )
+
+
+@app.post("/export/gltf")
+def export_gltf(req: EvaluateRequest) -> JSONResponse:
+    """3D-Export als glTF 2.0 (Boxen, deckungsgleich mit dem Viewer)."""
+    from fp_engines.gltf import szene_gltf
+
+    katalog = _catalog(req.room["roomType"])
+    return JSONResponse(
+        content=szene_gltf(req.room, req.plan, katalog),
+        media_type="model/gltf+json",
+        headers={"Content-Disposition": 'attachment; filename="szene.gltf"'},
+    )
+
+
+@app.post("/export/gewerke")
+def export_gewerke(req: EvaluateRequest) -> JSONResponse:
+    from fp_engines.auswertung import gewerke_uebersicht
+
+    lv, bz = _lv_und_bauzeit(req)
+    return JSONResponse(content=gewerke_uebersicht(lv, bz))
+
+
+@app.post("/export/gewerke-pdf")
+def export_gewerke_pdf(req: EvaluateRequest) -> Response:
+    from fp_engines.auswertung import gewerke_uebersicht
+    from fp_engines.pdf import gewerke_pdf
+
+    lv, bz = _lv_und_bauzeit(req)
+    return Response(
+        content=gewerke_pdf(gewerke_uebersicht(lv, bz)),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="gewerke-uebersicht.pdf"'},
+    )
+
+
+@app.post("/export/einkaufsliste")
+def export_einkaufsliste(req: EvaluateRequest) -> JSONResponse:
+    from fp_engines.auswertung import einkaufsliste
+
+    katalog = _catalog(req.room["roomType"])
+    return JSONResponse(content=einkaufsliste(req.plan, katalog))
+
+
+@app.post("/export/einkaufsliste-pdf")
+def export_einkaufsliste_pdf(req: EvaluateRequest) -> Response:
+    from fp_engines.auswertung import einkaufsliste
+    from fp_engines.pdf import einkaufsliste_pdf
+
+    katalog = _catalog(req.room["roomType"])
+    return Response(
+        content=einkaufsliste_pdf(einkaufsliste(req.plan, katalog), req.room["name"]),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="einkaufsliste.pdf"'},
+    )

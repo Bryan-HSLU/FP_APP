@@ -106,9 +106,9 @@ export const api = {
     }),
   evaluate: (room: Room, plan: Plan) =>
     call<KV>("/evaluate", { method: "POST", body: JSON.stringify({ room, plan }) }),
-  /** KV-PDF herunterladen (Blob → Browser-Download). */
-  async kvPdf(room: Room, plan: Plan): Promise<void> {
-    const res = await fetch("/api/export/kv-pdf", {
+  /** Dokument vom Export-Endpunkt herunterladen (Blob → Browser-Download). */
+  async dokument(pfad: string, dateiname: string, room: Room, plan: Plan): Promise<void> {
+    const res = await fetch(`/api/export/${pfad}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ room, plan }),
@@ -117,7 +117,7 @@ export const api = {
     const url = URL.createObjectURL(await res.blob());
     const a = document.createElement("a");
     a.href = url;
-    a.download = "kostenschaetzung.pdf";
+    a.download = dateiname;
     a.click();
     URL.revokeObjectURL(url);
   },

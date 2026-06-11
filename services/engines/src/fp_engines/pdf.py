@@ -258,3 +258,180 @@ def offertanfrage_pdf(lv: dict[str, Any], bz: dict[str, Any]) -> bytes:
     )
     doc.build(story)
     return buf.getvalue()
+
+
+def _einfache_tabelle(daten: list[list[Any]], breiten: list[float]) -> Table:
+    t = Table(daten, colWidths=breiten)
+    t.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), CI_GRUEN),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, CI_OFFWHITE]),
+                ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ]
+        )
+    )
+    return t
+
+
+def _einseiter(titel: str, untertitel: str, bloecke: list[Any], warnung: str) -> bytes:
+    buf = BytesIO()
+    doc = SimpleDocTemplate(
+        buf,
+        pagesize=A4,
+        title=titel,
+        leftMargin=18 * mm,
+        rightMargin=18 * mm,
+        topMargin=18 * mm,
+        bottomMargin=18 * mm,
+    )
+    story: list[Any] = [Paragraph(titel, _TITEL), Paragraph(untertitel, _SUB), *bloecke]
+    story.append(Paragraph(f"⚠ {warnung}", _WARN))
+    doc.build(story)
+    return buf.getvalue()
+
+
+def gewerke_pdf(ueb: dict[str, Any]) -> bytes:
+    """Gewerke-Übersicht als PDF (Koordinations-Dokument)."""
+    daten: list[list[Any]] = [
+        ["Gewerk", "Positionen", "Aufwand (h)", "Zeitfenster (AT)", "Summe (CHF)"]
+    ]
+    for e in ueb["gewerke"]:
+        zf = e["zeitfenster_arbeitstage"]
+        daten.append(
+            [
+                e["gewerk"],
+                str(e["anzahlPositionen"]),
+                f"{e['aufwand_h']}",
+                f"{zf[0]:g}–{zf[1]:g}" if zf else "–",
+                f"{e['summe_chf']:,.0f}",
+            ]
+        )
+    daten.append(["Summe", "", "", "", f"{ueb['summe_chf']:,.0f}"])
+    return _einseiter(
+        "Future Planning – Gewerke-Übersicht",
+        f"{ueb['raumName']} · Stand {date.today().isoformat()}",
+        [_einfache_tabelle(daten, [40 * mm, 26 * mm, 26 * mm, 36 * mm, 32 * mm])],
+        ueb["hinweis"],
+    )
+
+
+def einkaufsliste_pdf(liste: dict[str, Any], raum_name: str) -> bytes:
+    """Material-/Einkaufsliste als PDF."""
+    daten: list[list[Any]] = [["Artikel", "Masse (B×T×H m)", "Menge", "Richtpreis", "Total (CHF)"]]
+    for z in liste["zeilen"]:
+        m = z["masse"]
+        daten.append(
+            [
+                z["artikel"],
+                f"{m['w']}×{m['d']}×{m['h']}",
+                str(z["menge"]),
+                f"{z['richtpreis_chf']:,.0f}",
+                f"{z['total_chf']:,.0f}",
+            ]
+        )
+    daten.append(["Summe", "", "", "", f"{liste['summe_chf']:,.0f}"])
+    return _einseiter(
+        "Future Planning – Material-/Einkaufsliste",
+        f"{raum_name} · Stand {date.today().isoformat()}",
+        [_einfache_tabelle(daten, [56 * mm, 36 * mm, 18 * mm, 26 * mm, 28 * mm])],
+        liste["hinweis"],
+    )
+
+
+def plan2d_pdf(room: dict[str, Any], plan: dict[str, Any], catalog: list[dict[str, Any]]) -> bytes:
+    """2D-Grundriss als PDF: Wände, Öffnungen, Möbel-Footprints mit Labels, Masse."""
+    from reportlab.pdfgen import canvas as rl_canvas
+
+    from fp_engines.rules.geometry import footprint
+
+    by_id = {c["id"]: c for c in catalog}
+    buf = BytesIO()
+    c = rl_canvas.Canvas(buf, pagesize=A4)
+    seite_b, seite_h = A4
+
+    poly = room["shell"]["floor"]["polygon"]
+    xs = [p[0] for p in poly]
+    zs = [p[1] for p in poly]
+    raum_b = max(xs) - min(xs)
+    raum_t = max(zs) - min(zs)
+    massstab = min((seite_b - 60 * mm) / raum_b, (seite_h - 90 * mm) / raum_t)
+    ox, oy = 30 * mm, 40 * mm
+
+    def pt(x: float, z: float) -> tuple[float, float]:
+        # z wächst nach «hinten» → auf Papier nach oben (Draufsicht).
+        return ox + (x - min(xs)) * massstab, oy + (z - min(zs)) * massstab
+
+    c.setFillColor(CI_GRUEN)
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(ox, seite_h - 22 * mm, "Future Planning – Grundriss (Draufsicht)")
+    c.setFont("Helvetica", 9)
+    c.setFillColor(colors.grey)
+    c.drawString(
+        ox,
+        seite_h - 28 * mm,
+        f"{room['name']} · Massstab 1:{round(1000 / (massstab / mm)):d} · "
+        f"Stand {date.today().isoformat()}",
+    )
+
+    c.setStrokeColor(colors.black)
+    c.setLineWidth(2)
+    for w in room["shell"]["walls"]:
+        a = pt(*w["start"])
+        b = pt(*w["end"])
+        c.line(a[0], a[1], b[0], b[1])
+        # Wandlänge als Mass-Text neben der Wandmitte
+        laenge = ((w["end"][0] - w["start"][0]) ** 2 + (w["end"][1] - w["start"][1]) ** 2) ** 0.5
+        c.setFont("Helvetica", 7)
+        c.setFillColor(colors.grey)
+        c.drawCentredString((a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + 3, f"{laenge:.2f} m")
+
+    c.setStrokeColor(colors.green)
+    c.setLineWidth(3)
+    for o in room["openings"]:
+        wall = next(w for w in room["shell"]["walls"] if w["id"] == o["hostWall"])
+        dx = wall["end"][0] - wall["start"][0]
+        dz = wall["end"][1] - wall["start"][1]
+        laenge = (dx * dx + dz * dz) ** 0.5
+        ux, uz = dx / laenge, dz / laenge
+        a = pt(wall["start"][0] + ux * o["offset"], wall["start"][1] + uz * o["offset"])
+        b = pt(
+            wall["start"][0] + ux * (o["offset"] + o["width"]),
+            wall["start"][1] + uz * (o["offset"] + o["width"]),
+        )
+        c.line(a[0], a[1], b[0], b[1])
+
+    for p in plan["placements"]:
+        item = by_id[p["catalogItemId"]]
+        quad = footprint(
+            (p["pose"]["pos"][0], p["pose"]["pos"][1]),
+            item["masse"]["w"],
+            item["masse"]["d"],
+            p["pose"]["yawDeg"],
+        )
+        pfad = c.beginPath()
+        eck = [pt(*e) for e in quad]
+        pfad.moveTo(*eck[0])
+        for e in eck[1:]:
+            pfad.lineTo(*e)
+        pfad.close()
+        c.setStrokeColor(CI_GRUEN)
+        c.setFillColor(colors.Color(0.12, 0.30, 0.23, alpha=0.25))
+        c.setLineWidth(1)
+        c.drawPath(pfad, stroke=1, fill=1)
+        mitte = pt(*p["pose"]["pos"])
+        c.setFillColor(colors.black)
+        c.setFont("Helvetica", 7)
+        c.drawCentredString(mitte[0], mitte[1] - 2, item["funktionsTyp"])
+
+    c.setFillColor(CI_ORANGE)
+    c.setFont("Helvetica", 8)
+    c.drawString(
+        ox, 18 * mm, "⚠ Vereinfachter Plan aus der digitalen Planung – kein Ausführungsplan."
+    )
+    c.showPage()
+    c.save()
+    return buf.getvalue()

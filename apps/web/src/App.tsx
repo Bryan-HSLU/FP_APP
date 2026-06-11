@@ -228,13 +228,28 @@ export function App() {
         <button style={stil.knopf} disabled={!plan} onClick={() => void auswerten()}>
           Auswertung
         </button>
-        <button
-          style={stil.knopf}
+        <select
           disabled={!plan}
-          onClick={() => room && plan && void api.kvPdf(room, plan)}
+          value=""
+          onChange={(e) => {
+            const [pfad, datei] = e.target.value.split("|");
+            if (room && plan && pfad && datei) void api.dokument(pfad, datei, room, plan);
+            e.target.value = "";
+          }}
         >
-          KV-PDF
-        </button>
+          <option value="" disabled>
+            📄 Dokumente…
+          </option>
+          <option value="kv-pdf|kostenschaetzung.pdf">Kostenschätzung (KV)</option>
+          <option value="lv-pdf|leistungsverzeichnis.pdf">Leistungsverzeichnis</option>
+          <option value="bauzeitenplan-pdf|bauzeitenplan.pdf">Bauzeitenplan</option>
+          <option value="offertanfrage|offertanfrage.pdf">Offertanfrage-Paket</option>
+          <option value="gewerke-pdf|gewerke-uebersicht.pdf">Gewerke-Übersicht</option>
+          <option value="einkaufsliste-pdf|einkaufsliste.pdf">Einkaufsliste</option>
+          <option value="plan-pdf|grundriss.pdf">2D-Plan (PDF)</option>
+          <option value="dxf|grundriss.dxf">2D-Plan (DXF)</option>
+          <option value="gltf|szene.gltf">3D-Export (glTF)</option>
+        </select>
         {plan && (
           <span style={{ fontSize: 12 }}>
             Seed {plan.meta.seed} · Solver {plan.meta.solverVersion}

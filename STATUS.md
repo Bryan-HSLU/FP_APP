@@ -16,7 +16,7 @@
 | **M1** Verträge & Regel-Kern | JSON-Schemas (7 Verträge) + Codegen + Regel-Interpreter TS & Python + Paritätstest | 🟢 fertig |
 | **M2** Scan-Spike | Eval-Notebook, Messung R1–R3 (parallel, blockiert nichts) | 🟡 gestartet |
 | **M3** Durchstich BAD ⭐ | Sample-Bad → Baseline → Solver P1–P3 → Viewer → Report → Mengen/KV-PDF | 🟢 DoD erfüllt |
-| **M4** Auswertung voll + Kurator | LV, Bauzeitenplan, Offert-Paket, DXF · Kurator + Mini-Eval · Stil-UI | 🟡 weitgehend (s.u.) |
+| **M4** Auswertung voll + Kurator | LV, Bauzeitenplan, Offert-Paket, DXF · Kurator + Mini-Eval · Stil-UI | 🟢 DoD erfüllt |
 | **M5** Durchstich WOHNEN | | ⚪ offen |
 | **M6** Durchstich KÜCHE | | ⚪ offen |
 | **M7** Scan-Integration (+AR) | | ⚪ offen |
@@ -66,7 +66,7 @@
   API: /samples/rooms · /catalog/{rt} · /rules/{rt} · /solve · /validate ·
   /evaluate · /export/kv-pdf (Fehler-Envelope, 422 NO_FEASIBLE_PLACEMENT).
 
-- **M4 (2026-06-11, weitgehend):**
+- **M4 (2026-06-11, DoD erfüllt):**
   - **Dokumente:** LV (deklarativer Positionskatalog `data/positions/bad.json`,
     Trigger→Template, rückverfolgbar via herkunft) · Bauzeitenplan
     (Sequenz-DAG `data/sequence/bad.json` mit Trocknungs-Wartekanten) ·
@@ -81,17 +81,22 @@
     `data/images/bad.json` · Swipe-Overlay + Preset-Klick · Smart Spider
     (SVG-Radar, Achsen aus /taxonomy) · POST /style/profile · Klickpfad
     Stil → /curate → /solve im Viewer verdrahtet (Begründung wird gezeigt).
-  - **Offen für M4-Abschluss:** 2D-Plan als PDF, 3D-Export, separate
-    Gewerke-Übersicht/Einkaufsliste (Daten stecken in KV/LV), Mensch-Rating
-    der Mini-Eval (Bryan), echte Bad-Fotos taggen (ersetzt SVG-Platzhalter).
+  - **Alle MVP-Dokumente generierbar (DoD):** KV · Mengen · LV ·
+    Bauzeitenplan · Offertanfrage-Paket · Gewerke-Übersicht · Einkaufsliste ·
+    2D-Plan (PDF **und** DXF) · 3D-Export (glTF 2.0, handgebauter Writer,
+    deckungsgleich mit dem Box-Viewer) · Next-Steps (im KV). Im Viewer als
+    «📄 Dokumente…»-Menü. **Eval-Gate entschieden: Baseline aktiv** (LLM darf
+    sie per FP_KURATOR_URL herausfordern).
+  - **Nicht code-seitig (bei Bryan):** Mini-Eval mit echtem LLM messen +
+    Mensch-Rating; echte Bad-Fotos taggen (ersetzt SVG-Platzhalter).
 
 ## Nächste Schritte (für die nächste Session)
 
-1. **M4 abschliessen:** 2D-Plan-PDF, 3D-Export, Gewerke-Übersicht/
-   Einkaufsliste als eigene Dokumente; Kurator-Mini-Eval mit echtem LLM
-   (FP_KURATOR_URL setzen) + Mensch-Rating. Danach M3-Polituren
-   (2D-Grundriss-Ansicht, austauschen, Drag&Drop, circulation-Analyse)
-   oder **M5 Durchstich WOHNEN** (Regelsatz/Katalog/Bilder wohnen).
+1. **Katalog-Ausbau Bad (30–50 Items)** – grösster Hebel für Kurator-
+   Diversität und Solver-Varianten – oder direkt **M5 Durchstich WOHNEN**
+   (Regelsatz/Katalog/Bilder wohnen, freie Platzierung + Relationen breit).
+   M3-Polituren weiterhin offen: 2D-Grundriss-Ansicht im Viewer,
+   «austauschen», Drag&Drop, circulation-Freiraum-Analyse (beidseitig!).
 2. **M2 Scan-Spike weiterführen:** Restmasse R1 (Raumhöhe, Türbreite,
    Objektmasse) + Neuaufnahme nach Guideline (Bryan); danach
    `spike_eval.ipynb` in Colab (T4) auf altem+neuem Material laufen lassen,

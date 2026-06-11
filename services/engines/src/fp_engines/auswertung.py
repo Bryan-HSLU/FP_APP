@@ -81,3 +81,58 @@ def evaluate_plan(
         "hinweis": "Kostenschätzung mit Bandbreite – KEINE Offerte. "
         "Preise: Sample-Mittelwerte, vor Verwendung verifizieren.",
     }
+
+
+def gewerke_uebersicht(lv: dict[str, Any], bauzeitenplan: dict[str, Any]) -> dict[str, Any]:
+    """MVP-Dokument «Gewerke-Übersicht»: je Gewerk Summe, Positionen, Zeitfenster."""
+    fenster: dict[str, list[float]] = {}
+    for z in bauzeitenplan["zeilen"]:
+        for g in z["gewerke"]:
+            von, bis = fenster.get(g, [float("inf"), 0.0])
+            fenster[g] = [min(von, z["start_tag"]), max(bis, z["start_tag"] + z["dauer_tage"])]
+
+    eintraege = []
+    for gewerk, positionen in lv["gewerke"].items():
+        eintraege.append(
+            {
+                "gewerk": gewerk,
+                "anzahlPositionen": len(positionen),
+                "summe_chf": round(sum(p["total_chf"] for p in positionen), 2),
+                "aufwand_h": round(sum(p["aufwand_h"] for p in positionen), 1),
+                "zeitfenster_arbeitstage": fenster.get(gewerk),
+                "leistungen": [p["text"] for p in positionen],
+            }
+        )
+    eintraege.sort(key=lambda e: -e["summe_chf"])
+    return {
+        "raumName": lv["raumName"],
+        "gewerke": eintraege,
+        "summe_chf": lv["summe_chf"],
+        "hinweis": "Übersicht für die Handwerker-Koordination; Beträge = Schätzwerte.",
+    }
+
+
+def einkaufsliste(plan: dict[str, Any], catalog: list[dict[str, Any]]) -> dict[str, Any]:
+    """MVP-Dokument «Material-/Einkaufsliste»: Katalog-Items mit Stückzahl + Preis."""
+    by_id = {c["id"]: c for c in catalog}
+    anzahl = Counter(p["catalogItemId"] for p in plan["placements"])
+    zeilen = []
+    for item_id, menge in anzahl.items():
+        item = by_id[item_id]
+        zeilen.append(
+            {
+                "artikel": item["name"],
+                "funktionsTyp": item["funktionsTyp"],
+                "menge": menge,
+                "masse": item["masse"],
+                "richtpreis_chf": item["preis"]["value"],
+                "total_chf": round(menge * item["preis"]["value"], 2),
+                "preisquelle": item["preis"]["quelle"],
+            }
+        )
+    zeilen.sort(key=lambda z: -z["total_chf"])
+    return {
+        "zeilen": zeilen,
+        "summe_chf": round(sum(z["total_chf"] for z in zeilen), 2),
+        "hinweis": "Richtpreise (Schätzung) – konkrete Produkte/Händler frei wählbar.",
+    }
