@@ -17,7 +17,10 @@
     "assetStatus": "placeholder",
     "priorityClass": "P1",
     "mount": "boden",
-    "achsenTags": {},
+    "achsenTags": {
+      "epoche": 0.3,
+      "opulenz": -0.3
+    },
     "attributTags": [],
     "anschluesse": [
       "abwasser",
@@ -50,7 +53,11 @@
     "assetStatus": "placeholder",
     "priorityClass": "P1",
     "mount": "wand",
-    "achsenTags": {},
+    "achsenTags": {
+      "epoche": 0.4,
+      "kontur": 0.2,
+      "helligkeit": 0.3
+    },
     "attributTags": [],
     "anschluesse": [
       "wasser",
@@ -87,7 +94,11 @@
     "assetStatus": "placeholder",
     "priorityClass": "P1",
     "mount": "boden",
-    "achsenTags": {},
+    "achsenTags": {
+      "epoche": 0.5,
+      "raumgefuehl": 0.4,
+      "helligkeit": 0.4
+    },
     "attributTags": [],
     "anschluesse": [
       "wasser",
@@ -120,7 +131,11 @@
     "assetStatus": "placeholder",
     "priorityClass": "P2",
     "mount": "wand",
-    "achsenTags": {},
+    "achsenTags": {
+      "epoche": 0.4,
+      "helligkeit": 0.5,
+      "opulenz": -0.2
+    },
     "attributTags": [],
     "anschluesse": [],
     "relationalRules": [
@@ -156,7 +171,11 @@
     "assetStatus": "placeholder",
     "priorityClass": "P2",
     "mount": "wand",
-    "achsenTags": {},
+    "achsenTags": {
+      "epoche": 0.2,
+      "kontur": 0.4,
+      "opulenz": -0.4
+    },
     "attributTags": [],
     "anschluesse": [],
     "relationalRules": [
@@ -192,7 +211,11 @@
     "assetStatus": "placeholder",
     "priorityClass": "P3",
     "mount": "boden",
-    "achsenTags": {},
+    "achsenTags": {
+      "materialitaet": 0.9,
+      "temperatur": 0.5,
+      "farbigkeit": 0.4
+    },
     "attributTags": [],
     "anschluesse": [],
     "relationalRules": [],

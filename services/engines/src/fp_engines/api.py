@@ -274,3 +274,24 @@ def export_dxf(req: EvaluateRequest) -> Response:
         media_type="application/dxf",
         headers={"Content-Disposition": 'attachment; filename="grundriss.dxf"'},
     )
+
+
+class CurateRequest(BaseModel):
+    """KuratorPort (Vertrag 7): Stilprofil + Raum → Auswahl + relationale Absichten."""
+
+    room: dict[str, Any]
+    stilprofil: dict[str, Any] | None = None
+    budget: float | None = None
+    seed: int = 1
+
+
+@app.post("/curate")
+def curate(req: CurateRequest) -> JSONResponse:
+    """Kurator-Aufruf (2–10 s mit LLM); Port via FP_KURATOR_URL, sonst Baseline."""
+    from fp_engines.kurator import waehle_port
+
+    katalog = _catalog(req.room["roomType"])
+    profil = req.stilprofil or {"styleVector": {}, "derivedRequirements": [], "palette": []}
+    port = waehle_port()
+    antwort = port.kuratiere(profil, req.room, katalog, req.budget, req.seed)
+    return JSONResponse(content={"kurator": antwort, "port": port.name})
