@@ -90,9 +90,8 @@ def _cross(o: Vec2, a: Vec2, b: Vec2) -> float:
 
 
 def _on_seg(o1: Vec2, o2: Vec2, p: Vec2) -> bool:
-    return (
-        min(o1[0], o2[0]) <= p[0] <= max(o1[0], o2[0])
-        and min(o1[1], o2[1]) <= p[1] <= max(o1[1], o2[1])
+    return min(o1[0], o2[0]) <= p[0] <= max(o1[0], o2[0]) and min(o1[1], o2[1]) <= p[1] <= max(
+        o1[1], o2[1]
     )
 
 

@@ -210,7 +210,8 @@ def solve(
         kandidaten = _wall_candidates(room, item)
         if anker is not None:
             kandidaten = [
-                k for k in kandidaten
+                k
+                for k in kandidaten
                 if math.hypot(k.pos[0] - anker[0], k.pos[1] - anker[1]) <= max_dist
             ]
             kandidaten.sort(key=lambda k: math.hypot(k.pos[0] - anker[0], k.pos[1] - anker[1]))

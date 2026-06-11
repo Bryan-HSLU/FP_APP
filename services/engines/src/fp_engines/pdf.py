@@ -29,8 +29,13 @@ def kv_pdf(kv: dict[str, Any]) -> bytes:
     """KV-Datenstruktur (auswertung.evaluate_plan) → PDF-Bytes."""
     buf = BytesIO()
     doc = SimpleDocTemplate(
-        buf, pagesize=A4, title="Kostenschätzung – Future Planning",
-        leftMargin=18 * mm, rightMargin=18 * mm, topMargin=18 * mm, bottomMargin=18 * mm,
+        buf,
+        pagesize=A4,
+        title="Kostenschätzung – Future Planning",
+        leftMargin=18 * mm,
+        rightMargin=18 * mm,
+        topMargin=18 * mm,
+        bottomMargin=18 * mm,
     )
     story: list[Any] = [
         Paragraph("Future Planning – Kostenschätzung (KV)", _TITEL),
@@ -55,8 +60,13 @@ def kv_pdf(kv: dict[str, Any]) -> bytes:
         )
     daten.append(["", "", "", "Summe", f"CHF {kv['summe_chf']:,.0f}"])
     daten.append(
-        ["", "", "", f"Bandbreite ±{kv['bandbreitePct']}%",
-         f"CHF {kv['von_chf']:,.0f} – {kv['bis_chf']:,.0f}"]
+        [
+            "",
+            "",
+            "",
+            f"Bandbreite ±{kv['bandbreitePct']}%",
+            f"CHF {kv['von_chf']:,.0f} – {kv['bis_chf']:,.0f}",
+        ]
     )
 
     tabelle = Table(daten, colWidths=[60 * mm, 28 * mm, 22 * mm, 32 * mm, 32 * mm])

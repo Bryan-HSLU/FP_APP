@@ -15,7 +15,7 @@
 | **M0** Repo-Setup | Monorepo-Gerüst, Pins, Setup-Scripts, CI, CLAUDE.md/README | 🟢 fertig |
 | **M1** Verträge & Regel-Kern | JSON-Schemas (7 Verträge) + Codegen + Regel-Interpreter TS & Python + Paritätstest | 🟢 fertig |
 | **M2** Scan-Spike | Eval-Notebook, Messung R1–R3 (parallel, blockiert nichts) | 🟡 gestartet |
-| **M3** Durchstich BAD ⭐ | Sample-Bad → Baseline → Solver P1–P3 → Viewer → Report → Mengen/KV-PDF | ⚪ offen |
+| **M3** Durchstich BAD ⭐ | Sample-Bad → Baseline → Solver P1–P3 → Viewer → Report → Mengen/KV-PDF | 🟢 DoD erfüllt |
 | **M4** Auswertung voll + Kurator | LV, Bauzeitenplan, Offert-Paket, DXF · Kurator + Mini-Eval · Stil-UI | ⚪ offen |
 | **M5** Durchstich WOHNEN | | ⚪ offen |
 | **M6** Durchstich KÜCHE | | ⚪ offen |
@@ -54,13 +54,25 @@
   erster nicht-rechteckiger Grundriss). Offen: Raumhöhe, Türbreite,
   Objektmasse, Neuaufnahme nach Guideline.
 
+- **M3 (2026-06-11):** kompletter End-to-End-Klickpfad: Raum wählen
+  (Sample-Bad ODER echtes R1-WC) → «Plan vorschlagen» (Baseline-Kurator +
+  Feasibility-first-Solver P1–P3, `data/catalog/bad.json`) → 3D-Viewer
+  (r3f: Hülle + Box-Platzhalter, Auswahl, Pfeiltasten/«r» verschieben/
+  rotieren, sperren) mit **Live-Norm-Ampel** (TS-Interpreter, dieselben
+  Regel-JSONs) → «Variante würfeln» (Seed) → Auswertung (Mengen + KV mit
+  Bandbreite + Next-Steps) → **KV-PDF** (ReportLab, CI-Look).
+  **Solver-Invariante ⭐ als Property-Test grün** (12 Seeds × 2 Räume, 0 ❌;
+  Plan validiert gegen Plan-Schema; Determinismus + Varianten getestet).
+  API: /samples/rooms · /catalog/{rt} · /rules/{rt} · /solve · /validate ·
+  /evaluate · /export/kv-pdf (Fehler-Envelope, 422 NO_FEASIBLE_PLACEMENT).
+
 ## Nächste Schritte (für die nächste Session)
 
-1. **M3 Durchstich Bad** beginnen (`vault/50_Umsetzung/Bauplan-Meilensteine.md`):
-   Sample-Bad + Katalog-Fixtures existieren; es fehlen Baseline-Auswahl
-   (Kurator-Fallback), Solver P1–P3 (inkl. `circulation`-Freiraum-Analyse →
-   dann den Stub im Interpreter ersetzen, beidseitig!), Viewer mit
-   Live-Ampel (TS-Interpreter ist bereit), Mengen + KV-PDF.
+1. **M3-Ausbau / M4 beginnen:** offene M3-Polituren: 2D-Grundriss-Ansicht,
+   «austauschen» im Editor, `circulation`-Freiraum-Analyse (ersetzt den
+   nicht-geprueft-Stub, beidseitig + Goldens!), Drag&Drop statt Pfeiltasten.
+   M4: LV + Bauzeitenplan + Offert-Paket + DXF, Kurator-LLM hinter Port +
+   Mini-Eval, Stil-UI (Swipe/Preset + Smart Spider).
 2. **M2 Scan-Spike weiterführen:** Restmasse R1 (Raumhöhe, Türbreite,
    Objektmasse) + Neuaufnahme nach Guideline (Bryan); danach
    `spike_eval.ipynb` in Colab (T4) auf altem+neuem Material laufen lassen,
@@ -73,7 +85,9 @@
 | Entscheid | Grund | Wo dokumentiert |
 |---|---|---|
 | Eigener Code proprietär (kein LICENSE-File) | Entscheid Bryan 2026-06-11 | README, CLAUDE.md |
-| Regel-Typ `circulation` in M1 nur als Stub (`status: nicht-geprueft`) | Verkehrsweg-Breite braucht Freiraum-/Grid-Analyse → kommt mit M3 (Solver), Vokabular & Schema stehen | `packages/shared/README.md`, Learning im Brain |
+| Regel-Typ `circulation` weiterhin Stub (`nicht-geprueft`) | Freiraum-Analyse nicht DoD-kritisch für M3; kommt als M3-Politur/M4 (beidseitig + Goldens) | STATUS, rules-README |
+| Kollision prüft vertikale Überlappung (Höhenintervalle) | Spiegel ÜBER Lavabo ist keine Kollision – nötig für P2-Wandobjekte | Interpreter beidseitig, Learning im Brain |
+| Editor v0: Pfeiltasten/Buttons statt Drag&Drop; «austauschen» fehlt | minimal gemäss DoD («ansehen + minimal editieren + Ampel»); Ausbau M4 | STATUS |
 | `door-swing` v0 als Rechteck (Breite×Radius) statt Viertelkreis | identische, einfache Geometrie in TS & Python; konservative Näherung | Code-Kommentar + Fixtures |
 
 ## Offene Fragen an Bryan

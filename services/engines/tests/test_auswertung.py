@@ -27,8 +27,13 @@ def _plan_und_raum() -> tuple[dict[str, Any], dict[str, Any]]:
     room = _load(FIXTURES / "raummodell.bad-sample.json")
     sel = baseline_auswahl(room, CATALOG)
     plan = solve(
-        room, sel["auswahl"], sel["relationaleAbsichten"], CATALOG, RULES,
-        seed=1, created_at="2026-06-11T12:00:00Z",
+        room,
+        sel["auswahl"],
+        sel["relationaleAbsichten"],
+        CATALOG,
+        RULES,
+        seed=1,
+        created_at="2026-06-11T12:00:00Z",
     )
     return room, plan
 

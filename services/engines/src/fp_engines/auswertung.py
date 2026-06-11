@@ -58,9 +58,7 @@ def evaluate_plan(
 
     gewerke = sorted({p["gewerk"] for p in positionen})
     knapp = [
-        r
-        for r in plan["constraintReport"]["results"]
-        if r["status"] in ("knapp", "nicht-geprueft")
+        r for r in plan["constraintReport"]["results"] if r["status"] in ("knapp", "nicht-geprueft")
     ]
 
     return {

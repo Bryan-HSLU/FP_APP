@@ -20,9 +20,7 @@ P1_PFLICHT: dict[str, list[str]] = {
 _FLAECHE_FAKTOR = 2.5
 
 
-def baseline_auswahl(
-    room: dict[str, Any], catalog: list[dict[str, Any]]
-) -> dict[str, Any]:
+def baseline_auswahl(room: dict[str, Any], catalog: list[dict[str, Any]]) -> dict[str, Any]:
     """Kurator-Response (Vertrag 7) ohne LLM – deterministisch, immer verfügbar."""
     room_type = room["roomType"]
     flaeche = room["shell"]["floor"].get("area") or 0.0
@@ -49,9 +47,7 @@ def baseline_auswahl(
                     budget_flaeche -= item["masse"]["w"] * item["masse"]["d"] * _FLAECHE_FAKTOR
                 break
 
-    gewaehlte_typen = {
-        c["funktionsTyp"] for c in passend if c["id"] in auswahl
-    }
+    gewaehlte_typen = {c["funktionsTyp"] for c in passend if c["id"] in auswahl}
 
     # P2/P3: nur aufnehmen, wenn der relationale Anker überhaupt im Set ist.
     for item in passend:

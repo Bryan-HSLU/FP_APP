@@ -49,9 +49,7 @@ def _vec2(v: list[float]) -> Vec2:
     return (v[0], v[1])
 
 
-def build_scene(
-    room: dict[str, Any], plan: dict[str, Any], catalog: list[dict[str, Any]]
-) -> Scene:
+def build_scene(room: dict[str, Any], plan: dict[str, Any], catalog: list[dict[str, Any]]) -> Scene:
     by_id = {c["id"]: c for c in catalog}
     objects: list[SceneObject] = []
 

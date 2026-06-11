@@ -8,7 +8,11 @@ export default defineConfig({
     host: true,
     proxy: {
       // Engines-API (FastAPI) – ein Origin, kein CORS-Gefummel im POC
-      "/api": { target: "http://localhost:8000", changeOrigin: true },
+      "/api": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
     },
   },
 });

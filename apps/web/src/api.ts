@@ -1,0 +1,100 @@
+/** API-Client zum lokalen Engines-Dienst (Vite-Proxy: /api → FastAPI :8000). */
+import type { CatalogItemInput, RoomInput } from "@fp/shared/rules";
+
+export interface Placement {
+  id: string;
+  catalogItemId: string;
+  pose: { pos: [number, number]; yawDeg: number };
+  gewerk: string;
+  locked: boolean;
+  source: string;
+  mountHeight?: number;
+}
+
+export interface Plan {
+  id: string;
+  roomRef: string;
+  version: number;
+  status: string;
+  placements: Placement[];
+  constraintReport: unknown;
+  meta: { seed: number; normProfile: string; solverVersion: string };
+}
+
+export interface KatalogItem extends CatalogItemInput {
+  name: string;
+  priorityClass: "P1" | "P2" | "P3";
+}
+
+export interface Room extends RoomInput {
+  id: string;
+  name: string;
+}
+
+export interface KV {
+  raumName: string;
+  mengen: { bodenflaeche_m2: number; wandflaeche_m2: number; objekte: number };
+  positionen: {
+    bezeichnung: string;
+    gewerk: string;
+    menge: number;
+    einheit: string;
+    einzelpreis_chf: number;
+    total_chf: number;
+  }[];
+  summe_chf: number;
+  bandbreitePct: number;
+  von_chf: number;
+  bis_chf: number;
+  nextSteps: string[];
+  hinweis: string;
+}
+
+export class ApiFehler extends Error {
+  constructor(
+    public code: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+async function call<T>(pfad: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`/api${pfad}`, {
+    headers: { "Content-Type": "application/json" },
+    ...init,
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { code?: string; message?: string };
+    throw new ApiFehler(body.code ?? "UNBEKANNT", body.message ?? res.statusText);
+  }
+  return (await res.json()) as T;
+}
+
+export const api = {
+  rooms: () => call<Room[]>("/samples/rooms"),
+  catalog: (roomType: string) => call<KatalogItem[]>(`/catalog/${roomType}`),
+  rules: (roomType: string) => call<unknown[]>(`/rules/${roomType}`),
+  solve: (room: Room, seed: number) =>
+    call<{ plan: Plan; hinweis?: string }>("/solve", {
+      method: "POST",
+      body: JSON.stringify({ room, seed }),
+    }),
+  evaluate: (room: Room, plan: Plan) =>
+    call<KV>("/evaluate", { method: "POST", body: JSON.stringify({ room, plan }) }),
+  /** KV-PDF herunterladen (Blob → Browser-Download). */
+  async kvPdf(room: Room, plan: Plan): Promise<void> {
+    const res = await fetch("/api/export/kv-pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ room, plan }),
+    });
+    if (!res.ok) throw new ApiFehler("EXPORT", res.statusText);
+    const url = URL.createObjectURL(await res.blob());
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "kostenschaetzung.pdf";
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+};

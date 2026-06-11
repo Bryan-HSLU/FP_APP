@@ -38,8 +38,13 @@ def _solve(room_name: str, seed: int) -> dict[str, Any]:
     room = _load(FIXTURES / f"{room_name}.json")
     sel = baseline_auswahl(room, CATALOG)
     return solve(
-        room, sel["auswahl"], sel["relationaleAbsichten"], CATALOG, RULES,
-        seed=seed, created_at="2026-06-11T12:00:00Z",
+        room,
+        sel["auswahl"],
+        sel["relationaleAbsichten"],
+        CATALOG,
+        RULES,
+        seed=seed,
+        created_at="2026-06-11T12:00:00Z",
     )
 
 

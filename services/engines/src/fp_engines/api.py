@@ -148,8 +148,13 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
         auswahl, absichten = req.auswahl, []
     try:
         plan = solve(
-            req.room, auswahl, absichten, katalog, rules,
-            seed=req.seed, norm_profile=req.normProfile,
+            req.room,
+            auswahl,
+            absichten,
+            katalog,
+            rules,
+            seed=req.seed,
+            norm_profile=req.normProfile,
             stilprofil_ref=req.stilprofilRef,
             created_at=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         )
@@ -189,3 +194,12 @@ def export_kv_pdf(req: EvaluateRequest) -> Response:
         media_type="application/pdf",
         headers={"Content-Disposition": 'attachment; filename="kostenschaetzung.pdf"'},
     )
+
+
+@app.get("/rules/{room_type}")
+def rules_for_room(room_type: str) -> Any:
+    """Regel-JSON (basis + Raumtyp) – der TS-Live-Check liest DIESELBEN Regeln."""
+    try:
+        return _load_rulesets(["basis", room_type])
+    except FileNotFoundError:
+        return _load_rulesets(["basis"])
