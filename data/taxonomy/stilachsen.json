@@ -1,0 +1,18 @@
+{
+  "taxonomyVersion": "0.1.0",
+  "achsen": [
+    { "id": "temperatur", "negativPol": "kühl", "positivPol": "warm" },
+    { "id": "opulenz", "negativPol": "schlicht", "positivPol": "opulent" },
+    { "id": "materialitaet", "negativPol": "synthetisch", "positivPol": "natürlich" },
+    { "id": "helligkeit", "negativPol": "dunkel", "positivPol": "hell" },
+    { "id": "epoche", "negativPol": "klassisch", "positivPol": "modern" },
+    { "id": "kontur", "negativPol": "weich", "positivPol": "kantig" },
+    { "id": "farbigkeit", "negativPol": "monochrom", "positivPol": "farbig" },
+    { "id": "raumgefuehl", "negativPol": "geborgen", "positivPol": "offen" }
+  ],
+  "attributKategorien": [
+    { "id": "kuechentyp", "beschreibung": "Form-/Typ-Präferenz Küche", "werte": ["insel", "zeile", "l-form", "u-form", "galley"] },
+    { "id": "pflanzen", "beschreibung": "Begrünung im Bild/Wunsch" },
+    { "id": "marke", "beschreibung": "Erkennbare/gewünschte Marke (nur als Tag, keine Bild-Erkennung)" }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kurator-vertrag.schema.json",
+  "title": "KuratorVertrag",
+  "description": "Vertrag 7: Schnittstelle zum KI-Kurator (ADR-0007). Erdung als Schema-Regel: Response-IDs müssen Teilmenge des katalogAuszug sein – sonst Retry/Fallback deterministische Baseline.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "request": { "$ref": "#/$defs/kuratorRequest" },
+    "response": { "$ref": "#/$defs/kuratorResponse" }
+  },
+  "$defs": {
+    "uuid": { "type": "string", "format": "uuid" },
+    "kuratorRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stilprofilRef", "raumFakten", "katalogAuszug", "normProfile"],
+      "properties": {
+        "stilprofilRef": { "$ref": "#/$defs/uuid" },
+        "raumFakten": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["roomType", "flaeche_m2"],
+          "properties": {
+            "roomType": {
+              "enum": ["bad", "kueche", "wohnen", "schlafen", "essen", "flur", "sonstig"]
+            },
+            "flaeche_m2": { "type": "number", "exclusiveMinimum": 0 },
+            "zonen": { "type": "array", "items": { "type": "string" } },
+            "fixpunkte": {
+              "type": "array",
+              "items": {
+                "enum": ["wasser", "abwasser", "elektro", "starkstrom", "lueftung", "heizung"]
+              }
+            },
+            "oeffnungen": { "type": "array", "items": { "enum": ["door", "window"] } }
+          }
+        },
+        "katalogAuszug": {
+          "description": "Vorgefilterte Items (IDs + Tags + Masse + Klasse) – der Kurator wählt NUR daraus.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "funktionsTyp", "priorityClass"],
+            "properties": {
+              "id": { "$ref": "#/$defs/uuid" },
+              "funktionsTyp": { "type": "string" },
+              "priorityClass": { "enum": ["P1", "P2", "P3"] },
+              "masse": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["w", "d", "h"],
+                "properties": {
+                  "w": { "type": "number" },
+                  "d": { "type": "number" },
+                  "h": { "type": "number" }
+                }
+              },
+              "achsenTags": { "type": "object", "additionalProperties": { "type": "number" } },
+              "attributTags": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "budget": { "type": "number", "exclusiveMinimum": 0 },
+        "normProfile": { "enum": ["ch", "eu"] }
+      }
+    },
+    "kuratorResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["auswahl", "relationaleAbsichten"],
+      "properties": {
+        "auswahl": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/uuid" },
+          "description": "catalogItemIds – MUSS Teilmenge von request.katalogAuszug sein (harte Validierung)."
+        },
+        "relationaleAbsichten": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["itemId", "relation"],
+            "properties": {
+              "itemId": { "$ref": "#/$defs/uuid" },
+              "relation": {
+                "type": "string",
+                "description": "Mini-Grammatik, z.B. near:lavabo:1.2."
+              },
+              "targetId": { "$ref": "#/$defs/uuid" },
+              "zone": { "type": "string" }
+            }
+          }
+        },
+        "begruendung": { "type": "string" }
+      }
+    }
+  }
+}

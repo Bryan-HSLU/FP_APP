@@ -1,2 +1,3 @@
-// Regel-Interpreter (TS) – kommt mit M1. Spiegel von fp_engines/rules.
-export {};
+export * from "./geometry.ts";
+export * from "./scene.ts";
+export * from "./interpreter.ts";

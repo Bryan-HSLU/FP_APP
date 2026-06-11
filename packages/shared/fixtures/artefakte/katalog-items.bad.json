@@ -1,0 +1,75 @@
+[
+  {
+    "id": "aaaaaaaa-0001-4000-8000-000000000001",
+    "schemaVersion": "0.1.0",
+    "name": "Wand-WC Sample",
+    "kategorie": "sanitaer-wc",
+    "funktionsTyp": "wc",
+    "roomTypes": ["bad"],
+    "gewerk": "sanitaer",
+    "masse": { "w": 0.4, "d": 0.6, "h": 0.4 },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {},
+    "attributTags": [],
+    "anschluesse": ["abwasser", "wasser"],
+    "relationalRules": [],
+    "preis": {
+      "value": 900,
+      "currency": "CHF",
+      "stand": "2026-06-11",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "aaaaaaaa-0002-4000-8000-000000000002",
+    "schemaVersion": "0.1.0",
+    "name": "Lavabo Sample 60",
+    "kategorie": "sanitaer-lavabo",
+    "funktionsTyp": "lavabo",
+    "roomTypes": ["bad"],
+    "gewerk": "sanitaer",
+    "masse": { "w": 0.6, "d": 0.45, "h": 0.15 },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "wand",
+    "mountHeightRange": { "min": 0.7, "max": 0.8 },
+    "achsenTags": {},
+    "attributTags": [],
+    "anschluesse": ["wasser", "abwasser"],
+    "relationalRules": [],
+    "preis": {
+      "value": 600,
+      "currency": "CHF",
+      "stand": "2026-06-11",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "aaaaaaaa-0003-4000-8000-000000000003",
+    "schemaVersion": "0.1.0",
+    "name": "Duschfläche Sample 90×90",
+    "kategorie": "sanitaer-dusche",
+    "funktionsTyp": "dusche",
+    "roomTypes": ["bad"],
+    "gewerk": "sanitaer",
+    "masse": { "w": 0.9, "d": 0.9, "h": 2.0 },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {},
+    "attributTags": [],
+    "anschluesse": ["wasser", "abwasser"],
+    "relationalRules": [],
+    "preis": {
+      "value": 1800,
+      "currency": "CHF",
+      "stand": "2026-06-11",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  }
+]

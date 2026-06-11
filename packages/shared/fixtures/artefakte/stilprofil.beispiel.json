@@ -1,0 +1,24 @@
+{
+  "id": "33333333-3333-4333-8333-333333333333",
+  "schemaVersion": "0.1.0",
+  "taxonomyVersion": "0.1.0",
+  "styleVector": {
+    "temperatur": 0.6,
+    "opulenz": -0.4,
+    "materialitaet": 0.8,
+    "helligkeit": 0.5,
+    "epoche": 0.3,
+    "kontur": -0.2,
+    "farbigkeit": -0.5,
+    "raumgefuehl": 0.1
+  },
+  "derivedRequirements": ["holz-akzente", "matte-oberflaechen"],
+  "palette": ["#1f4d3a", "#e8e2d6", "#c96f2e"],
+  "meta": {
+    "method": "swipe",
+    "roomType": "bad",
+    "likes": 14,
+    "dislikes": 9,
+    "sampleSufficient": true
+  }
+}

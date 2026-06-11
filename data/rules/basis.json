@@ -1,0 +1,50 @@
+[
+  {
+    "id": "basis-kollision",
+    "roomType": "alle",
+    "appliesTo": "*",
+    "kategorie": "rahmen",
+    "type": "collision",
+    "severity": "hard",
+    "params": {},
+    "quelle": "Grundprinzip",
+    "status": "verifiziert",
+    "hinweis": "Objekte überlappen nicht und liegen vollständig im Raum."
+  },
+  {
+    "id": "basis-tuer-schwenk",
+    "roomType": "alle",
+    "appliesTo": "*",
+    "kategorie": "sperrzone",
+    "type": "door-swing",
+    "severity": "hard",
+    "params": { "radius": 0.9 },
+    "quelle": "Richtwert (r ≈ Türbreite)",
+    "status": "zu-verifizieren",
+    "hinweis": "Türöffnungsbereich frei; v0 als Rechteck Türbreite × radius genähert (konservativ Richtung Raum)."
+  },
+  {
+    "id": "basis-fenster-frei",
+    "roomType": "alle",
+    "appliesTo": "*",
+    "kategorie": "sperrzone",
+    "type": "keep-clear",
+    "severity": "hard",
+    "params": { "depth": 0.3, "maxObjektHoehe": 0.9 },
+    "quelle": "Richtwert (Brüstung ≈ 0.9 m)",
+    "status": "zu-verifizieren",
+    "hinweis": "Fenster nicht durch hohe Möbel verstellen (Objekte höher als maxObjektHoehe blockieren)."
+  },
+  {
+    "id": "basis-verkehrsweg",
+    "roomType": "alle",
+    "appliesTo": "*",
+    "kategorie": "rahmen",
+    "type": "circulation",
+    "severity": "hard",
+    "params": { "minWidth": 0.9 },
+    "quelle": "Richtwert",
+    "status": "zu-verifizieren",
+    "hinweis": "Durchgehender Verkehrsweg ≥ 0.90 m. Auswertung kommt mit M3 (Freiraum-Analyse im Solver); bis dahin Status «nicht-geprueft»."
+  }
+]

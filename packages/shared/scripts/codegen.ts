@@ -25,7 +25,10 @@ for (const file of readdirSync(schemasDir).filter((f) => f.endsWith(".schema.jso
     additionalProperties: false,
   });
   writeFileSync(join(outDir, `${name}.ts`), banner + ts);
-  indexLines.push(`export * from "./${name}.ts";`);
+  // Namespace-Export: jedes Schema bringt eigene $defs (Uuid, Pose, …) mit –
+  // Stern-Re-Exports würden kollidieren.
+  const ns = name.replace(/-([a-z])/g, (_, c: string) => (c as string).toUpperCase());
+  indexLines.push(`export * as ${ns} from "./${name}.ts";`);
   console.log(`✅ ${file} → src/generated/${name}.ts`);
 }
 writeFileSync(join(outDir, "index.ts"), banner + indexLines.join("\n") + "\n");

@@ -1,0 +1,112 @@
+{
+  "hard": {
+    "ok": false,
+    "summary": {
+      "erfuellt": 9,
+      "knapp": 1,
+      "verletzt": 3
+    }
+  },
+  "results": [
+    {
+      "ruleId": "basis-kollision",
+      "status": "verletzt",
+      "margin_cm": -5.0,
+      "placements": ["bbbbbbbb-0001-4000-8000-000000000001"],
+      "hinweis": "Objekte überlappen nicht und liegen vollständig im Raum."
+    },
+    {
+      "ruleId": "basis-tuer-schwenk",
+      "status": "ok",
+      "margin_cm": 100.0,
+      "placements": [],
+      "hinweis": "Türöffnungsbereich frei; v0 als Rechteck Türbreite × radius genähert (konservativ Richtung Raum)."
+    },
+    {
+      "ruleId": "basis-fenster-frei",
+      "status": "ok",
+      "margin_cm": 134.2,
+      "placements": [],
+      "hinweis": "Fenster nicht durch hohe Möbel verstellen (Objekte höher als maxObjektHoehe blockieren)."
+    },
+    {
+      "ruleId": "basis-verkehrsweg",
+      "status": "nicht-geprueft",
+      "margin_cm": null,
+      "placements": [],
+      "hinweis": "Durchgehender Verkehrsweg ≥ 0.90 m. Auswertung kommt mit M3 (Freiraum-Analyse im Solver); bis dahin Status «nicht-geprueft»."
+    },
+    {
+      "ruleId": "bad-wc-seitenabstand",
+      "status": "verletzt",
+      "margin_cm": -5.0,
+      "placements": ["bbbbbbbb-0001-4000-8000-000000000001"],
+      "hinweis": "WC-Mitte zu Seitenwand/-objekt ≥ 0.20 m (empf. 0.25)."
+    },
+    {
+      "ruleId": "bad-lavabo-hoehe",
+      "status": "knapp",
+      "margin_cm": 1.0,
+      "placements": ["bbbbbbbb-0002-4000-8000-000000000002"],
+      "hinweis": "Lavabo wandgebunden, Oberkante 0.85–0.95 m."
+    },
+    {
+      "ruleId": "bad-spiegel-wandbindung",
+      "status": "ok",
+      "margin_cm": null,
+      "placements": []
+    },
+    {
+      "ruleId": "bad-sanitaer-achsabstand",
+      "status": "ok",
+      "margin_cm": null,
+      "placements": [],
+      "hinweis": "Achsabstand zweier Sanitärobjekte (WC–Bidet) ≥ 0.30 m lichte Trennung."
+    },
+    {
+      "ruleId": "bad-wc-front",
+      "status": "verletzt",
+      "margin_cm": -15.0,
+      "placements": ["bbbbbbbb-0001-4000-8000-000000000001"],
+      "hinweis": "Bewegungsfläche vor WC ≥ 0.60 × 0.60 m."
+    },
+    {
+      "ruleId": "bad-lavabo-front",
+      "status": "ok",
+      "margin_cm": 45.0,
+      "placements": [],
+      "hinweis": "Bewegungsfläche vor Lavabo ≥ 0.60 × 0.70 m."
+    },
+    {
+      "ruleId": "bad-dusche-front",
+      "status": "ok",
+      "margin_cm": 105.0,
+      "placements": [],
+      "hinweis": "Bewegungsfläche vor Dusche/Wanne ≥ 0.60 m tief (Breite = Objektbreite)."
+    },
+    {
+      "ruleId": "bad-wc-anschluss",
+      "status": "ok",
+      "margin_cm": 55.0,
+      "placements": [],
+      "hinweis": "WC braucht Abwasser-Fixpunkt in Reichweite (Bestand oder Vorwand-Zone); sonst Intervention vorwand-neu."
+    },
+    {
+      "ruleId": "bad-lavabo-anschluss",
+      "status": "ok",
+      "margin_cm": 100.0,
+      "placements": []
+    },
+    {
+      "ruleId": "bad-dusche-anschluss",
+      "status": "ok",
+      "margin_cm": 80.0,
+      "placements": []
+    }
+  ],
+  "softScore": {
+    "stil": 0.0,
+    "ergonomie": 0.0,
+    "relation": 0.0
+  }
+}

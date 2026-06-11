@@ -13,7 +13,7 @@
 | M | Inhalt | Status |
 |---|---|---|
 | **M0** Repo-Setup | Monorepo-Gerüst, Pins, Setup-Scripts, CI, CLAUDE.md/README | 🟢 fertig |
-| **M1** Verträge & Regel-Kern | JSON-Schemas (7 Verträge) + Codegen + Regel-Interpreter TS & Python + Paritätstest | 🟡 in Arbeit |
+| **M1** Verträge & Regel-Kern | JSON-Schemas (7 Verträge) + Codegen + Regel-Interpreter TS & Python + Paritätstest | 🟢 fertig |
 | **M2** Scan-Spike | Eval-Notebook, Messung R1–R3 (parallel, blockiert nichts) | ⚪ offen |
 | **M3** Durchstich BAD ⭐ | Sample-Bad → Baseline → Solver P1–P3 → Viewer → Report → Mengen/KV-PDF | ⚪ offen |
 | **M4** Auswertung voll + Kurator | LV, Bauzeitenplan, Offert-Paket, DXF · Kurator + Mini-Eval · Stil-UI | ⚪ offen |
@@ -29,15 +29,29 @@
   TS-Quellcode) · `data/`-Ordnerstruktur mit READMEs · Setup-Scripts
   (`scripts/setup.ps1` für Windows = Bryans Dev-System, `setup.sh` für CI) ·
   GitHub-Actions-CI (Lint → Typecheck → Tests → Schema-Check) · `LICENSES.md`.
+- **M1:** 9 JSON-Schemas in `packages/shared/schemas/` (7 Verträge laut
+  Schema-Spezifikation + Projekt-Hülle + Taxonomie) · Codegen beidseitig
+  (`pnpm codegen` → TS-Typen + pydantic-v2-Modelle, generiert & eingecheckt) ·
+  **Regel-Interpreter doppelt** (`packages/shared/src/rules/` ↔
+  `services/engines/src/fp_engines/rules/`, Semantik-Doku im rules-README) ·
+  Stammdaten `data/rules/basis.json` + `bad.json` (Norm-Regelsatz-v0,
+  Richtwerte «zu-verifizieren») + `data/taxonomy/stilachsen.json` (8 Achsen,
+  ADR-0006) · goldene Fixtures (Sample-Bad 3.0×2.4 m, Plan ok/verletzt) +
+  **Paritätstest grün** in vitest UND pytest · `POST /validate` liefert den
+  `constraintReport` über die API (inkl. Fehler-Envelope).
 
 ## Nächste Schritte (für die nächste Session)
 
-1. **M1 abschliessen** (siehe unten, offene Punkte).
-2. Danach **M3 Durchstich Bad** beginnen: Sample-Bad-Raummodell als Fixture
-   existiert dann schon; es fehlen Baseline-Auswahl, Solver P1–P3, Viewer.
-3. **M2 Scan-Spike** kann jederzeit parallel starten
+1. **M3 Durchstich Bad** beginnen (`vault/50_Umsetzung/Bauplan-Meilensteine.md`):
+   Sample-Bad + Katalog-Fixtures existieren; es fehlen Baseline-Auswahl
+   (Kurator-Fallback), Solver P1–P3 (inkl. `circulation`-Freiraum-Analyse →
+   dann den Stub im Interpreter ersetzen, beidseitig!), Viewer mit
+   Live-Ampel (TS-Interpreter ist bereit), Mengen + KV-PDF.
+2. **M2 Scan-Spike** kann jederzeit parallel starten
    (`vault/50_Umsetzung/Scan-Validierungs-Spike.md`); braucht Testräume
    R1–R3 von Bryan.
+3. Goldens bewusst aktualisieren: `uv run python scripts/update_goldens.py`
+   (aus `services/engines/`), nur zusammen mit Interpreter-Änderung committen.
 
 ## Bewusste Abweichungen / Engineering-Entscheide
 

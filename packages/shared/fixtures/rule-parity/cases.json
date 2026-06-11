@@ -1,0 +1,18 @@
+[
+  {
+    "name": "bad-plan-ok",
+    "beschreibung": "Regelkonformes Sample-Bad; Lavabo-Höhe bewusst «knapp» (Marge 1 cm < Messunsicherheit 2 cm).",
+    "room": "raummodell.bad-sample",
+    "plan": "plan.bad-ok",
+    "catalog": "katalog-items.bad",
+    "rules": ["basis", "bad"]
+  },
+  {
+    "name": "bad-plan-verletzt",
+    "beschreibung": "WC vom Nutzer an die Nordwand geschoben: Kollision (ragt aus dem Raum), Seitenabstand und WC-Bewegungsfläche verletzt.",
+    "room": "raummodell.bad-sample",
+    "plan": "plan.bad-verletzt",
+    "catalog": "katalog-items.bad",
+    "rules": ["basis", "bad"]
+  }
+]

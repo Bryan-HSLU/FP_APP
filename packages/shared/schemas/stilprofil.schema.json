@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "stilprofil.schema.json",
+  "title": "Stilprofil",
+  "description": "Vertrag 3: Stil-Engine → Kurator/Solver. Reine Achsen statt benannter Stile (ADR-0006); Achsen-Set datengetrieben über die Taxonomie.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "schemaVersion",
+    "taxonomyVersion",
+    "styleVector",
+    "derivedRequirements",
+    "palette",
+    "meta"
+  ],
+  "properties": {
+    "id": { "$ref": "#/$defs/uuid" },
+    "schemaVersion": { "$ref": "#/$defs/semver" },
+    "taxonomyVersion": { "$ref": "#/$defs/semver" },
+    "styleVector": {
+      "description": "Achsen-ID (aus data/taxonomy/) → Wert −1…+1 (Gegensatzpaare, 0 = neutral). Erweiterbar ohne Schema-Änderung.",
+      "type": "object",
+      "additionalProperties": { "type": "number", "minimum": -1, "maximum": 1 }
+    },
+    "derivedRequirements": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "palette": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "roomType", "sampleSufficient"],
+      "properties": {
+        "method": { "enum": ["swipe", "preset"] },
+        "presetId": { "$ref": "#/$defs/uuid" },
+        "roomType": {
+          "enum": ["bad", "kueche", "wohnen", "schlafen", "essen", "flur", "sonstig"],
+          "description": "Profil ist raumtyp-gebunden (Bad-Projekt → Bad-Bilder)."
+        },
+        "likes": { "type": "integer", "minimum": 0 },
+        "dislikes": { "type": "integer", "minimum": 0 },
+        "sampleSufficient": { "type": "boolean", "description": "Mindest-Stichprobe erreicht?" }
+      }
+    }
+  },
+  "$defs": {
+    "uuid": { "type": "string", "format": "uuid" },
+    "semver": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" }
+  }
+}

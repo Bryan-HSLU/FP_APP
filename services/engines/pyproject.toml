@@ -26,6 +26,7 @@ packages = ["src/fp_engines"]
 
 [tool.ruff]
 line-length = 100
+extend-exclude = ["src/fp_engines/generated"]
 target-version = "py312"
 
 [tool.ruff.lint]
@@ -35,6 +36,7 @@ select = ["E", "F", "I", "B", "UP"]
 [tool.mypy]
 strict = true
 mypy_path = "src"
+exclude = ["src/fp_engines/generated"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

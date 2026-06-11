@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bild-katalog-item.schema.json",
+  "title": "BildKatalogItem",
+  "description": "Vertrag 5: Bild-Katalog für Swipe & Presets (Stammdaten). Bilder sind raumtyp-gebunden; Lizenz ist Pflichtfeld (Content-Pipeline).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "schemaVersion",
+    "bildRef",
+    "roomType",
+    "achsenTags",
+    "attributTags",
+    "palette",
+    "lizenz",
+    "istPreset"
+  ],
+  "properties": {
+    "id": { "$ref": "#/$defs/uuid" },
+    "schemaVersion": { "$ref": "#/$defs/semver" },
+    "bildRef": { "type": "string", "minLength": 1 },
+    "roomType": { "enum": ["bad", "kueche", "wohnen", "schlafen", "essen", "flur", "sonstig"] },
+    "achsenTags": {
+      "type": "object",
+      "additionalProperties": { "type": "number", "minimum": -1, "maximum": 1 }
+    },
+    "attributTags": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9-]+:[a-z0-9-]+$" }
+    },
+    "palette": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+    },
+    "lizenz": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["quelle", "rechte"],
+      "properties": {
+        "quelle": { "type": "string", "minLength": 1 },
+        "rechte": { "type": "string", "minLength": 1 }
+      }
+    },
+    "istPreset": { "type": "boolean" },
+    "presetProfile": {
+      "description": "Kuratierter Achsen-Vektor hinter dem Preset-Bild (nur wenn istPreset).",
+      "type": "object",
+      "additionalProperties": { "type": "number", "minimum": -1, "maximum": 1 }
+    }
+  },
+  "$defs": {
+    "uuid": { "type": "string", "format": "uuid" },
+    "semver": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" }
+  }
+}

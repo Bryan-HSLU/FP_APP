@@ -23,7 +23,8 @@ export interface ContractValidator {
 }
 
 export function createValidator(): ContractValidator {
-  const ajv = new Ajv2020({ allErrors: true, strict: true });
+  // allowUnionTypes: Verträge nutzen bewusst Union-Typen (z.B. params: number|string).
+  const ajv = new Ajv2020({ allErrors: true, strict: true, allowUnionTypes: true });
   addFormats(ajv);
 
   const names: string[] = [];

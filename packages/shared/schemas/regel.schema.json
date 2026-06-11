@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "regel.schema.json",
+  "title": "Regel",
+  "description": "Vertrag 6: deklarative Norm-Regel (Daten statt Code, Norm-Regelsatz-v0). Beide Interpreter (TS @fp/shared · Python fp_engines) lesen exakt dieses Format. Parameter-Konventionen je type: siehe packages/shared/src/rules/README.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "roomType", "appliesTo", "kategorie", "type", "severity", "quelle", "status"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "roomType": {
+      "enum": ["alle", "bad", "kueche", "wohnen", "schlafen", "essen", "flur", "sonstig"],
+      "description": "«alle» = Basis-Rahmen, gilt in jedem Raum. Im Grossraum gelten Regeln pro Zone."
+    },
+    "appliesTo": {
+      "type": "string",
+      "minLength": 1,
+      "description": "funktionsTyp des Zielobjekts (z.B. wc, lavabo) oder «*» für alle Objekte bzw. raumbezogene Regeln."
+    },
+    "kategorie": {
+      "enum": ["rahmen", "objekt-raum", "objekt-objekt", "sperrzone", "anschluss", "ergonomie"]
+    },
+    "type": {
+      "enum": [
+        "collision",
+        "wall-distance",
+        "object-distance",
+        "clearance",
+        "door-swing",
+        "keep-clear",
+        "host-binding",
+        "connection",
+        "circulation",
+        "relation"
+      ]
+    },
+    "severity": {
+      "enum": ["hard", "soft"],
+      "description": "hard = Constraint (muss) · soft = Score (Ergonomie/Stil)."
+    },
+    "params": {
+      "type": "object",
+      "additionalProperties": { "type": ["number", "string"] },
+      "description": "Parametrierung je type (z.B. minDist, depth, width, radius, anschluss, maxDist, measure)."
+    },
+    "normProfile": {
+      "enum": ["ch", "eu"],
+      "description": "Regel gilt nur in diesem Normprofil; ohne Feld: in allen."
+    },
+    "profilOverrides": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": { "type": ["number", "string"] }
+      },
+      "description": "Profil → params-Overrides (CH/EU-Werte über der Basis)."
+    },
+    "barrierefreiOverride": {
+      "type": "object",
+      "additionalProperties": { "type": ["number", "string"] },
+      "description": "Strengere Werte, wenn Barrierefrei-Overlay aktiv (Mechanik vorgesehen, Werte post-POC)."
+    },
+    "quelle": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["zu-verifizieren", "verifiziert"] },
+    "hinweis": { "type": "string" }
+  }
+}

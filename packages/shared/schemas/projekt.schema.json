@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "projekt.schema.json",
+  "title": "Projekt",
+  "description": "Projekt-Hülle: bündelt Raum/Stilprofil/Pläne/Dokumente. Privacy-Metadaten (retentionUntil) von Anfang an im Modell (ADR-0009). Zustandsmaschine: Engineering-Grundlagen §2.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "schemaVersion",
+    "name",
+    "zustand",
+    "raumRefs",
+    "planRefs",
+    "dokumente",
+    "createdAt",
+    "retentionUntil"
+  ],
+  "properties": {
+    "id": { "$ref": "#/$defs/uuid" },
+    "schemaVersion": { "$ref": "#/$defs/semver" },
+    "name": { "type": "string", "minLength": 1 },
+    "zustand": {
+      "enum": [
+        "neu",
+        "raumErfasst",
+        "geometrieBestaetigt",
+        "stilVorhanden",
+        "planVorschlag",
+        "planBearbeitet",
+        "ausgewertet"
+      ]
+    },
+    "raumRefs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/uuid" },
+      "description": "Modell kann Mehrraum, POC-UI zeigt 1 (Schema-Spezifikation, offene Frage entschieden als design-in)."
+    },
+    "stilprofilRef": { "$ref": "#/$defs/uuid" },
+    "planRefs": { "type": "array", "items": { "$ref": "#/$defs/uuid" } },
+    "dokumente": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["typ", "pfad", "erstellt"],
+        "properties": {
+          "typ": {
+            "enum": [
+              "kv",
+              "mengen",
+              "gewerke",
+              "einkaufsliste",
+              "plan-pdf",
+              "plan-dxf",
+              "3d-export",
+              "next-steps",
+              "bauzeitenplan",
+              "lv",
+              "offertanfrage"
+            ]
+          },
+          "pfad": { "type": "string" },
+          "erstellt": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "retentionUntil": { "type": "string", "format": "date-time" },
+    "contributors": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "uuid": { "type": "string", "format": "uuid" },
+    "semver": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" }
+  }
+}

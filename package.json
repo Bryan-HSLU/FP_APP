@@ -19,7 +19,7 @@
     "build": "pnpm -r build",
     "lint": "pnpm -r lint && uv --project services/engines run ruff check services/engines",
     "format": "pnpm -r format && uv --project services/engines run ruff format services/engines",
-    "typecheck": "pnpm -r typecheck && uv --project services/engines run mypy services/engines/src",
+    "typecheck": "pnpm -r typecheck && uv --project services/engines run mypy --config-file services/engines/pyproject.toml services/engines/src",
     "test": "pnpm -r test && uv --project services/engines run pytest services/engines",
     "schema-check": "pnpm --filter @fp/shared schema-check",
     "codegen": "pnpm --filter @fp/shared codegen && uv --project services/engines run python services/engines/scripts/codegen.py"

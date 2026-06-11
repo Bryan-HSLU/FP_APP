@@ -1,0 +1,25 @@
+[
+  {
+    "id": "ffffffff-0001-4000-8000-000000000001",
+    "schemaVersion": "0.1.0",
+    "bildRef": "images/bad/sample-001.jpg",
+    "roomType": "bad",
+    "achsenTags": { "temperatur": 0.7, "materialitaet": 0.9, "helligkeit": 0.4 },
+    "attributTags": ["pflanzen:viel"],
+    "palette": ["#3a5a40", "#dad7cd"],
+    "lizenz": { "quelle": "Eigenaufnahme Bryan", "rechte": "intern (POC)" },
+    "istPreset": false
+  },
+  {
+    "id": "ffffffff-0002-4000-8000-000000000002",
+    "schemaVersion": "0.1.0",
+    "bildRef": "images/bad/sample-002.jpg",
+    "roomType": "bad",
+    "achsenTags": { "opulenz": -0.8, "epoche": 0.9 },
+    "attributTags": [],
+    "palette": ["#f5f5f5", "#2b2b2b"],
+    "lizenz": { "quelle": "Eigenaufnahme Bryan", "rechte": "intern (POC)" },
+    "istPreset": true,
+    "presetProfile": { "opulenz": -0.8, "epoche": 0.9, "helligkeit": 0.6 }
+  }
+]

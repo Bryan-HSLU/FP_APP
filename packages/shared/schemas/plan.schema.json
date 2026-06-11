@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "plan.schema.json",
+  "title": "PlanObjekt",
+  "description": "Vertrag 2: Output Solver → editiert im Viewer → Input Auswertung. constraintReport macht «normkonform» überprüfbar statt behauptet.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "schemaVersion",
+    "roomRef",
+    "stilprofilRef",
+    "version",
+    "status",
+    "placements",
+    "assemblies",
+    "interventions",
+    "finishes",
+    "constraintReport",
+    "meta"
+  ],
+  "properties": {
+    "id": { "$ref": "#/$defs/uuid" },
+    "schemaVersion": { "$ref": "#/$defs/semver" },
+    "roomRef": { "$ref": "#/$defs/uuid" },
+    "stilprofilRef": { "$ref": "#/$defs/uuid" },
+    "version": { "type": "integer", "minimum": 1 },
+    "status": { "enum": ["vorschlag", "bearbeitet", "final"] },
+    "placements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "catalogItemId", "pose", "gewerk", "locked", "source"],
+        "properties": {
+          "id": { "$ref": "#/$defs/uuid" },
+          "catalogItemId": {
+            "$ref": "#/$defs/uuid",
+            "description": "Nur die ID – nie Geometrie einbetten (Box-Platzhalter mit Auto-Upgrade)."
+          },
+          "pose": { "$ref": "#/$defs/pose" },
+          "gewerk": { "$ref": "#/$defs/gewerk" },
+          "locked": { "type": "boolean" },
+          "source": { "enum": ["solver", "user"] },
+          "assembly": { "oneOf": [{ "$ref": "#/$defs/uuid" }, { "type": "null" }] },
+          "mountHeight": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Unterkante über Boden (m) bei wandmontierten Objekten."
+          }
+        }
+      }
+    },
+    "assemblies": {
+      "description": "Lineare Baugruppen (v.a. Küchenzeile): Form + Korpus-Slots im Raster.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "type", "form"],
+        "properties": {
+          "id": { "$ref": "#/$defs/uuid" },
+          "type": { "enum": ["kuechenzeile"] },
+          "form": { "enum": ["i", "l", "u", "galley", "insel"] },
+          "anchorWall": { "$ref": "#/$defs/uuid" },
+          "grid": { "type": "number", "exclusiveMinimum": 0 }
+        }
+      }
+    },
+    "interventions": {
+      "description": "Bauliche Massnahmen – treiben Gewerke/Mengen.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind"],
+        "properties": {
+          "id": { "$ref": "#/$defs/uuid" },
+          "kind": { "enum": ["wand-entfernen", "oeffnung-aendern", "belag", "vorwand-neu"] },
+          "target": { "$ref": "#/$defs/uuid" },
+          "params": { "type": "object" }
+        }
+      }
+    },
+    "finishes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["surface", "material"],
+        "properties": {
+          "surface": { "type": "string", "pattern": "^(wall:[0-9a-fA-F-]{36}|floor|ceiling)$" },
+          "material": { "$ref": "#/$defs/uuid" },
+          "area": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "constraintReport": { "$ref": "#/$defs/constraintReport" },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["solverVersion", "seed", "normProfile", "barrierefrei", "createdAt"],
+      "properties": {
+        "solverVersion": { "type": "string" },
+        "seed": {
+          "type": "integer",
+          "description": "Variante reproduzierbar («würfeln»): gleicher Input + seed ⇒ gleicher Plan."
+        },
+        "normProfile": { "enum": ["ch", "eu"] },
+        "barrierefrei": { "type": "boolean", "description": "Overlay-Flag; Werte erst post-POC." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "contributors": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "$defs": {
+    "uuid": { "type": "string", "format": "uuid" },
+    "semver": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "vec2": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+    "pose": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pos", "yawDeg"],
+      "properties": {
+        "pos": { "$ref": "#/$defs/vec2" },
+        "yawDeg": { "type": "number" }
+      }
+    },
+    "gewerk": {
+      "enum": [
+        "sanitaer",
+        "elektro",
+        "schreiner",
+        "maler",
+        "plattenleger",
+        "bodenleger",
+        "heizung",
+        "lueftung",
+        "kueche",
+        "moebel",
+        "baumeister"
+      ]
+    },
+    "constraintReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hard", "results", "softScore"],
+      "properties": {
+        "hard": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ok", "summary"],
+          "properties": {
+            "ok": { "type": "boolean" },
+            "summary": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["erfuellt", "knapp", "verletzt"],
+              "properties": {
+                "erfuellt": { "type": "integer", "minimum": 0 },
+                "knapp": { "type": "integer", "minimum": 0 },
+                "verletzt": { "type": "integer", "minimum": 0 }
+              }
+            }
+          }
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["ruleId", "status"],
+            "properties": {
+              "ruleId": { "type": "string" },
+              "status": {
+                "enum": ["ok", "knapp", "verletzt", "nicht-geprueft"],
+                "description": "Konfidenz-Ampel. «knapp» = erfüllt, aber Marge < Messunsicherheit → Next-Steps «vor Ort prüfen». «nicht-geprueft» = Regeltyp im aktuellen Stand bewusst nicht ausgewertet (ehrlich statt stilles ok)."
+              },
+              "margin_cm": { "type": ["number", "null"] },
+              "placements": { "type": "array", "items": { "$ref": "#/$defs/uuid" } },
+              "hinweis": { "type": "string" }
+            }
+          }
+        },
+        "softScore": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stil", "ergonomie", "relation"],
+          "properties": {
+            "stil": { "type": "number" },
+            "ergonomie": { "type": "number" },
+            "relation": { "type": "number" }
+          }
+        }
+      }
+    }
+  }
+}

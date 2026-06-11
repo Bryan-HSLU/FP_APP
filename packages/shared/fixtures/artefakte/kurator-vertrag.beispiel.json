@@ -1,0 +1,48 @@
+{
+  "request": {
+    "stilprofilRef": "33333333-3333-4333-8333-333333333333",
+    "raumFakten": {
+      "roomType": "bad",
+      "flaeche_m2": 7.2,
+      "zonen": [],
+      "fixpunkte": ["abwasser", "wasser"],
+      "oeffnungen": ["door", "window"]
+    },
+    "katalogAuszug": [
+      {
+        "id": "aaaaaaaa-0001-4000-8000-000000000001",
+        "funktionsTyp": "wc",
+        "priorityClass": "P1",
+        "masse": { "w": 0.4, "d": 0.6, "h": 0.4 }
+      },
+      {
+        "id": "aaaaaaaa-0002-4000-8000-000000000002",
+        "funktionsTyp": "lavabo",
+        "priorityClass": "P1",
+        "masse": { "w": 0.6, "d": 0.45, "h": 0.15 }
+      },
+      {
+        "id": "aaaaaaaa-0003-4000-8000-000000000003",
+        "funktionsTyp": "dusche",
+        "priorityClass": "P1",
+        "masse": { "w": 0.9, "d": 0.9, "h": 2.0 }
+      }
+    ],
+    "normProfile": "ch"
+  },
+  "response": {
+    "auswahl": [
+      "aaaaaaaa-0001-4000-8000-000000000001",
+      "aaaaaaaa-0002-4000-8000-000000000002",
+      "aaaaaaaa-0003-4000-8000-000000000003"
+    ],
+    "relationaleAbsichten": [
+      {
+        "itemId": "aaaaaaaa-0002-4000-8000-000000000002",
+        "relation": "near:wc:1.5",
+        "targetId": "aaaaaaaa-0001-4000-8000-000000000001"
+      }
+    ],
+    "begruendung": "P1-Grundausstattung Bad; Lavabo nahe WC wegen gemeinsamer Anschlusswand."
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "katalog-item.schema.json",
+  "title": "KatalogItem",
+  "description": "Vertrag 4: Möbel-/Objektkatalog (Stammdaten). Box-Platzhalter mit Auto-Upgrade: ohne gltfRef rendert der Viewer eine Box aus masse; Platzierungen referenzieren nur die ID.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "schemaVersion",
+    "name",
+    "kategorie",
+    "funktionsTyp",
+    "roomTypes",
+    "gewerk",
+    "masse",
+    "assetStatus",
+    "priorityClass",
+    "achsenTags",
+    "attributTags",
+    "anschluesse",
+    "relationalRules",
+    "preis"
+  ],
+  "properties": {
+    "id": { "$ref": "#/$defs/uuid" },
+    "schemaVersion": { "$ref": "#/$defs/semver" },
+    "name": { "type": "string", "minLength": 1 },
+    "kategorie": { "type": "string", "minLength": 1 },
+    "funktionsTyp": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Funktionaler Typ, auf den Regeln matchen (z.B. wc, lavabo, dusche, herd, sofa)."
+    },
+    "roomTypes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "enum": ["bad", "kueche", "wohnen", "schlafen", "essen", "flur", "sonstig"] }
+    },
+    "gewerk": {
+      "enum": [
+        "sanitaer",
+        "elektro",
+        "schreiner",
+        "maler",
+        "plattenleger",
+        "bodenleger",
+        "heizung",
+        "lueftung",
+        "kueche",
+        "moebel",
+        "baumeister"
+      ]
+    },
+    "masse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["w", "d", "h"],
+      "properties": {
+        "w": { "type": "number", "exclusiveMinimum": 0 },
+        "d": { "type": "number", "exclusiveMinimum": 0 },
+        "h": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "gltfRef": { "type": "string" },
+    "usdzRef": {
+      "type": "string",
+      "description": "AR-Einzelobjekt-Vorschau (Quick Look), Stretch."
+    },
+    "assetStatus": { "enum": ["placeholder", "modeled"] },
+    "priorityClass": {
+      "enum": ["P1", "P2", "P3"],
+      "description": "P1 Pflicht/Anschluss · P2 Funktion · P3 Ergänzung (Gestaltungs-Engine)."
+    },
+    "mount": { "enum": ["boden", "wand"], "description": "Host-Bindung; Default boden." },
+    "mountHeightRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "max"],
+      "properties": {
+        "min": { "type": "number", "minimum": 0 },
+        "max": { "type": "number", "minimum": 0 }
+      },
+      "description": "Erlaubte Montagehöhe (Unterkante bzw. Oberkante je Konvention der Regel) bei mount=wand."
+    },
+    "achsenTags": {
+      "type": "object",
+      "additionalProperties": { "type": "number", "minimum": -1, "maximum": 1 }
+    },
+    "attributTags": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9-]+:[a-z0-9-]+$" }
+    },
+    "anschluesse": {
+      "type": "array",
+      "items": { "enum": ["wasser", "abwasser", "elektro", "starkstrom", "lueftung", "heizung"] }
+    },
+    "relationalRules": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "Mini-Grammatik, z.B. near:lavabo:1.2 – final fixiert beim Solver-Bau (M3)."
+      }
+    },
+    "normProfileVariante": { "enum": ["ch55", "eu60"] },
+    "bkpCode": { "type": "string" },
+    "ebkpCode": { "type": "string" },
+    "npkRef": { "type": "string" },
+    "preis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "currency", "stand", "quelle", "bandbreitePct"],
+      "properties": {
+        "value": { "type": "number", "minimum": 0 },
+        "currency": { "const": "CHF" },
+        "stand": { "type": "string", "format": "date" },
+        "quelle": { "type": "string", "minLength": 1, "description": "Provenance-Pflicht." },
+        "bandbreitePct": { "type": "number", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "uuid": { "type": "string", "format": "uuid" },
+    "semver": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" }
+  }
+}
