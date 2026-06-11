@@ -1,21 +1,32 @@
 {
   "raum": "r1",
   "roomType": "bad",
-  "beschreibung": "Kleines WC/Bad (Aufnahmen 2026-06-11). MASSE VON BRYAN MIT LASER/MASSBAND NACHTRAGEN – ohne Ground Truth keine Fehler-Metriken.",
+  "beschreibung": "Kleines WC (Aufnahmen 2026-06-11). L-förmiger Grundriss: Hauptteil 1.0 m breit, hinten Versatz 0.3 m → WC-Nische 0.7 m breit × 0.8 m tief; Gesamtlänge 1.8 m. Masse von Bryan (Chat, 2026-06-11). Objektmasse + Raumhöhe noch nachmessen.",
+  "grundriss_polygon_m": [
+    [0.0, 0.0],
+    [1.0, 0.0],
+    [1.0, 1.0],
+    [0.7, 1.0],
+    [0.7, 1.8],
+    [0.0, 1.8]
+  ],
   "wandlaengen_m": {
-    "nord": null,
-    "ost": null,
-    "sued": null,
-    "west": null
+    "sued-eingang": 1.0,
+    "ost": 1.0,
+    "versatz": 0.3,
+    "nische-ost": 0.8,
+    "nord-nische": 0.7,
+    "west": 1.8
   },
-  "raumflaeche_m2": null,
+  "umfang_m": 5.6,
+  "raumflaeche_m2": 1.56,
   "raumhoehe_m": null,
   "objekte": [
-    { "klasse": "toilet", "breite_m": null, "tiefe_m": null, "hoehe_m": null, "wand": null },
+    { "klasse": "toilet", "breite_m": null, "tiefe_m": null, "hoehe_m": null, "wand": "nord-nische (Stirnseite der Nische)" },
     { "klasse": "sink", "breite_m": null, "tiefe_m": null, "hoehe_m": null, "wand": null },
     { "klasse": "mirror", "breite_m": null, "tiefe_m": null, "hoehe_m": null, "wand": "ueber lavabo" },
-    { "klasse": "door", "breite_m": null, "tiefe_m": null, "hoehe_m": null, "wand": null }
+    { "klasse": "door", "breite_m": null, "tiefe_m": null, "hoehe_m": null, "wand": "sued-eingang" }
   ],
-  "messmethode": "laser|massband",
-  "gemessen_am": null
+  "messmethode": "manuell (Angaben Bryan im Chat)",
+  "gemessen_am": "2026-06-11"
 }

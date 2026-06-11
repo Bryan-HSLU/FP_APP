@@ -49,11 +49,28 @@ Der tiefe Laplacian-Wert misst **Textur UND Schärfe** zugleich:
    Massstab-Anker, solange keine AR-Posen exportiert werden.
 6. Dauer pro Raum: **60–120 s** ein Durchgang reicht – Qualität vor Länge.
 
+## Ground Truth (Bryan, 2026-06-11)
+
+**L-förmiger Grundriss**, Masse aus dem Chat (Methode manuell):
+Gesamtlänge **1.8 m** · Breite **1.0 m** · Versatz **0.3 m** → WC-Nische
+**0.7 m breit × 0.8 m tief** · Fläche **1.56 m²** · Umfang **5.6 m**.
+Details/Polygon: `ground-truth/r1.json`. Noch offen: Raumhöhe, Türbreite,
+Objektmasse (WC, Lavabo, Spiegel).
+
+Der Raum ist damit ein **bewusst extremer Testfall**: 6 Wände statt 4
+(L-Form), engste Stelle 0.7 m – gut, um die Grenzen von Layout-Fit (P1) und
+Norm-Regeln zu finden (WC-Mitte in der Nische hat exakt 0.35 m Seitenabstand,
+die 60×60-Bewegungsfläche vor dem WC passt nur knapp in die Nischentiefe).
+Der echte Grundriss liegt zusätzlich als Vertrags-Fixture im Repo:
+`packages/shared/fixtures/artefakte/raummodell.r1-wc.json`.
+
 ## Nächste Schritte
 
-- [ ] Bryan: **Ground Truth messen** (`ground-truth/r1.json` ausfüllen –
-      Wandlängen, Fläche, Objektmasse mit Laser/Massband).
+- [x] Ground Truth Grundriss (Bryan, 2026-06-11) – `ground-truth/r1.json`.
+- [ ] Bryan: **Restmasse** nachreichen: Raumhöhe, Türbreite, Objektmasse
+      (WC/Lavabo/Spiegel, B×T×H).
 - [ ] Bryan: R1 nach Guideline **neu aufnehmen** (beide Optiken, Querformat).
 - [ ] `spike_eval.ipynb` in **Colab** (T4-GPU) auf altem UND neuem Material
-      laufen lassen → Vergleich zeigt den Hebel der Aufnahme-Guideline.
+      laufen lassen → Vergleich zeigt den Hebel der Aufnahme-Guideline;
+      Wandlängen-/Flächen-Fehler gegen die Ground Truth rechnen.
 - [ ] P1 (Layout-Fit) und P4 (Spiegel-Maskierung) im Notebook ausbauen.

@@ -1,0 +1,83 @@
+{
+  "id": "55555555-5555-4555-8555-555555555555",
+  "schemaVersion": "0.1.0",
+  "name": "R1 – WC echt (L-förmig, 1.56 m², Ground Truth Bryan 2026-06-11)",
+  "roomType": "bad",
+  "source": "manuell",
+  "units": "m",
+  "shell": {
+    "walls": [
+      {
+        "id": "cccccccc-0101-4000-8000-000000000101",
+        "start": [0, 0],
+        "end": [1.0, 0],
+        "height": 2.4,
+        "thickness": 0.1,
+        "kind": "massiv"
+      },
+      {
+        "id": "cccccccc-0102-4000-8000-000000000102",
+        "start": [1.0, 0],
+        "end": [1.0, 1.0],
+        "height": 2.4,
+        "thickness": 0.1,
+        "kind": "massiv"
+      },
+      {
+        "id": "cccccccc-0103-4000-8000-000000000103",
+        "start": [1.0, 1.0],
+        "end": [0.7, 1.0],
+        "height": 2.4,
+        "thickness": 0.1,
+        "kind": "massiv"
+      },
+      {
+        "id": "cccccccc-0104-4000-8000-000000000104",
+        "start": [0.7, 1.0],
+        "end": [0.7, 1.8],
+        "height": 2.4,
+        "thickness": 0.1,
+        "kind": "massiv"
+      },
+      {
+        "id": "cccccccc-0105-4000-8000-000000000105",
+        "start": [0.7, 1.8],
+        "end": [0, 1.8],
+        "height": 2.4,
+        "thickness": 0.1,
+        "kind": "massiv"
+      },
+      {
+        "id": "cccccccc-0106-4000-8000-000000000106",
+        "start": [0, 1.8],
+        "end": [0, 0],
+        "height": 2.4,
+        "thickness": 0.1,
+        "kind": "massiv"
+      }
+    ],
+    "floor": {
+      "polygon": [
+        [0, 0],
+        [1.0, 0],
+        [1.0, 1.0],
+        [0.7, 1.0],
+        [0.7, 1.8],
+        [0, 1.8]
+      ],
+      "area": 1.56
+    },
+    "ceiling": { "height": 2.4 }
+  },
+  "openings": [],
+  "zones": [],
+  "fixpoints": [],
+  "objects": [],
+  "meta": {
+    "captureMethod": "manuell",
+    "coverageScore": 0.6,
+    "estimatedError_cm": 2,
+    "geometryConfirmed": false,
+    "geometryRef": "notebooks/scan-spike/ground-truth/r1.json"
+  }
+}

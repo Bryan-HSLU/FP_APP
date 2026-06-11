@@ -47,8 +47,12 @@
   (Bad, normal + weitwinkel) in `testdata/r1/` · Vorabcheck-Report mit
   **Aufnahme-Guideline v1** in `reports/r1-vorabcheck.md` (Befund: Material
   zu unscharf/texturarm für die Kette → R1 nach Guideline wiederholen;
-  Weitwinkel ~3× besser) · Ground-Truth-Vorlage `ground-truth/r1.json`
-  (**von Bryan auszufüllen**).
+  Weitwinkel ~3× besser) · **Ground Truth R1 erfasst** (Bryan 2026-06-11):
+  L-förmig, 1.8×1.0 m mit Versatz 0.3 m (Nische 0.7×0.8 m), 1.56 m² →
+  `ground-truth/r1.json` + reales Fixture
+  `packages/shared/fixtures/artefakte/raummodell.r1-wc.json` (6 Wände,
+  erster nicht-rechteckiger Grundriss). Offen: Raumhöhe, Türbreite,
+  Objektmasse, Neuaufnahme nach Guideline.
 
 ## Nächste Schritte (für die nächste Session)
 
@@ -57,10 +61,10 @@
    (Kurator-Fallback), Solver P1–P3 (inkl. `circulation`-Freiraum-Analyse →
    dann den Stub im Interpreter ersetzen, beidseitig!), Viewer mit
    Live-Ampel (TS-Interpreter ist bereit), Mengen + KV-PDF.
-2. **M2 Scan-Spike weiterführen:** Bryan misst Ground Truth R1
-   (`ground-truth/r1.json`) und nimmt R1 nach der Aufnahme-Guideline neu auf
-   (Querformat, langsam, Weitwinkel); danach `spike_eval.ipynb` in Colab
-   (T4) auf altem+neuem Material laufen lassen und P1/P4 ausbauen.
+2. **M2 Scan-Spike weiterführen:** Restmasse R1 (Raumhöhe, Türbreite,
+   Objektmasse) + Neuaufnahme nach Guideline (Bryan); danach
+   `spike_eval.ipynb` in Colab (T4) auf altem+neuem Material laufen lassen,
+   Wandlängen-/Flächen-Fehler gegen die Ground Truth rechnen, P1/P4 ausbauen.
 3. Goldens bewusst aktualisieren: `uv run python scripts/update_goldens.py`
    (aus `services/engines/`), nur zusammen mit Interpreter-Änderung committen.
 

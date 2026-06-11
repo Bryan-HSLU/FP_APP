@@ -19,6 +19,7 @@ const load = (path: string): unknown => JSON.parse(readFileSync(path, "utf-8"));
 /** Fixture-Datei → Vertrag (array = Liste von Instanzen). */
 const fixtureMap: { file: string; schema: string; array: boolean }[] = [
   { file: "raummodell.bad-sample.json", schema: "raummodell", array: false },
+  { file: "raummodell.r1-wc.json", schema: "raummodell", array: false },
   { file: "plan.bad-ok.json", schema: "plan", array: false },
   { file: "plan.bad-verletzt.json", schema: "plan", array: false },
   { file: "stilprofil.beispiel.json", schema: "stilprofil", array: false },

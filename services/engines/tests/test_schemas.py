@@ -34,6 +34,7 @@ def _validator(schema_name: str) -> Draft202012Validator:
 
 FIXTURE_MAP = [
     ("raummodell.bad-sample.json", "raummodell", False),
+    ("raummodell.r1-wc.json", "raummodell", False),
     ("plan.bad-ok.json", "plan", False),
     ("plan.bad-verletzt.json", "plan", False),
     ("stilprofil.beispiel.json", "stilprofil", False),
