@@ -1,0 +1,30 @@
+[
+  {
+    "video": "r1-bad-normal.mov",
+    "aufloesung": "1080×1920",
+    "fps": 30.0,
+    "dauer_s": 27.6,
+    "gepruefte_frames": 119,
+    "blur_median": 4.8,
+    "blur_p10": 1.0,
+    "anteil_unscharf_hart_pct": 100.0,
+    "anteil_unscharf_weich_pct": 100.0,
+    "helligkeit_median": 200.6,
+    "anteil_dunkel_pct": 0.0,
+    "anteil_ueberbelichtet_pct": 32.8
+  },
+  {
+    "video": "r1-bad-weitwinkel.mov",
+    "aufloesung": "1080×1920",
+    "fps": 30.03,
+    "dauer_s": 15.2,
+    "gepruefte_frames": 57,
+    "blur_median": 15.3,
+    "blur_p10": 8.3,
+    "anteil_unscharf_hart_pct": 100.0,
+    "anteil_unscharf_weich_pct": 100.0,
+    "helligkeit_median": 203.5,
+    "anteil_dunkel_pct": 0.0,
+    "anteil_ueberbelichtet_pct": 31.6
+  }
+]

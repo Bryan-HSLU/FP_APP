@@ -1,0 +1,21 @@
+{
+  "raum": "r1",
+  "roomType": "bad",
+  "beschreibung": "Kleines WC/Bad (Aufnahmen 2026-06-11). MASSE VON BRYAN MIT LASER/MASSBAND NACHTRAGEN – ohne Ground Truth keine Fehler-Metriken.",
+  "wandlaengen_m": {
+    "nord": null,
+    "ost": null,
+    "sued": null,
+    "west": null
+  },
+  "raumflaeche_m2": null,
+  "raumhoehe_m": null,
+  "objekte": [
+    { "klasse": "toilet", "breite_m": null, "tiefe_m": null, "hoehe_m": null, "wand": null },
+    { "klasse": "sink", "breite_m": null, "tiefe_m": null, "hoehe_m": null, "wand": null },
+    { "klasse": "mirror", "breite_m": null, "tiefe_m": null, "hoehe_m": null, "wand": "ueber lavabo" },
+    { "klasse": "door", "breite_m": null, "tiefe_m": null, "hoehe_m": null, "wand": null }
+  ],
+  "messmethode": "laser|massband",
+  "gemessen_am": null
+}

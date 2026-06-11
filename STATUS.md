@@ -14,7 +14,7 @@
 |---|---|---|
 | **M0** Repo-Setup | Monorepo-Gerüst, Pins, Setup-Scripts, CI, CLAUDE.md/README | 🟢 fertig |
 | **M1** Verträge & Regel-Kern | JSON-Schemas (7 Verträge) + Codegen + Regel-Interpreter TS & Python + Paritätstest | 🟢 fertig |
-| **M2** Scan-Spike | Eval-Notebook, Messung R1–R3 (parallel, blockiert nichts) | ⚪ offen |
+| **M2** Scan-Spike | Eval-Notebook, Messung R1–R3 (parallel, blockiert nichts) | 🟡 gestartet |
 | **M3** Durchstich BAD ⭐ | Sample-Bad → Baseline → Solver P1–P3 → Viewer → Report → Mengen/KV-PDF | ⚪ offen |
 | **M4** Auswertung voll + Kurator | LV, Bauzeitenplan, Offert-Paket, DXF · Kurator + Mini-Eval · Stil-UI | ⚪ offen |
 | **M5** Durchstich WOHNEN | | ⚪ offen |
@@ -40,6 +40,16 @@
   **Paritätstest grün** in vitest UND pytest · `POST /validate` liefert den
   `constraintReport` über die API (inkl. Fehler-Envelope).
 
+- **M2 (gestartet 2026-06-11):** `notebooks/scan-spike/` mit Colab-Notebook
+  `spike_eval.ipynb` (P0–P5-Skelett: Frames+Gate, Tiefe DA-V2-Small,
+  Grounding DINO; P1 Layout / P4 Spiegel als TODO bis zum ersten GPU-Lauf) ·
+  `capture_check.py` (lokaler Vorabcheck) · **R1-Testvideos von Bryan**
+  (Bad, normal + weitwinkel) in `testdata/r1/` · Vorabcheck-Report mit
+  **Aufnahme-Guideline v1** in `reports/r1-vorabcheck.md` (Befund: Material
+  zu unscharf/texturarm für die Kette → R1 nach Guideline wiederholen;
+  Weitwinkel ~3× besser) · Ground-Truth-Vorlage `ground-truth/r1.json`
+  (**von Bryan auszufüllen**).
+
 ## Nächste Schritte (für die nächste Session)
 
 1. **M3 Durchstich Bad** beginnen (`vault/50_Umsetzung/Bauplan-Meilensteine.md`):
@@ -47,9 +57,10 @@
    (Kurator-Fallback), Solver P1–P3 (inkl. `circulation`-Freiraum-Analyse →
    dann den Stub im Interpreter ersetzen, beidseitig!), Viewer mit
    Live-Ampel (TS-Interpreter ist bereit), Mengen + KV-PDF.
-2. **M2 Scan-Spike** kann jederzeit parallel starten
-   (`vault/50_Umsetzung/Scan-Validierungs-Spike.md`); braucht Testräume
-   R1–R3 von Bryan.
+2. **M2 Scan-Spike weiterführen:** Bryan misst Ground Truth R1
+   (`ground-truth/r1.json`) und nimmt R1 nach der Aufnahme-Guideline neu auf
+   (Querformat, langsam, Weitwinkel); danach `spike_eval.ipynb` in Colab
+   (T4) auf altem+neuem Material laufen lassen und P1/P4 ausbauen.
 3. Goldens bewusst aktualisieren: `uv run python scripts/update_goldens.py`
    (aus `services/engines/`), nur zusammen mit Interpreter-Änderung committen.
 
