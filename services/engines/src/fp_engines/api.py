@@ -11,6 +11,7 @@ from typing import Any
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from fp_engines import __version__
@@ -29,6 +30,8 @@ DATA_CATALOG = REPO_ROOT / "data" / "catalog"
 FIXTURE_ROOMS = REPO_ROOT / "packages" / "shared" / "fixtures" / "artefakte"
 
 app = FastAPI(title="Future Planning – Engines", version=__version__)
+# Bild-Dateien (SVG-Platzhalter) direkt ausliefern – Frontend: /api/bilder/...
+app.mount("/bilder", StaticFiles(directory=REPO_ROOT / "data" / "images"), name="bilder")
 
 
 @app.get("/health")
@@ -127,6 +130,7 @@ class SolveRequest(BaseModel):
     seed: int = 1
     normProfile: str = "ch"
     auswahl: list[str] | None = None
+    relationaleAbsichten: list[dict[str, Any]] = []
     stilprofilRef: str | None = None
 
 
@@ -148,7 +152,7 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
         sel = baseline_auswahl(req.room, katalog)
         auswahl, absichten = sel["auswahl"], sel["relationaleAbsichten"]
     else:
-        auswahl, absichten = req.auswahl, []
+        auswahl, absichten = req.auswahl, req.relationaleAbsichten
     try:
         plan = solve(
             req.room,
@@ -295,3 +299,51 @@ def curate(req: CurateRequest) -> JSONResponse:
     port = waehle_port()
     antwort = port.kuratiere(profil, req.room, katalog, req.budget, req.seed)
     return JSONResponse(content={"kurator": antwort, "port": port.name})
+
+
+@app.get("/images/{room_type}")
+def images(room_type: str) -> Any:
+    """Bild-Katalog je Raumtyp (raumtyp-gebunden, Stilprofil-Konzept)."""
+    path = REPO_ROOT / "data" / "images" / f"{room_type}.json"
+    if not path.is_file():
+        return JSONResponse(
+            status_code=404,
+            content={
+                "code": "SCHEMA_INVALID",
+                "message": f"Keine Bilder für «{room_type}»",
+                "details": {},
+            },
+        )
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+class StyleProfileRequest(BaseModel):
+    """Swipes ODER Preset → Stilprofil (sync, trivial – Engineering-Grundlagen §1)."""
+
+    roomType: str
+    likes: list[str] = []
+    dislikes: list[str] = []
+    presetId: str | None = None
+
+
+@app.post("/style/profile")
+def style_profile(req: StyleProfileRequest) -> JSONResponse:
+    from fp_engines.stil import erzeuge_stilprofil
+
+    bilder_path = REPO_ROOT / "data" / "images" / f"{req.roomType}.json"
+    bilder = json.loads(bilder_path.read_text(encoding="utf-8")) if bilder_path.is_file() else []
+    taxonomie = json.loads(
+        (REPO_ROOT / "data" / "taxonomy" / "stilachsen.json").read_text(encoding="utf-8")
+    )
+    profil = erzeuge_stilprofil(
+        req.roomType, bilder, req.likes, req.dislikes, req.presetId, taxonomie["taxonomyVersion"]
+    )
+    return JSONResponse(content=profil)
+
+
+@app.get("/taxonomy")
+def taxonomy() -> Any:
+    """Stilachsen-Taxonomie (datengetrieben, ADR-0006) – fürs Smart-Spider-UI."""
+    return json.loads(
+        (REPO_ROOT / "data" / "taxonomy" / "stilachsen.json").read_text(encoding="utf-8")
+    )

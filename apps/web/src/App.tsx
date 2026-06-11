@@ -13,6 +13,7 @@ import {
 } from "@fp/shared/rules";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, ApiFehler, type KatalogItem, type KV, type Plan, type Room } from "./api";
+import { SmartSpider, StilSwipe, type Achse, type BildItem, type Stilprofil } from "./Stil";
 import { Viewer3D } from "./Viewer3D";
 
 const AMPEL: Record<RuleResult["status"], string> = {
@@ -62,6 +63,11 @@ export function App() {
   const [gewaehltId, setGewaehltId] = useState<string | null>(null);
   const [kv, setKv] = useState<KV | null>(null);
   const [meldung, setMeldung] = useState<string>("");
+  const [bilder, setBilder] = useState<BildItem[]>([]);
+  const [achsen, setAchsen] = useState<Achse[]>([]);
+  const [stilprofil, setStilprofil] = useState<Stilprofil | null>(null);
+  const [swipeOffen, setSwipeOffen] = useState(false);
+  const [begruendung, setBegruendung] = useState<string>("");
 
   useEffect(() => {
     api
@@ -70,14 +76,21 @@ export function App() {
       .catch(() => setMeldung("Engines-Dienst nicht erreichbar – «pnpm api» starten."));
   }, []);
 
-  const raumWaehlen = useCallback(async (r: Room) => {
-    setRoom(r);
-    setPlan(null);
-    setKv(null);
-    setGewaehltId(null);
-    setCatalog(await api.catalog(r.roomType));
-    setRules((await api.rules(r.roomType)) as Rule[]);
-  }, []);
+  const raumWaehlen = useCallback(
+    async (r: Room) => {
+      setRoom(r);
+      setPlan(null);
+      setKv(null);
+      setGewaehltId(null);
+      setStilprofil(null);
+      setBegruendung("");
+      setCatalog(await api.catalog(r.roomType));
+      setRules((await api.rules(r.roomType)) as Rule[]);
+      setBilder(await api.images(r.roomType).catch(() => []));
+      if (achsen.length === 0) setAchsen((await api.taxonomy()).achsen);
+    },
+    [achsen.length],
+  );
 
   const loesen = useCallback(
     async (s: number) => {
@@ -85,7 +98,14 @@ export function App() {
       setMeldung("");
       setKv(null);
       try {
-        const res = await api.solve(room, s);
+        // Mit Stilprofil: erst Kurator («KI wählt»), dann Solver («platziert»).
+        let kurator;
+        if (stilprofil) {
+          const k = await api.curate(room, stilprofil, s);
+          kurator = k.kurator;
+          setBegruendung(`${k.port}: ${k.kurator.begruendung ?? ""}`);
+        }
+        const res = await api.solve(room, s, kurator, stilprofil?.id);
         setPlan(res.plan);
         setSeed(s);
         if (res.hinweis)
@@ -97,7 +117,7 @@ export function App() {
         } else throw e;
       }
     },
-    [room],
+    [room, stilprofil],
   );
 
   // Live-Ampel: TS-Interpreter über die aktuelle (ggf. editierte) Szene.
@@ -192,6 +212,13 @@ export function App() {
             </option>
           ))}
         </select>
+        <button
+          style={stil.knopf}
+          disabled={!room || bilder.length === 0}
+          onClick={() => setSwipeOffen(true)}
+        >
+          🎴 Stil festlegen
+        </button>
         <button style={stil.knopf} disabled={!room} onClick={() => void loesen(seed)}>
           Plan vorschlagen
         </button>
@@ -231,6 +258,24 @@ export function App() {
 
       <aside style={stil.panel}>
         {meldung && <p style={{ color: "#c96f2e" }}>{meldung}</p>}
+
+        {stilprofil && (
+          <section>
+            <h3 style={{ marginTop: 0 }}>Dein Stil ({stilprofil.meta.method})</h3>
+            <SmartSpider vektor={stilprofil.styleVector} achsen={achsen} />
+            <p style={{ display: "flex", gap: 4 }}>
+              {stilprofil.palette.map((f) => (
+                <span key={f} style={{ width: 22, height: 22, background: f, borderRadius: 4 }} />
+              ))}
+            </p>
+            {!stilprofil.meta.sampleSufficient && (
+              <p style={{ fontSize: 12, color: "#c96f2e" }}>
+                Wenige Bewertungen – Profil noch unsicher.
+              </p>
+            )}
+            {begruendung && <p style={{ fontSize: 12 }}>{begruendung}</p>}
+          </section>
+        )}
 
         {gewaehltesItem && (
           <section>
@@ -294,6 +339,20 @@ export function App() {
           </section>
         )}
       </aside>
+
+      {swipeOffen && (
+        <StilSwipe
+          bilder={bilder}
+          onAbbruch={() => setSwipeOffen(false)}
+          onFertig={(likes, dislikes, presetId) => {
+            setSwipeOffen(false);
+            if (!room) return;
+            void api
+              .styleProfile(room.roomType, likes, dislikes, presetId)
+              .then((p) => setStilprofil(p));
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -227,8 +227,18 @@ class LlmKurator:
             {
                 "role": "user",
                 "content": "\n".join(
-                    ["## Raumfakten", *fakten, "", "## Stilprofil", *profil, "",
-                     "## Kandidaten", *kandidaten, "", budget_zeile]
+                    [
+                        "## Raumfakten",
+                        *fakten,
+                        "",
+                        "## Stilprofil",
+                        *profil,
+                        "",
+                        "## Kandidaten",
+                        *kandidaten,
+                        "",
+                        budget_zeile,
+                    ]
                 ),
             },
         ]
@@ -250,8 +260,10 @@ class LlmKurator:
         )
         res.raise_for_status()
         inhalt = res.json()["choices"][0]["message"]["content"]
-        log.info("kurator llm antwort, prompt_hash=%s",
-                 hashlib.sha256(json.dumps(messages).encode()).hexdigest()[:12])
+        log.info(
+            "kurator llm antwort, prompt_hash=%s",
+            hashlib.sha256(json.dumps(messages).encode()).hexdigest()[:12],
+        )
         return json.loads(inhalt)  # type: ignore[no-any-return]
 
     def kuratiere(
@@ -271,8 +283,11 @@ class LlmKurator:
                 # Repair-Retry (max. 1) mit konkretem Fehlerhinweis (Konzept §5).
                 messages.append({"role": "assistant", "content": json.dumps(antwort)})
                 messages.append(
-                    {"role": "user", "content": f"Deine Antwort ist ungültig: {fehler} "
-                     "Korrigiere und antworte erneut nur mit JSON."}
+                    {
+                        "role": "user",
+                        "content": f"Deine Antwort ist ungültig: {fehler} "
+                        "Korrigiere und antworte erneut nur mit JSON.",
+                    }
                 )
                 antwort = self._rufe_llm(messages)
                 fehler = _validiere(antwort, slots, room["roomType"], budget)

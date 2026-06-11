@@ -1,0 +1,198 @@
+[
+  {
+    "id": "ffffffff-0001-4000-8000-000000000001",
+    "schemaVersion": "0.1.0",
+    "bildRef": "bad/sample-01-warm-holz.svg",
+    "roomType": "bad",
+    "achsenTags": {
+      "temperatur": 0.8,
+      "materialitaet": 0.9,
+      "helligkeit": 0.3,
+      "epoche": 0.2
+    },
+    "attributTags": [],
+    "palette": [
+      "#8a6f4d",
+      "#d9c7a7",
+      "#3a5a40"
+    ],
+    "lizenz": {
+      "quelle": "Eigenproduktion (SVG-Platzhalter)",
+      "rechte": "intern (POC)"
+    },
+    "istPreset": false
+  },
+  {
+    "id": "ffffffff-0002-4000-8000-000000000002",
+    "schemaVersion": "0.1.0",
+    "bildRef": "bad/sample-02-kuehl-minimal.svg",
+    "roomType": "bad",
+    "achsenTags": {
+      "temperatur": -0.7,
+      "opulenz": -0.8,
+      "epoche": 0.9,
+      "helligkeit": 0.7
+    },
+    "attributTags": [],
+    "palette": [
+      "#f5f5f5",
+      "#cfd8dc",
+      "#2b2b2b"
+    ],
+    "lizenz": {
+      "quelle": "Eigenproduktion (SVG-Platzhalter)",
+      "rechte": "intern (POC)"
+    },
+    "istPreset": true,
+    "presetProfile": {
+      "temperatur": -0.7,
+      "opulenz": -0.8,
+      "epoche": 0.9,
+      "helligkeit": 0.7
+    }
+  },
+  {
+    "id": "ffffffff-0003-4000-8000-000000000003",
+    "schemaVersion": "0.1.0",
+    "bildRef": "bad/sample-03-dunkel-edel.svg",
+    "roomType": "bad",
+    "achsenTags": {
+      "helligkeit": -0.8,
+      "opulenz": 0.6,
+      "farbigkeit": -0.3,
+      "epoche": 0.5
+    },
+    "attributTags": [],
+    "palette": [
+      "#1f2933",
+      "#3e4c59",
+      "#c9a227"
+    ],
+    "lizenz": {
+      "quelle": "Eigenproduktion (SVG-Platzhalter)",
+      "rechte": "intern (POC)"
+    },
+    "istPreset": false
+  },
+  {
+    "id": "ffffffff-0004-4000-8000-000000000004",
+    "schemaVersion": "0.1.0",
+    "bildRef": "bad/sample-04-hell-natur.svg",
+    "roomType": "bad",
+    "achsenTags": {
+      "helligkeit": 0.8,
+      "materialitaet": 0.7,
+      "temperatur": 0.4,
+      "opulenz": -0.4
+    },
+    "attributTags": [],
+    "palette": [
+      "#faf7f0",
+      "#e8e2d6",
+      "#a3b18a"
+    ],
+    "lizenz": {
+      "quelle": "Eigenproduktion (SVG-Platzhalter)",
+      "rechte": "intern (POC)"
+    },
+    "istPreset": true,
+    "presetProfile": {
+      "helligkeit": 0.8,
+      "materialitaet": 0.7,
+      "temperatur": 0.4,
+      "opulenz": -0.4
+    }
+  },
+  {
+    "id": "ffffffff-0005-4000-8000-000000000005",
+    "schemaVersion": "0.1.0",
+    "bildRef": "bad/sample-05-farbig-verspielt.svg",
+    "roomType": "bad",
+    "achsenTags": {
+      "farbigkeit": 0.9,
+      "kontur": -0.4,
+      "epoche": 0.4,
+      "raumgefuehl": 0.3
+    },
+    "attributTags": [],
+    "palette": [
+      "#0db39e",
+      "#f29e4c",
+      "#efea5a"
+    ],
+    "lizenz": {
+      "quelle": "Eigenproduktion (SVG-Platzhalter)",
+      "rechte": "intern (POC)"
+    },
+    "istPreset": false
+  },
+  {
+    "id": "ffffffff-0006-4000-8000-000000000006",
+    "schemaVersion": "0.1.0",
+    "bildRef": "bad/sample-06-klassisch-warm.svg",
+    "roomType": "bad",
+    "achsenTags": {
+      "epoche": -0.7,
+      "temperatur": 0.6,
+      "opulenz": 0.3,
+      "materialitaet": 0.5
+    },
+    "attributTags": [],
+    "palette": [
+      "#7d5a44",
+      "#b08968",
+      "#e6ccb2"
+    ],
+    "lizenz": {
+      "quelle": "Eigenproduktion (SVG-Platzhalter)",
+      "rechte": "intern (POC)"
+    },
+    "istPreset": false
+  },
+  {
+    "id": "ffffffff-0007-4000-8000-000000000007",
+    "schemaVersion": "0.1.0",
+    "bildRef": "bad/sample-07-beton-kantig.svg",
+    "roomType": "bad",
+    "achsenTags": {
+      "materialitaet": -0.6,
+      "kontur": 0.8,
+      "epoche": 0.7,
+      "helligkeit": -0.2
+    },
+    "attributTags": [],
+    "palette": [
+      "#9e9e9e",
+      "#616161",
+      "#37474f"
+    ],
+    "lizenz": {
+      "quelle": "Eigenproduktion (SVG-Platzhalter)",
+      "rechte": "intern (POC)"
+    },
+    "istPreset": false
+  },
+  {
+    "id": "ffffffff-0008-4000-8000-000000000008",
+    "schemaVersion": "0.1.0",
+    "bildRef": "bad/sample-08-monochrom-soft.svg",
+    "roomType": "bad",
+    "achsenTags": {
+      "farbigkeit": -0.9,
+      "kontur": -0.5,
+      "helligkeit": 0.6,
+      "opulenz": -0.6
+    },
+    "attributTags": [],
+    "palette": [
+      "#ffffff",
+      "#e0e0e0",
+      "#bdbdbd"
+    ],
+    "lizenz": {
+      "quelle": "Eigenproduktion (SVG-Platzhalter)",
+      "rechte": "intern (POC)"
+    },
+    "istPreset": false
+  }
+]

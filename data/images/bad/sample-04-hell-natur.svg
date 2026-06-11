@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#faf7f0"/>
+  <rect x="0" y="170" width="400" height="130" fill="#e8e2d6"/>
+  <circle cx="310" cy="80" r="46" fill="#a3b18a"/>
+  <rect x="40" y="110" width="120" height="160" rx="8" fill="#a3b18a" opacity="0.65"/>
+  <text x="14" y="26" font-family="sans-serif" font-size="15" fill="#ffffff" stroke="#00000055" stroke-width="0.4">SAMPLE · Hell, natürlich, ruhig</text>
+</svg>

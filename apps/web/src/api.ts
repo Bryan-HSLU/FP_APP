@@ -71,14 +71,38 @@ async function call<T>(pfad: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+export interface KuratorAntwort {
+  auswahl: string[];
+  relationaleAbsichten: { itemId: string; relation: string }[];
+  begruendung?: string;
+}
+
 export const api = {
   rooms: () => call<Room[]>("/samples/rooms"),
+  images: (roomType: string) => call<import("./Stil").BildItem[]>(`/images/${roomType}`),
+  taxonomy: () => call<{ achsen: import("./Stil").Achse[] }>("/taxonomy"),
+  styleProfile: (roomType: string, likes: string[], dislikes: string[], presetId: string | null) =>
+    call<import("./Stil").Stilprofil>("/style/profile", {
+      method: "POST",
+      body: JSON.stringify({ roomType, likes, dislikes, presetId }),
+    }),
+  curate: (room: Room, stilprofil: unknown, seed: number) =>
+    call<{ kurator: KuratorAntwort; port: string }>("/curate", {
+      method: "POST",
+      body: JSON.stringify({ room, stilprofil, seed }),
+    }),
   catalog: (roomType: string) => call<KatalogItem[]>(`/catalog/${roomType}`),
   rules: (roomType: string) => call<unknown[]>(`/rules/${roomType}`),
-  solve: (room: Room, seed: number) =>
+  solve: (room: Room, seed: number, kurator?: KuratorAntwort, stilprofilRef?: string) =>
     call<{ plan: Plan; hinweis?: string }>("/solve", {
       method: "POST",
-      body: JSON.stringify({ room, seed }),
+      body: JSON.stringify({
+        room,
+        seed,
+        auswahl: kurator?.auswahl,
+        relationaleAbsichten: kurator?.relationaleAbsichten ?? [],
+        stilprofilRef,
+      }),
     }),
   evaluate: (room: Room, plan: Plan) =>
     call<KV>("/evaluate", { method: "POST", body: JSON.stringify({ room, plan }) }),
