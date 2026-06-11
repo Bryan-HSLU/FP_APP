@@ -1,0 +1,27 @@
+{
+  "name": "@fp/shared",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Verträge (JSON-Schemas) + generierte TS-Typen + TS-Regel-Interpreter + goldene Fixtures",
+  "exports": {
+    ".": "./src/index.ts",
+    "./rules": "./src/rules/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src scripts && prettier --check src scripts \"schemas/**/*.json\" \"fixtures/**/*.json\" --no-error-on-unmatched-pattern",
+    "format": "prettier --write src scripts \"schemas/**/*.json\" \"fixtures/**/*.json\" --no-error-on-unmatched-pattern",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "schema-check": "node --experimental-strip-types scripts/schema-check.ts",
+    "codegen": "node --experimental-strip-types scripts/codegen.ts"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.4",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "json-schema-to-typescript": "15.0.4",
+    "typescript": "5.9.3",
+    "vitest": "4.1.8"
+  }
+}

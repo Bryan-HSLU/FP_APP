@@ -1,0 +1,39 @@
+# Abhängigkeiten / Builds
+node_modules/
+dist/
+build/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+coverage/
+.coverage
+
+# Keine ML-Modelle/Gewichte ins Git (nur Download-Scripts)
+*.onnx
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+weights/
+models/
+
+# Grosse 3D-/Scan-Rohdaten
+*.ply
+*.splat
+
+# Lokale Projektdaten (Privacy: bleiben auf dem Rechner)
+data/projects/*
+!data/projects/README.md
+
+# Editor/OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*

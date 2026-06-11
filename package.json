@@ -1,0 +1,28 @@
+{
+  "name": "fp-app",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Future Planning POC – Monorepo (Web-App + Engines + Verträge + Stammdaten)",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "devDependencies": {
+    "eslint": "9.39.4",
+    "prettier": "3.8.4",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.61.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @fp/web dev",
+    "api": "uv --project services/engines run fastapi dev services/engines/src/fp_engines/api.py",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint && uv --project services/engines run ruff check services/engines",
+    "format": "pnpm -r format && uv --project services/engines run ruff format services/engines",
+    "typecheck": "pnpm -r typecheck && uv --project services/engines run mypy services/engines/src",
+    "test": "pnpm -r test && uv --project services/engines run pytest services/engines",
+    "schema-check": "pnpm --filter @fp/shared schema-check",
+    "codegen": "pnpm --filter @fp/shared codegen && uv --project services/engines run python services/engines/scripts/codegen.py"
+  },
+  "type": "module"
+}
