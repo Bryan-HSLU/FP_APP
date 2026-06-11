@@ -16,7 +16,10 @@ from pydantic import BaseModel
 from fp_engines import __version__
 from fp_engines.auswertung import evaluate_plan
 from fp_engines.baseline import baseline_auswahl
-from fp_engines.pdf import kv_pdf
+from fp_engines.bauzeit import erzeuge_bauzeitenplan
+from fp_engines.dxf import grundriss_dxf
+from fp_engines.lv import erzeuge_lv
+from fp_engines.pdf import bauzeit_pdf, kv_pdf, lv_pdf, offertanfrage_pdf
 from fp_engines.rules import build_scene, evaluate_rules
 from fp_engines.solver import NoFeasiblePlacement, solve
 
@@ -203,3 +206,71 @@ def rules_for_room(room_type: str) -> Any:
         return _load_rulesets(["basis", room_type])
     except FileNotFoundError:
         return _load_rulesets(["basis"])
+
+
+def _lv_und_bauzeit(req: "EvaluateRequest") -> tuple[dict[str, Any], dict[str, Any]]:
+    room_type = req.room["roomType"]
+    katalog = _catalog(room_type)
+    positionskatalog = json.loads(
+        (REPO_ROOT / "data" / "positions" / f"{room_type}.json").read_text(encoding="utf-8")
+    )
+    sequenz = json.loads(
+        (REPO_ROOT / "data" / "sequence" / f"{room_type}.json").read_text(encoding="utf-8")
+    )
+    lv = erzeuge_lv(req.room, req.plan, katalog, positionskatalog)
+    return lv, erzeuge_bauzeitenplan(lv, sequenz)
+
+
+@app.post("/export/lv")
+def export_lv(req: EvaluateRequest) -> JSONResponse:
+    """Leistungsverzeichnis (JSON) – Positionen deklarativ aus dem Plan abgeleitet."""
+    lv, _ = _lv_und_bauzeit(req)
+    return JSONResponse(content=lv)
+
+
+@app.post("/export/lv-pdf")
+def export_lv_pdf(req: EvaluateRequest) -> Response:
+    lv, _ = _lv_und_bauzeit(req)
+    return Response(
+        content=lv_pdf(lv),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="leistungsverzeichnis.pdf"'},
+    )
+
+
+@app.post("/export/bauzeitenplan")
+def export_bauzeitenplan(req: EvaluateRequest) -> JSONResponse:
+    _, bz = _lv_und_bauzeit(req)
+    return JSONResponse(content=bz)
+
+
+@app.post("/export/bauzeitenplan-pdf")
+def export_bauzeitenplan_pdf(req: EvaluateRequest) -> Response:
+    _, bz = _lv_und_bauzeit(req)
+    return Response(
+        content=bauzeit_pdf(bz),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="bauzeitenplan.pdf"'},
+    )
+
+
+@app.post("/export/offertanfrage")
+def export_offertanfrage(req: EvaluateRequest) -> Response:
+    """Offert-Paket je Gewerk (LV ohne Preise + Zeitfenster + Rückgabeblatt)."""
+    lv, bz = _lv_und_bauzeit(req)
+    return Response(
+        content=offertanfrage_pdf(lv, bz),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="offertanfrage.pdf"'},
+    )
+
+
+@app.post("/export/dxf")
+def export_dxf(req: EvaluateRequest) -> Response:
+    """2D-Grundriss als DXF (x,z → x,y)."""
+    katalog = _catalog(req.room["roomType"])
+    return Response(
+        content=grundriss_dxf(req.room, req.plan, katalog),
+        media_type="application/dxf",
+        headers={"Content-Disposition": 'attachment; filename="grundriss.dxf"'},
+    )

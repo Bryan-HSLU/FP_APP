@@ -94,3 +94,167 @@ def kv_pdf(kv: dict[str, Any]) -> bytes:
     story.append(Paragraph(f"⚠ {kv['hinweis']}", _WARN))
     doc.build(story)
     return buf.getvalue()
+
+
+def lv_pdf(lv: dict[str, Any]) -> bytes:
+    """Leistungsverzeichnis als PDF: Positionen je Gewerk, mit Schätzpreisen."""
+    buf = BytesIO()
+    doc = SimpleDocTemplate(
+        buf,
+        pagesize=A4,
+        title="Leistungsverzeichnis – Future Planning",
+        leftMargin=18 * mm,
+        rightMargin=18 * mm,
+        topMargin=18 * mm,
+        bottomMargin=18 * mm,
+    )
+    story: list[Any] = [
+        Paragraph("Future Planning – Leistungsverzeichnis (vereinfacht)", _TITEL),
+        Paragraph(f"{lv['raumName']} · Stand {date.today().isoformat()}", _SUB),
+    ]
+    for gewerk, positionen in lv["gewerke"].items():
+        story.append(Paragraph(f"<b>Gewerk: {gewerk}</b>", _TEXT))
+        daten = [["Pos.", "Leistung", "Menge", "EP (CHF)", "Total (CHF)"]]
+        for p in positionen:
+            daten.append(
+                [
+                    p["posNr"],
+                    Paragraph(p["text"], _TEXT),
+                    f"{p['menge']} {p['einheit']}",
+                    f"{p['einheitspreis']['value']:,.0f}",
+                    f"{p['total_chf']:,.0f}",
+                ]
+            )
+        t = Table(daten, colWidths=[16 * mm, 84 * mm, 26 * mm, 24 * mm, 24 * mm])
+        t.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), CI_GRUEN),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("ALIGN", (2, 0), (-1, -1), "RIGHT"),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]
+            )
+        )
+        story.append(t)
+        story.append(Spacer(1, 4 * mm))
+    story.append(Paragraph(f"<b>Summe: CHF {lv['summe_chf']:,.0f}</b>", _TEXT))
+    story.append(Paragraph(f"⚠ {lv['hinweis']}", _WARN))
+    doc.build(story)
+    return buf.getvalue()
+
+
+def bauzeit_pdf(bz: dict[str, Any]) -> bytes:
+    """Bauzeitenplan als einfaches Text-Gantt (relative Arbeitstage)."""
+    buf = BytesIO()
+    doc = SimpleDocTemplate(
+        buf,
+        pagesize=A4,
+        title="Bauzeitenplan – Future Planning",
+        leftMargin=18 * mm,
+        rightMargin=18 * mm,
+        topMargin=18 * mm,
+        bottomMargin=18 * mm,
+    )
+    story: list[Any] = [
+        Paragraph("Future Planning – Bauzeitenplan", _TITEL),
+        Paragraph(
+            f"{bz['raumName']} · Gesamtdauer ca. {bz['gesamtdauer_arbeitstage']} Arbeitstage "
+            f"(Bandbreite {bz['von_tage']}–{bz['bis_tage']})",
+            _SUB,
+        ),
+    ]
+    daten = [["Phase", "Gewerke", "Start (AT)", "Dauer (AT)", "Trocknung (AT)"]]
+    for z in bz["zeilen"]:
+        daten.append(
+            [
+                z["name"],
+                ", ".join(z["gewerke"]),
+                f"{z['start_tag']}",
+                f"{z['dauer_tage']}",
+                f"{z['trocknung_tage']}" if z["trocknung_tage"] else "–",
+            ]
+        )
+    t = Table(daten, colWidths=[56 * mm, 50 * mm, 22 * mm, 22 * mm, 26 * mm])
+    t.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), CI_GRUEN),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, CI_OFFWHITE]),
+                ("ALIGN", (2, 0), (-1, -1), "RIGHT"),
+            ]
+        )
+    )
+    story.append(t)
+    story.append(Paragraph(f"⚠ {bz['hinweis']}", _WARN))
+    doc.build(story)
+    return buf.getvalue()
+
+
+def offertanfrage_pdf(lv: dict[str, Any], bz: dict[str, Any]) -> bytes:
+    """Offertanfrage-Paket: je Gewerk LV OHNE Preise + Zeitfenster + Rückgabeblatt.
+
+    Bewusst ohne Schätzpreise (LV-Bauzeit-Detailkonzept §4, konservativ):
+    nur Mengen – der Handwerker trägt seine Preise im Rückgabeblatt ein.
+    """
+    buf = BytesIO()
+    doc = SimpleDocTemplate(
+        buf,
+        pagesize=A4,
+        title="Offertanfrage – Future Planning",
+        leftMargin=18 * mm,
+        rightMargin=18 * mm,
+        topMargin=18 * mm,
+        bottomMargin=18 * mm,
+    )
+    fenster = {
+        g: (z["start_tag"], z["start_tag"] + z["dauer_tage"])
+        for z in bz["zeilen"]
+        for g in z["gewerke"]
+    }
+    story: list[Any] = [
+        Paragraph("Future Planning – Offertanfrage-Paket", _TITEL),
+        Paragraph(f"{lv['raumName']} · Stand {date.today().isoformat()}", _SUB),
+    ]
+    for gewerk, positionen in lv["gewerke"].items():
+        story.append(Paragraph(f"<b>Offertanfrage Gewerk: {gewerk}</b>", _TEXT))
+        if gewerk in fenster:
+            von, bis = fenster[gewerk]
+            story.append(
+                Paragraph(
+                    f"Vorgesehenes Zeitfenster: Arbeitstag {von:g}–{bis:g} (relativ zum Baustart)",
+                    _TEXT,
+                )
+            )
+        daten = [["Pos.", "Leistung", "Menge", "Ihr EP (CHF)", "Ihr Total (CHF)"]]
+        for p in positionen:
+            daten.append(
+                [p["posNr"], Paragraph(p["text"], _TEXT), f"{p['menge']} {p['einheit']}", "", ""]
+            )
+        t = Table(daten, colWidths=[16 * mm, 84 * mm, 26 * mm, 24 * mm, 24 * mm])
+        t.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), CI_ORANGE),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("GRID", (3, 1), (-1, -1), 0.5, colors.grey),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]
+            )
+        )
+        story.append(t)
+        story.append(Spacer(1, 6 * mm))
+    story.append(
+        Paragraph(
+            "Rückgabe: Bitte Einheits- und Totalpreise je Position eintragen und das "
+            "Blatt zurücksenden. Mengen sind aus der digitalen Planung abgeleitet "
+            "(vereinfachte Positionen, NPK-mapping-fähig).",
+            _TEXT,
+        )
+    )
+    doc.build(story)
+    return buf.getvalue()

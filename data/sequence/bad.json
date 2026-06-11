@@ -1,0 +1,19 @@
+{
+  "roomType": "bad",
+  "beschreibung": "Standard-Renovations-Sequenz Bad (Auswertung-Bauvorhaben §4): Phasen-DAG mit Trocknungs-Wartekanten. POC: strikt sequenziell = konservativ. Richtwerte v0, zu-verifizieren.",
+  "phasen": [
+    { "id": "vorbereitung", "name": "Baustelleneinrichtung", "nach": [] },
+    { "id": "abbruch", "name": "Demontage / Abbruch", "nach": ["vorbereitung"] },
+    { "id": "installation-roh", "name": "Installation roh + Vorwand", "nach": ["abbruch"] },
+    { "id": "verputz", "name": "Verputz / Spachtelung", "nach": ["installation-roh"], "trocknung_tage": 2 },
+    { "id": "abdichtung", "name": "Abdichtung Nassbereich", "nach": ["verputz"], "trocknung_tage": 1 },
+    { "id": "belaege", "name": "Platten / Beläge", "nach": ["abdichtung"], "trocknung_tage": 1 },
+    { "id": "maler", "name": "Malerarbeiten", "nach": ["belaege"] },
+    { "id": "montage", "name": "Montage Sanitär / Möbel", "nach": ["maler"] },
+    { "id": "endreinigung", "name": "Endreinigung", "nach": ["montage"] }
+  ],
+  "teamgroesse": 1,
+  "stunden_pro_tag": 8,
+  "mindestdauer_tage": 0.5,
+  "bandbreitePct": 30
+}

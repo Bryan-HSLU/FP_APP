@@ -1,0 +1,243 @@
+[
+  {
+    "id": "pos-baustelleneinrichtung",
+    "trigger": {
+      "art": "projekt"
+    },
+    "posNr": "100.10",
+    "gewerk": "baumeister",
+    "phase": "vorbereitung",
+    "text": "Baustelleneinrichtung, Schutz Bestand, Zufahrt",
+    "einheit": "pausch",
+    "mengeQuelle": "pauschal",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 450,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 30
+    },
+    "aufwandswert_h": 4
+  },
+  {
+    "id": "pos-demontage-sanitaer",
+    "trigger": {
+      "art": "bestand",
+      "label": "wc|lavabo|dusche"
+    },
+    "posNr": "230.10",
+    "gewerk": "sanitaer",
+    "phase": "abbruch",
+    "text": "Demontage Bestands-Sanitärobjekt inkl. Entsorgung",
+    "einheit": "Stk",
+    "mengeQuelle": "stk",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 180,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 30
+    },
+    "aufwandswert_h": 1.5
+  },
+  {
+    "id": "pos-montage-sanitaer",
+    "trigger": {
+      "art": "placement",
+      "funktionsTyp": "wc|lavabo|dusche",
+      "gewerk": "sanitaer"
+    },
+    "posNr": "230.20",
+    "gewerk": "sanitaer",
+    "phase": "montage",
+    "text": "Sanitärobjekt montieren und anschliessen (Wasser/Abwasser)",
+    "einheit": "Stk",
+    "mengeQuelle": "stk",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 420,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 25
+    },
+    "aufwandswert_h": 3
+  },
+  {
+    "id": "pos-installation-roh",
+    "trigger": {
+      "art": "placement",
+      "anschluss": "wasser|abwasser",
+      "einmalJe": "funktionsTyp"
+    },
+    "posNr": "230.30",
+    "gewerk": "sanitaer",
+    "phase": "installation-roh",
+    "text": "Anschlusspunkt Wasser/Abwasser erstellen bzw. anpassen",
+    "einheit": "Stk",
+    "mengeQuelle": "stk",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 350,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 35
+    },
+    "aufwandswert_h": 2.5
+  },
+  {
+    "id": "pos-montage-schreiner",
+    "trigger": {
+      "art": "placement",
+      "gewerk": "schreiner"
+    },
+    "posNr": "273.10",
+    "gewerk": "schreiner",
+    "phase": "montage",
+    "text": "Wandmontage Möbel/Accessoire (Spiegel, Stangen, Schränke)",
+    "einheit": "Stk",
+    "mengeQuelle": "stk",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 90,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 25
+    },
+    "aufwandswert_h": 0.75
+  },
+  {
+    "id": "pos-abdichtung-nassbereich",
+    "trigger": {
+      "art": "placement",
+      "funktionsTyp": "dusche"
+    },
+    "posNr": "281.05",
+    "gewerk": "plattenleger",
+    "phase": "abdichtung",
+    "text": "Verbundabdichtung Nassbereich (Boden + Wand bis 2.0 m)",
+    "einheit": "m2",
+    "mengeQuelle": "duschbereich",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 65,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 25
+    },
+    "aufwandswert_h": 0.4
+  },
+  {
+    "id": "pos-bodenplatten",
+    "trigger": {
+      "art": "finish",
+      "surface": "floor"
+    },
+    "posNr": "281.10",
+    "gewerk": "plattenleger",
+    "phase": "belaege",
+    "text": "Bodenplatten liefern und verlegen, inkl. 8 % Verschnitt",
+    "einheit": "m2",
+    "mengeQuelle": "bodenflaeche",
+    "faktor": 1.08,
+    "einheitspreis": {
+      "value": 110,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 20
+    },
+    "aufwandswert_h": 0.8
+  },
+  {
+    "id": "pos-wandplatten",
+    "trigger": {
+      "art": "finish",
+      "surface": "wall"
+    },
+    "posNr": "281.20",
+    "gewerk": "plattenleger",
+    "phase": "belaege",
+    "text": "Wandplatten liefern und verlegen, inkl. 8 % Verschnitt",
+    "einheit": "m2",
+    "mengeQuelle": "wandflaeche",
+    "faktor": 1.08,
+    "einheitspreis": {
+      "value": 95,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 20
+    },
+    "aufwandswert_h": 0.75
+  },
+  {
+    "id": "pos-maler-decke",
+    "trigger": {
+      "art": "projekt"
+    },
+    "posNr": "285.10",
+    "gewerk": "maler",
+    "phase": "maler",
+    "text": "Decke grundieren und zweimal streichen (Feuchtraumfarbe)",
+    "einheit": "m2",
+    "mengeQuelle": "bodenflaeche",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 28,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 25
+    },
+    "aufwandswert_h": 0.25
+  },
+  {
+    "id": "pos-vorwand-neu",
+    "trigger": {
+      "art": "intervention",
+      "kind": "vorwand-neu"
+    },
+    "posNr": "271.10",
+    "gewerk": "baumeister",
+    "phase": "installation-roh",
+    "text": "Vorwandinstallation erstellen inkl. Beplankung",
+    "einheit": "m2",
+    "mengeQuelle": "pauschal",
+    "faktor": 2.5,
+    "einheitspreis": {
+      "value": 240,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 30
+    },
+    "aufwandswert_h": 1.2
+  },
+  {
+    "id": "pos-endreinigung",
+    "trigger": {
+      "art": "projekt"
+    },
+    "posNr": "287.10",
+    "gewerk": "maler",
+    "phase": "endreinigung",
+    "text": "Endreinigung Baustelle",
+    "einheit": "pausch",
+    "mengeQuelle": "pauschal",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 250,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 30
+    },
+    "aufwandswert_h": 3
+  }
+]
