@@ -39,7 +39,16 @@ def test_happy_path_raum_bis_pdf() -> None:
 def test_solve_unloesbar_gibt_422() -> None:
     client = TestClient(app)
     room = _room("raummodell.r1-wc")
-    dusche = "aaaaaaaa-0003-4000-8000-000000000003"
+    import json as _json
+    from pathlib import Path as _Path
+
+    catalog = _json.loads(
+        (_Path(__file__).resolve().parents[3] / "data" / "catalog" / "bad.json").read_text()
+    )
+    dusche = max(
+        (c for c in catalog if c["funktionsTyp"] == "dusche"),
+        key=lambda c: c["masse"]["w"] * c["masse"]["d"],
+    )["id"]
     res = client.post("/solve", json={"room": room, "auswahl": [dusche]})
     assert res.status_code == 422
     assert res.json()["code"] == "NO_FEASIBLE_PLACEMENT"

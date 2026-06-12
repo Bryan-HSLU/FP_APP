@@ -16,7 +16,6 @@ from pydantic import BaseModel
 
 from fp_engines import __version__
 from fp_engines.auswertung import evaluate_plan
-from fp_engines.baseline import baseline_auswahl
 from fp_engines.bauzeit import erzeuge_bauzeitenplan
 from fp_engines.dxf import grundriss_dxf
 from fp_engines.lv import erzeuge_lv
@@ -149,7 +148,10 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
             },
         )
     if req.auswahl is None:
-        sel = baseline_auswahl(req.room, katalog)
+        from fp_engines.kurator import BaselineKurator
+
+        neutral: dict[str, Any] = {"styleVector": {}, "derivedRequirements": [], "palette": []}
+        sel = BaselineKurator().kuratiere(neutral, req.room, katalog, None, req.seed)
         auswahl, absichten = sel["auswahl"], sel["relationaleAbsichten"]
     else:
         auswahl, absichten = req.auswahl, req.relationaleAbsichten

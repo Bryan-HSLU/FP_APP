@@ -23,7 +23,12 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
-from fp_engines.rules.geometry import front_dir
+from fp_engines.rules.geometry import (
+    containment_violation,
+    footprint,
+    front_dir,
+    overlap_depth,
+)
 from fp_engines.rules.interpreter import evaluate_rules
 from fp_engines.rules.scene import build_scene
 
@@ -103,6 +108,40 @@ def _als_placement(item: dict[str, Any], kandidat: _Kandidat, rnd: random.Random
     return p
 
 
+def _schnell_unzulaessig(
+    room: dict[str, Any],
+    placements: list[dict[str, Any]],
+    by_id: dict[str, dict[str, Any]],
+    kandidat_placement: dict[str, Any],
+) -> bool:
+    """Billiger Vorfilter VOR der vollen Regelauswertung: offensichtliche
+    Kollisionen (gleiche Höhenlage) und Raum-Austritte sofort verwerfen.
+    Konservativ – verwirft nie fälschlich (vertikal getrennte Paare werden
+    der vollen Prüfung überlassen, wenn kein Plan-Overlap vorliegt)."""
+    item = by_id[kandidat_placement["catalogItemId"]]
+    quad = footprint(
+        tuple(kandidat_placement["pose"]["pos"]),
+        item["masse"]["w"],
+        item["masse"]["d"],
+        kandidat_placement["pose"]["yawDeg"],
+    )
+    if containment_violation(quad, room["shell"]["floor"]["polygon"]) < 0:
+        return True
+    k_lo = kandidat_placement.get("mountHeight") or 0.0
+    k_hi = k_lo + item["masse"]["h"]
+    for p in placements[:-1]:
+        o = by_id[p["catalogItemId"]]
+        o_lo = p.get("mountHeight") or 0.0
+        if k_hi <= o_lo or o_lo + o["masse"]["h"] <= k_lo:
+            continue  # vertikal getrennt → keine Kollision möglich
+        o_quad = footprint(
+            tuple(p["pose"]["pos"]), o["masse"]["w"], o["masse"]["d"], p["pose"]["yawDeg"]
+        )
+        if overlap_depth(quad, o_quad) is not None:
+            return True
+    return False
+
+
 def _zulaessig(
     room: dict[str, Any],
     placements: list[dict[str, Any]],
@@ -167,7 +206,9 @@ def solve(
         for kandidat in kandidaten:
             placement = _als_placement(item, kandidat, rnd)
             placements.append(placement)
-            if _zulaessig(room, placements, catalog, rules, norm_profile) is not None:
+            if not _schnell_unzulaessig(room, placements, by_id, placement) and (
+                _zulaessig(room, placements, catalog, rules, norm_profile) is not None
+            ):
                 if backtrack(uebrige):
                     return True
             placements.pop()
@@ -217,10 +258,12 @@ def solve(
             kandidaten.sort(key=lambda k: math.hypot(k.pos[0] - anker[0], k.pos[1] - anker[1]))
         else:
             rnd.shuffle(kandidaten)
-        for kandidat in kandidaten:
+        for kandidat in kandidaten[:300]:
             placement = _als_placement(item, kandidat, rnd)
             placements.append(placement)
-            if _zulaessig(room, placements, catalog, rules, norm_profile) is not None:
+            if not _schnell_unzulaessig(room, placements, by_id, placement) and (
+                _zulaessig(room, placements, catalog, rules, norm_profile) is not None
+            ):
                 typ_pos[item["funktionsTyp"]] = kandidat.pos
                 break
             placements.pop()
@@ -234,7 +277,9 @@ def solve(
         for kandidat in kandidaten[:200]:
             placement = _als_placement(item, kandidat, rnd)
             placements.append(placement)
-            if _zulaessig(room, placements, catalog, rules, norm_profile) is not None:
+            if not _schnell_unzulaessig(room, placements, by_id, placement) and (
+                _zulaessig(room, placements, catalog, rules, norm_profile) is not None
+            ):
                 break
             placements.pop()
 

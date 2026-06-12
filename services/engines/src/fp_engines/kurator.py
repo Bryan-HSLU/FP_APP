@@ -145,10 +145,22 @@ class BaselineKurator:
         auswahl: list[str] = []
         absichten: list[dict[str, Any]] = []
         rest_budget = budget if budget is not None else math.inf
+        # Flächen-Daumenregel: Footprint × 2.5 (inkl. Bewegungsfläche) muss in
+        # die Rest-Bodenfläche passen – kleines Gäste-WC wählt ehrlich die
+        # Teilmenge (Norm-Regelsatz-v0) statt den Solver scheitern zu lassen.
+        rest_flaeche = room["shell"]["floor"].get("area") or 0.0
 
         def nimm(typ: str) -> None:
-            nonlocal rest_budget
-            kandidaten = [i for i in slots.get(typ, []) if i["preis"]["value"] <= rest_budget]
+            nonlocal rest_budget, rest_flaeche
+            kandidaten = [
+                i
+                for i in slots.get(typ, [])
+                if i["preis"]["value"] <= rest_budget
+                and (
+                    i.get("mount") == "wand"
+                    or i["masse"]["w"] * i["masse"]["d"] * 2.5 <= rest_flaeche
+                )
+            ]
             if not kandidaten:
                 return
             # Seed-Rauschen erhält Variation, ohne den Score zu dominieren.
@@ -158,6 +170,8 @@ class BaselineKurator:
             )
             auswahl.append(bester["id"])
             rest_budget -= bester["preis"]["value"]
+            if bester.get("mount") != "wand":
+                rest_flaeche -= bester["masse"]["w"] * bester["masse"]["d"] * 2.5
             for rel in bester.get("relationalRules", []):
                 absichten.append({"itemId": bester["id"], "relation": rel})
 

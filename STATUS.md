@@ -92,11 +92,17 @@
 
 ## Nächste Schritte (für die nächste Session)
 
-1. **Katalog-Ausbau Bad (30–50 Items)** – grösster Hebel für Kurator-
-   Diversität und Solver-Varianten – oder direkt **M5 Durchstich WOHNEN**
-   (Regelsatz/Katalog/Bilder wohnen, freie Platzierung + Relationen breit).
-   M3-Polituren weiterhin offen: 2D-Grundriss-Ansicht im Viewer,
-   «austauschen», Drag&Drop, circulation-Freiraum-Analyse (beidseitig!).
+1. **M5 Durchstich WOHNEN** (Regelsatz/Katalog/Bilder wohnen, freie
+   Platzierung + Relationen breit). M3-Polituren weiterhin offen:
+   2D-Grundriss-Ansicht im Viewer, «austauschen», Drag&Drop,
+   circulation-Freiraum-Analyse (beidseitig!).
+   **Katalog-Ausbau erledigt (2026-06-11):** `data/catalog/bad.json` hat
+   jetzt 32 Items (12 funktionsTypen × Stil-Varianten mit Achsen-Tags) →
+   Kurator-Diversität 1→7 Sets, Stil-Treue 0.274→0.471. Solver bekam dafür
+   einen billigen Geometrie-Vorfilter (Kollision/Containment vor der vollen
+   Regelauswertung) und die Baseline die Flächen-Daumenregel im
+   BaselineKurator (alte fp_engines/baseline.py = dünne Delegation) –
+   Testlauf 94s→3.6s, Solve weiterhin <0.1s.
 2. **M2 Scan-Spike weiterführen:** Restmasse R1 (Raumhöhe, Türbreite,
    Objektmasse) + Neuaufnahme nach Guideline (Bryan); danach
    `spike_eval.ipynb` in Colab (T4) auf altem+neuem Material laufen lassen,
