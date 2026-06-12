@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#7d5a44"/>
+  <rect x="0" y="180" width="400" height="120" fill="#b08968"/>
+  <rect x="40" y="120" width="180" height="90" rx="10" fill="#e6ccb2"/>
+  <rect x="240" y="150" width="120" height="60" rx="6" fill="#e6ccb2" opacity="0.7"/>
+  <circle cx="320" cy="80" r="30" fill="#e6ccb2" opacity="0.55"/>
+  <text x="14" y="26" font-family="sans-serif" font-size="15" fill="#ffffff" stroke="#00000055" stroke-width="0.4">SAMPLE · Klassisch warm</text>
+</svg>

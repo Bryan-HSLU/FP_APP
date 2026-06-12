@@ -6,7 +6,7 @@
 > Abweichungen gibt es. Meilenstein-Definitionen: Brain →
 > `vault/50_Umsetzung/Bauplan-Meilensteine.md`.
 
-**Stand: 2026-06-11**
+**Stand: 2026-06-12**
 
 ## Meilensteine
 
@@ -17,7 +17,7 @@
 | **M2** Scan-Spike | Eval-Notebook, Messung R1–R3 (parallel, blockiert nichts) | 🟡 gestartet |
 | **M3** Durchstich BAD ⭐ | Sample-Bad → Baseline → Solver P1–P3 → Viewer → Report → Mengen/KV-PDF | 🟢 DoD erfüllt |
 | **M4** Auswertung voll + Kurator | LV, Bauzeitenplan, Offert-Paket, DXF · Kurator + Mini-Eval · Stil-UI | 🟢 DoD erfüllt |
-| **M5** Durchstich WOHNEN | | ⚪ offen |
+| **M5** Durchstich WOHNEN | Sample-Wohnzimmer → Regelsatz/Katalog/Bilder wohnen → Solver mit freier Boden-Platzierung → LV/Bauzeit/Dokumente | 🟢 fertig |
 | **M6** Durchstich KÜCHE | | ⚪ offen |
 | **M7** Scan-Integration (+AR) | | ⚪ offen |
 
@@ -90,19 +90,38 @@
   - **Nicht code-seitig (bei Bryan):** Mini-Eval mit echtem LLM messen +
     Mensch-Rating; echte Bad-Fotos taggen (ersetzt SVG-Platzhalter).
 
+- **M5 (2026-06-12, Durchstich WOHNEN):**
+  - **Sample-Raum:** `raummodell.wohnen-sample` (Wohnzimmer 4.5×3.6 m, 16.2 m²,
+    4 massive Wände, Tür 0.9 m an kurzer Wand, Fenster als Öffnung, KEINE
+    Fixpunkte = Trockenraum). In `/samples/rooms` automatisch eingehängt.
+  - **Stammdaten wohnen:** `data/rules/wohnen.json` (host-binding Regal/
+    Wandbild, soft object-distance Sofa↔Couchtisch, hard clearance Esstisch
+    ≥1.0 m + Sideboard ≥0.6 m; circulation bleibt Basis-Stub) ·
+    `data/catalog/wohnen.json` (28 Items: sofa/esstisch/tvmoebel P1,
+    couchtisch/regal/sideboard/stehleuchte P2, teppich/pflanze/wandbild/
+    beistelltisch P3 – je 2–3 Stil-Varianten, Präfix `bbbbbbbb-…`) ·
+    `data/images/wohnen.json` + 8 SVG-Platzhalter (2 Presets) ·
+    `data/positions/wohnen.json` (Trockenraum-Gewerke: Maler Wände+Decke,
+    Bodenleger, Elektro Leuchten-Anschluss, Möbel-/Wandmontage) ·
+    `data/sequence/wohnen.json` (Ausräumen → Maler[Trocknung] → Boden →
+    Elektro → Montage → Endreinigung).
+  - **Solver – freie Boden-Platzierung:** neu `_floor_candidates` (0.25-m-
+    Raster über der Bodenpolygon-BBox, Yaw 0/90/180/270, nur mount=boden) +
+    `_candidates` (Wand- ⊕ Boden-Kandidaten). Vorfilter/Caps unverändert
+    (P2 300 / P3 200), neu Cap P1-Backtracking 400. Determinismus gewahrt
+    (Kandidatenreihenfolge deterministisch vor dem seed-shuffle). Solve
+    wohnen ~0.05–0.11 s, Testsuite 109 grün in ~12 s.
+  - **Beweis freie Platzierung:** Property-Test + dedizierter Test (Couchtisch
+    steht frei vor dem Sofa, Wandabstand >0.3 m). Alle Dokument-Exporte
+    (LV/Bauzeit/KV/DXF/glTF/Plan-PDF) laufen für wohnen E2E.
+
 ## Nächste Schritte (für die nächste Session)
 
-1. **M5 Durchstich WOHNEN** (Regelsatz/Katalog/Bilder wohnen, freie
-   Platzierung + Relationen breit). M3-Polituren weiterhin offen:
-   2D-Grundriss-Ansicht im Viewer, «austauschen», Drag&Drop,
+1. **M6 Durchstich KÜCHE** (Reihenfolge Bad → Wohnen → **Küche**): Regelsatz/
+   Katalog/Bilder/Positions/Sequenz küche; Küche bringt Anschluss-/Zeilen-
+   Logik (siehe Küchen-Detailkonzept im Brain). M3-Polituren **weiterhin
+   offen:** 2D-Grundriss-Ansicht im Viewer, «austauschen», Drag&Drop,
    circulation-Freiraum-Analyse (beidseitig!).
-   **Katalog-Ausbau erledigt (2026-06-11):** `data/catalog/bad.json` hat
-   jetzt 32 Items (12 funktionsTypen × Stil-Varianten mit Achsen-Tags) →
-   Kurator-Diversität 1→7 Sets, Stil-Treue 0.274→0.471. Solver bekam dafür
-   einen billigen Geometrie-Vorfilter (Kollision/Containment vor der vollen
-   Regelauswertung) und die Baseline die Flächen-Daumenregel im
-   BaselineKurator (alte fp_engines/baseline.py = dünne Delegation) –
-   Testlauf 94s→3.6s, Solve weiterhin <0.1s.
 2. **M2 Scan-Spike weiterführen:** Restmasse R1 (Raumhöhe, Türbreite,
    Objektmasse) + Neuaufnahme nach Guideline (Bryan); danach
    `spike_eval.ipynb` in Colab (T4) auf altem+neuem Material laufen lassen,
@@ -119,6 +138,9 @@
 | Kollision prüft vertikale Überlappung (Höhenintervalle) | Spiegel ÜBER Lavabo ist keine Kollision – nötig für P2-Wandobjekte | Interpreter beidseitig, Learning im Brain |
 | Editor v0: Pfeiltasten/Buttons statt Drag&Drop; «austauschen» fehlt | minimal gemäss DoD («ansehen + minimal editieren + Ampel»); Ausbau M4 | STATUS |
 | `door-swing` v0 als Rechteck (Breite×Radius) statt Viertelkreis | identische, einfache Geometrie in TS & Python; konservative Näherung | Code-Kommentar + Fixtures |
+| M5: Bett-Regel «Zugang ≥1 Längsseite» nicht umgesetzt → Wohnzimmer-Fokus | Mit den aktuellen Regel-Typen (clearance/object-distance/host-binding) nicht ausdrückbar; Schlafen-Spezifika (Bett, beidseitiger Zugang) auf später verschoben statt Interpreter zu ändern (Paritäts-Gesetz) | STATUS, wohnen.json |
+| M5: Esstisch inkl. Stühlen als EIN Footprint | POC-Vereinfachung – Stuhl-Einzelplatzierung wäre eigene Solver-Stufe; Footprint deckt Tisch + ausgezogene Stühle ab, clearance-Regel zusätzlich ≥1.0 m | catalog/wohnen.json (Item-Beschreibung) |
+| M5: relationalRules-Distanzen wohnen als Zentrum-zu-Zentrum kalibriert (z.B. `near:sofa:1.3` statt 0.45) | Der Solver-Relationsfilter misst Zentrumsabstand; bei grossen Ankern (Sofa 2.1×0.95) wäre der ergonomische Kantenabstand 0.40–0.45 m als Zentrumswert kollidierend. Die ergonomische Norm bleibt als **soft** object-distance-Regel (Kantenmass 0.40 m) erhalten | catalog/wohnen.json, rules/wohnen.json |
 
 ## Offene Fragen an Bryan
 

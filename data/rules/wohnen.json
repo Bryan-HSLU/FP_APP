@@ -1,0 +1,62 @@
+[
+  {
+    "id": "wohnen-regal-wandbindung",
+    "roomType": "wohnen",
+    "appliesTo": "regal",
+    "kategorie": "objekt-raum",
+    "type": "host-binding",
+    "severity": "hard",
+    "params": { "mount": "wand", "maxWandabstand": 0.05 },
+    "quelle": "Richtwert",
+    "status": "zu-verifizieren",
+    "hinweis": "Wandregal wandgebunden (Rücken an massiver Wand)."
+  },
+  {
+    "id": "wohnen-wandbild-wandbindung",
+    "roomType": "wohnen",
+    "appliesTo": "wandbild",
+    "kategorie": "objekt-raum",
+    "type": "host-binding",
+    "severity": "hard",
+    "params": { "mount": "wand", "maxWandabstand": 0.05 },
+    "quelle": "Richtwert",
+    "status": "zu-verifizieren",
+    "hinweis": "Wandbild wandgebunden (Aufhängung an massiver Wand)."
+  },
+  {
+    "id": "wohnen-sofa-couchtisch-abstand",
+    "roomType": "wohnen",
+    "appliesTo": "sofa",
+    "kategorie": "objekt-objekt",
+    "type": "object-distance",
+    "severity": "soft",
+    "params": { "target": "couchtisch", "minDist": 0.4, "measure": "edge" },
+    "quelle": "Ergonomie-Richtwert (Greifabstand)",
+    "status": "zu-verifizieren",
+    "hinweis": "Sofa ↔ Couchtisch 0.40–0.45 m (bequem erreichbar, kein Stolperabstand)."
+  },
+  {
+    "id": "wohnen-esstisch-freiraum",
+    "roomType": "wohnen",
+    "appliesTo": "esstisch",
+    "kategorie": "sperrzone",
+    "type": "clearance",
+    "severity": "hard",
+    "params": { "depth": 1.0, "zone": "front" },
+    "quelle": "Richtwert (Stuhl + dahinter durchgehen)",
+    "status": "zu-verifizieren",
+    "hinweis": "Bewegungsfläche vor Esstisch ≥ 1.00 m (Stuhl herausziehen + dahinter durch)."
+  },
+  {
+    "id": "wohnen-schrank-oeffnungsfreiraum",
+    "roomType": "wohnen",
+    "appliesTo": "sideboard",
+    "kategorie": "sperrzone",
+    "type": "clearance",
+    "severity": "hard",
+    "params": { "depth": 0.6, "zone": "front" },
+    "quelle": "Richtwert (Schubladen/Türen öffnen)",
+    "status": "zu-verifizieren",
+    "hinweis": "Öffnungsfreiraum vor Schrank/Sideboard ≥ 0.60 m."
+  }
+]

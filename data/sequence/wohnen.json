@@ -1,0 +1,21 @@
+{
+  "roomType": "wohnen",
+  "beschreibung": "Standard-Renovations-Sequenz Wohnzimmer (Trockenraum): Phasen-DAG mit Trocknungs-Wartekante nach dem Maler. POC: strikt sequenziell = konservativ. Richtwerte v0, zu-verifizieren.",
+  "phasen": [
+    { "id": "vorbereitung", "name": "Baustelleneinrichtung / Ausräumen", "nach": [] },
+    {
+      "id": "maler",
+      "name": "Malerarbeiten Wände + Decke",
+      "nach": ["vorbereitung"],
+      "trocknung_tage": 1
+    },
+    { "id": "belaege", "name": "Bodenbelag verlegen", "nach": ["maler"], "trocknung_tage": 1 },
+    { "id": "elektro", "name": "Elektro Leuchten-Anschluss", "nach": ["belaege"] },
+    { "id": "montage", "name": "Montage Möbel / Wandobjekte", "nach": ["elektro"] },
+    { "id": "endreinigung", "name": "Endreinigung", "nach": ["montage"] }
+  ],
+  "teamgroesse": 1,
+  "stunden_pro_tag": 8,
+  "mindestdauer_tage": 0.5,
+  "bandbreitePct": 30
+}

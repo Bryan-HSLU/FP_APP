@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#8a6f4d"/>
+  <rect x="0" y="180" width="400" height="120" fill="#d9c7a7"/>
+  <rect x="40" y="120" width="180" height="90" rx="10" fill="#3a5a40"/>
+  <rect x="240" y="150" width="120" height="60" rx="6" fill="#3a5a40" opacity="0.7"/>
+  <circle cx="320" cy="80" r="30" fill="#3a5a40" opacity="0.55"/>
+  <text x="14" y="26" font-family="sans-serif" font-size="15" fill="#ffffff" stroke="#00000055" stroke-width="0.4">SAMPLE · Warmes Holz, viel Natur</text>
+</svg>

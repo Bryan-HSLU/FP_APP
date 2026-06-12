@@ -1,0 +1,164 @@
+[
+  {
+    "id": "pos-baustelleneinrichtung-wohnen",
+    "trigger": { "art": "projekt" },
+    "posNr": "100.10",
+    "gewerk": "baumeister",
+    "phase": "vorbereitung",
+    "text": "Baustelleneinrichtung, Schutz Bestand, Möbel ausräumen",
+    "einheit": "pausch",
+    "mengeQuelle": "pauschal",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 300,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 30
+    },
+    "aufwandswert_h": 3
+  },
+  {
+    "id": "pos-maler-waende-wohnen",
+    "trigger": { "art": "projekt" },
+    "posNr": "285.10",
+    "gewerk": "maler",
+    "phase": "maler",
+    "text": "Wände grundieren, spachteln und zweimal streichen",
+    "einheit": "m2",
+    "mengeQuelle": "wandflaeche",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 22,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 25
+    },
+    "aufwandswert_h": 0.22
+  },
+  {
+    "id": "pos-maler-decke-wohnen",
+    "trigger": { "art": "projekt" },
+    "posNr": "285.20",
+    "gewerk": "maler",
+    "phase": "maler",
+    "text": "Decke grundieren und zweimal weiss streichen",
+    "einheit": "m2",
+    "mengeQuelle": "bodenflaeche",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 26,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 25
+    },
+    "aufwandswert_h": 0.25
+  },
+  {
+    "id": "pos-bodenbelag-wohnen",
+    "trigger": { "art": "projekt" },
+    "posNr": "282.10",
+    "gewerk": "bodenleger",
+    "phase": "belaege",
+    "text": "Bodenbelag (Parkett/Vinyl) liefern und verlegen, inkl. 8 % Verschnitt",
+    "einheit": "m2",
+    "mengeQuelle": "bodenflaeche",
+    "faktor": 1.08,
+    "einheitspreis": {
+      "value": 95,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 20
+    },
+    "aufwandswert_h": 0.5
+  },
+  {
+    "id": "pos-elektro-leuchtenanschluss-wohnen",
+    "trigger": {
+      "art": "placement",
+      "anschluss": "elektro",
+      "einmalJe": "funktionsTyp"
+    },
+    "posNr": "240.10",
+    "gewerk": "elektro",
+    "phase": "elektro",
+    "text": "Anschlusspunkt für Leuchte erstellen bzw. anpassen (Steckdose/Auslass)",
+    "einheit": "Stk",
+    "mengeQuelle": "stk",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 140,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 30
+    },
+    "aufwandswert_h": 1.2
+  },
+  {
+    "id": "pos-montage-wandobjekt-wohnen",
+    "trigger": {
+      "art": "placement",
+      "gewerk": "schreiner"
+    },
+    "posNr": "273.10",
+    "gewerk": "schreiner",
+    "phase": "montage",
+    "text": "Wandmontage Möbel/Accessoire (Regal, Wandobjekt)",
+    "einheit": "Stk",
+    "mengeQuelle": "stk",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 80,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 25
+    },
+    "aufwandswert_h": 0.6
+  },
+  {
+    "id": "pos-moebelmontage-wohnen",
+    "trigger": {
+      "art": "placement",
+      "gewerk": "moebel"
+    },
+    "posNr": "275.10",
+    "gewerk": "moebel",
+    "phase": "montage",
+    "text": "Möbel liefern, aufstellen und montieren (Sofa, Tische, Sideboard, Dekor)",
+    "einheit": "Stk",
+    "mengeQuelle": "stk",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 90,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 25
+    },
+    "aufwandswert_h": 0.75
+  },
+  {
+    "id": "pos-endreinigung-wohnen",
+    "trigger": { "art": "projekt" },
+    "posNr": "287.10",
+    "gewerk": "maler",
+    "phase": "endreinigung",
+    "text": "Endreinigung Baustelle",
+    "einheit": "pausch",
+    "mengeQuelle": "pauschal",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 220,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 30
+    },
+    "aufwandswert_h": 2.5
+  }
+]

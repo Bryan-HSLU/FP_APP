@@ -61,3 +61,17 @@ def test_samples_und_katalog() -> None:
     katalog = client.get("/catalog/bad").json()
     assert any(c["funktionsTyp"] == "wc" for c in katalog)
     assert client.get("/catalog/garage").status_code == 404
+
+
+def test_solve_wohnen_kernmoebel() -> None:
+    """M5: Sample-Wohnzimmer → /solve liefert Plan mit Sofa + Esstisch + TV-Möbel."""
+    client = TestClient(app)
+    room = _room("raummodell.wohnen-sample")
+    res = client.post("/solve", json={"room": room, "seed": 1})
+    assert res.status_code == 200
+    plan = res.json()["plan"]
+    assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+    katalog = client.get("/catalog/wohnen").json()
+    by_id = {c["id"]: c for c in katalog}
+    typen = {by_id[p["catalogItemId"]]["funktionsTyp"] for p in plan["placements"]}
+    assert {"sofa", "esstisch", "tvmoebel"} <= typen

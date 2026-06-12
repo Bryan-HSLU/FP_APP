@@ -1,0 +1,922 @@
+[
+  {
+    "id": "bbbbbbbb-0001-4000-8000-000000000001",
+    "schemaVersion": "0.1.0",
+    "name": "Sofa 3-Sitzer Leinen Beige",
+    "kategorie": "moebel-sofa",
+    "funktionsTyp": "sofa",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 2.1,
+      "d": 0.95,
+      "h": 0.85
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "temperatur": 0.6,
+      "materialitaet": 0.6,
+      "helligkeit": 0.5
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 1900,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0002-4000-8000-000000000002",
+    "schemaVersion": "0.1.0",
+    "name": "Sofa 3-Sitzer Samt Petrol",
+    "kategorie": "moebel-sofa",
+    "funktionsTyp": "sofa",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 2.0,
+      "d": 0.9,
+      "h": 0.82
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "temperatur": -0.3,
+      "opulenz": 0.5,
+      "farbigkeit": 0.5
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 2400,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0003-4000-8000-000000000003",
+    "schemaVersion": "0.1.0",
+    "name": "Sofa 2-Sitzer Leder Schwarz",
+    "kategorie": "moebel-sofa",
+    "funktionsTyp": "sofa",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 1.7,
+      "d": 0.9,
+      "h": 0.8
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": -0.6,
+      "epoche": 0.6,
+      "kontur": 0.5
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 2100,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0004-4000-8000-000000000004",
+    "schemaVersion": "0.1.0",
+    "name": "Esstisch Eiche 4 Personen (inkl. 4 Stühlen)",
+    "kategorie": "moebel-esstisch",
+    "funktionsTyp": "esstisch",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 1.4,
+      "d": 1.2,
+      "h": 0.75
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.6,
+      "epoche": 0.1
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 1450,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Footprint inkl. Stühle (POC-Vereinfachung: ein Footprint)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0005-4000-8000-000000000005",
+    "schemaVersion": "0.1.0",
+    "name": "Esstisch Glas/Metall 4 Personen (inkl. 4 Stühlen)",
+    "kategorie": "moebel-esstisch",
+    "funktionsTyp": "esstisch",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 1.3,
+      "d": 1.2,
+      "h": 0.74
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": 0.4,
+      "epoche": 0.7,
+      "kontur": 0.6
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 1250,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Footprint inkl. Stühle (POC-Vereinfachung: ein Footprint)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0006-4000-8000-000000000006",
+    "schemaVersion": "0.1.0",
+    "name": "Esstisch Rund Weiss 4 Personen (inkl. 4 Stühlen)",
+    "kategorie": "moebel-esstisch",
+    "funktionsTyp": "esstisch",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 1.3,
+      "d": 1.3,
+      "h": 0.75
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": 0.7,
+      "kontur": -0.7,
+      "opulenz": -0.3
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 1100,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Footprint inkl. Stühle (POC-Vereinfachung: ein Footprint)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0007-4000-8000-000000000007",
+    "schemaVersion": "0.1.0",
+    "name": "TV-Lowboard Eiche 140",
+    "kategorie": "moebel-tvmoebel",
+    "funktionsTyp": "tvmoebel",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 1.4,
+      "d": 0.4,
+      "h": 0.45
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.6,
+      "epoche": 0.3
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 690,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0008-4000-8000-000000000008",
+    "schemaVersion": "0.1.0",
+    "name": "TV-Lowboard Anthrazit 160",
+    "kategorie": "moebel-tvmoebel",
+    "funktionsTyp": "tvmoebel",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 1.6,
+      "d": 0.42,
+      "h": 0.4
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": -0.6,
+      "epoche": 0.8,
+      "kontur": 0.5
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 850,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0009-4000-8000-000000000009",
+    "schemaVersion": "0.1.0",
+    "name": "Couchtisch Holz Rund 80",
+    "kategorie": "moebel-couchtisch",
+    "funktionsTyp": "couchtisch",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.8,
+      "d": 0.8,
+      "h": 0.42
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.6,
+      "kontur": -0.6
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": ["near:sofa:1.3"],
+    "preis": {
+      "value": 320,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0010-4000-8000-000000000010",
+    "schemaVersion": "0.1.0",
+    "name": "Couchtisch Glas/Metall 110×60",
+    "kategorie": "moebel-couchtisch",
+    "funktionsTyp": "couchtisch",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 1.1,
+      "d": 0.6,
+      "h": 0.4
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": 0.4,
+      "epoche": 0.7,
+      "kontur": 0.6
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": ["near:sofa:1.3"],
+    "preis": {
+      "value": 390,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0011-4000-8000-000000000011",
+    "schemaVersion": "0.1.0",
+    "name": "Couchtisch Set Schwarz 90×50",
+    "kategorie": "moebel-couchtisch",
+    "funktionsTyp": "couchtisch",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.9,
+      "d": 0.5,
+      "h": 0.4
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": -0.5,
+      "kontur": 0.5,
+      "epoche": 0.6
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": ["near:sofa:1.3"],
+    "preis": {
+      "value": 250,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0012-4000-8000-000000000012",
+    "schemaVersion": "0.1.0",
+    "name": "Wandregal Eiche 80",
+    "kategorie": "moebel-wandregal",
+    "funktionsTyp": "regal",
+    "roomTypes": ["wohnen"],
+    "gewerk": "schreiner",
+    "masse": {
+      "w": 0.8,
+      "d": 0.25,
+      "h": 0.04
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "wand",
+    "achsenTags": {
+      "materialitaet": 0.9,
+      "temperatur": 0.6,
+      "epoche": 0.2
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 120,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "mountHeightRange": {
+      "min": 1.2,
+      "max": 1.6
+    }
+  },
+  {
+    "id": "bbbbbbbb-0013-4000-8000-000000000013",
+    "schemaVersion": "0.1.0",
+    "name": "Wandregal Weiss 100",
+    "kategorie": "moebel-wandregal",
+    "funktionsTyp": "regal",
+    "roomTypes": ["wohnen"],
+    "gewerk": "schreiner",
+    "masse": {
+      "w": 1.0,
+      "d": 0.22,
+      "h": 0.04
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "wand",
+    "achsenTags": {
+      "helligkeit": 0.7,
+      "opulenz": -0.4,
+      "epoche": 0.5
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 95,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "mountHeightRange": {
+      "min": 1.2,
+      "max": 1.6
+    }
+  },
+  {
+    "id": "bbbbbbbb-0014-4000-8000-000000000014",
+    "schemaVersion": "0.1.0",
+    "name": "Wandregal Metall Schwarz 90",
+    "kategorie": "moebel-wandregal",
+    "funktionsTyp": "regal",
+    "roomTypes": ["wohnen"],
+    "gewerk": "schreiner",
+    "masse": {
+      "w": 0.9,
+      "d": 0.24,
+      "h": 0.05
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "wand",
+    "achsenTags": {
+      "helligkeit": -0.6,
+      "kontur": 0.7,
+      "epoche": 0.7
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 140,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "mountHeightRange": {
+      "min": 1.2,
+      "max": 1.6
+    }
+  },
+  {
+    "id": "bbbbbbbb-0015-4000-8000-000000000015",
+    "schemaVersion": "0.1.0",
+    "name": "Sideboard Eiche 160",
+    "kategorie": "moebel-sideboard",
+    "funktionsTyp": "sideboard",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 1.6,
+      "d": 0.42,
+      "h": 0.75
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.6,
+      "epoche": 0.2
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 980,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0016-4000-8000-000000000016",
+    "schemaVersion": "0.1.0",
+    "name": "Sideboard Weiss Hochglanz 140",
+    "kategorie": "moebel-sideboard",
+    "funktionsTyp": "sideboard",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 1.4,
+      "d": 0.4,
+      "h": 0.72
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": 0.8,
+      "kontur": 0.4,
+      "epoche": 0.7
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 760,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0017-4000-8000-000000000017",
+    "schemaVersion": "0.1.0",
+    "name": "Stehleuchte Bogenlampe Chrom",
+    "kategorie": "elektro-stehleuchte",
+    "funktionsTyp": "stehleuchte",
+    "roomTypes": ["wohnen"],
+    "gewerk": "elektro",
+    "masse": {
+      "w": 0.35,
+      "d": 0.35,
+      "h": 1.8
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": 0.6,
+      "epoche": 0.6,
+      "kontur": -0.4
+    },
+    "attributTags": [],
+    "anschluesse": ["elektro"],
+    "relationalRules": ["near:sofa:1.4"],
+    "preis": {
+      "value": 240,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0018-4000-8000-000000000018",
+    "schemaVersion": "0.1.0",
+    "name": "Stehleuchte Dreibein Holz",
+    "kategorie": "elektro-stehleuchte",
+    "funktionsTyp": "stehleuchte",
+    "roomTypes": ["wohnen"],
+    "gewerk": "elektro",
+    "masse": {
+      "w": 0.4,
+      "d": 0.4,
+      "h": 1.55
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.5,
+      "epoche": -0.3
+    },
+    "attributTags": [],
+    "anschluesse": ["elektro"],
+    "relationalRules": ["near:sofa:1.4"],
+    "preis": {
+      "value": 180,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0019-4000-8000-000000000019",
+    "schemaVersion": "0.1.0",
+    "name": "Teppich Wolle Natur 200×140",
+    "kategorie": "dekor-teppich",
+    "funktionsTyp": "teppich",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 2.0,
+      "d": 1.4,
+      "h": 0.02
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.7,
+      "temperatur": 0.6,
+      "farbigkeit": -0.2
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": ["near:couchtisch:1.0"],
+    "preis": {
+      "value": 290,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0020-4000-8000-000000000020",
+    "schemaVersion": "0.1.0",
+    "name": "Teppich Grafisch Schwarzweiss 230×160",
+    "kategorie": "dekor-teppich",
+    "funktionsTyp": "teppich",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 2.3,
+      "d": 1.6,
+      "h": 0.02
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "farbigkeit": -0.8,
+      "kontur": 0.7,
+      "epoche": 0.7
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": ["near:couchtisch:1.0"],
+    "preis": {
+      "value": 350,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0021-4000-8000-000000000021",
+    "schemaVersion": "0.1.0",
+    "name": "Teppich Hochflor Beige 160×120",
+    "kategorie": "dekor-teppich",
+    "funktionsTyp": "teppich",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 1.6,
+      "d": 1.2,
+      "h": 0.03
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": 0.6,
+      "temperatur": 0.5,
+      "opulenz": 0.2
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": ["near:couchtisch:1.0"],
+    "preis": {
+      "value": 210,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0022-4000-8000-000000000022",
+    "schemaVersion": "0.1.0",
+    "name": "Pflanze Monstera gross",
+    "kategorie": "dekor-pflanze",
+    "funktionsTyp": "pflanze",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.45,
+      "d": 0.45,
+      "h": 1.3
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.9,
+      "farbigkeit": 0.5,
+      "raumgefuehl": 0.3
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 110,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0023-4000-8000-000000000023",
+    "schemaVersion": "0.1.0",
+    "name": "Pflanze Bogenhanf mittel",
+    "kategorie": "dekor-pflanze",
+    "funktionsTyp": "pflanze",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.3,
+      "d": 0.3,
+      "h": 0.8
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "farbigkeit": 0.3,
+      "kontur": 0.4
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 65,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0024-4000-8000-000000000024",
+    "schemaVersion": "0.1.0",
+    "name": "Wandbild Abstrakt Bunt 80×60",
+    "kategorie": "dekor-wandbild",
+    "funktionsTyp": "wandbild",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.8,
+      "d": 0.04,
+      "h": 0.6
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "wand",
+    "achsenTags": {
+      "farbigkeit": 0.8,
+      "epoche": 0.5,
+      "kontur": -0.3
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 160,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "mountHeightRange": {
+      "min": 1.3,
+      "max": 1.6
+    }
+  },
+  {
+    "id": "bbbbbbbb-0025-4000-8000-000000000025",
+    "schemaVersion": "0.1.0",
+    "name": "Wandbild Schwarzweiss-Foto 100×70",
+    "kategorie": "dekor-wandbild",
+    "funktionsTyp": "wandbild",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 1.0,
+      "d": 0.04,
+      "h": 0.7
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "wand",
+    "achsenTags": {
+      "farbigkeit": -0.8,
+      "kontur": 0.5,
+      "epoche": 0.6
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 200,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "mountHeightRange": {
+      "min": 1.3,
+      "max": 1.6
+    }
+  },
+  {
+    "id": "bbbbbbbb-0026-4000-8000-000000000026",
+    "schemaVersion": "0.1.0",
+    "name": "Wandbild Naturmotiv Holzrahmen 60×80",
+    "kategorie": "dekor-wandbild",
+    "funktionsTyp": "wandbild",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.6,
+      "d": 0.05,
+      "h": 0.8
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "wand",
+    "achsenTags": {
+      "materialitaet": 0.7,
+      "temperatur": 0.5,
+      "farbigkeit": 0.3
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 130,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "mountHeightRange": {
+      "min": 1.3,
+      "max": 1.6
+    }
+  },
+  {
+    "id": "bbbbbbbb-0027-4000-8000-000000000027",
+    "schemaVersion": "0.1.0",
+    "name": "Beistelltisch Marmor Rund 45",
+    "kategorie": "moebel-beistelltisch",
+    "funktionsTyp": "beistelltisch",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.45,
+      "d": 0.45,
+      "h": 0.55
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "opulenz": 0.5,
+      "materialitaet": 0.6,
+      "helligkeit": 0.3
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": ["near:sofa:1.3"],
+    "preis": {
+      "value": 180,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "bbbbbbbb-0028-4000-8000-000000000028",
+    "schemaVersion": "0.1.0",
+    "name": "Beistelltisch Holz Eckig 40",
+    "kategorie": "moebel-beistelltisch",
+    "funktionsTyp": "beistelltisch",
+    "roomTypes": ["wohnen"],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.4,
+      "d": 0.4,
+      "h": 0.5
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.5,
+      "kontur": 0.5
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": ["near:sofa:1.3"],
+    "preis": {
+      "value": 95,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  }
+]

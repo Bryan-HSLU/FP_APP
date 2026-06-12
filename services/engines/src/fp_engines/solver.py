@@ -7,8 +7,11 @@ ein P1-Pflichtobjekt, wird ehrlich NoFeasiblePlacement gemeldet statt einer
 verletzenden Lösung.
 
 v0-Vereinfachungen (bewusst, dokumentiert in STATUS.md):
-- Kandidaten nur wandparallel an massiven Wänden (Bad: alles wandgebunden),
-  Snap-Schritt 5 cm, Rotation aus der Wand-Normalen.
+- Wand-Kandidaten parallel an massiven Wänden (Snap-Schritt 5 cm, Rotation aus
+  der Wand-Normalen) – nötig für wandgebundene Objekte (Bad, Regal, Spiegel).
+- Boden-Kandidaten (ab M5/Wohnen): freie Platzierung auf einem 0.25-m-Raster
+  über der Bounding-Box des Bodenpolygons, Yaw 0/90/180/270 – Standmöbel
+  (Sofa, Esstisch …) müssen nicht an einer Wand kleben.
 - Zulässigkeit = Regel-Interpreter-Urteil über die TEIL-Szene
   (summary.verletzt == 0) – exakt dieselbe Logik wie Live-Check und CI.
 - Soft-Score v0 = Wandstreuung (Objekte verteilen) + Nähe zu relationalen
@@ -28,12 +31,15 @@ from fp_engines.rules.geometry import (
     footprint,
     front_dir,
     overlap_depth,
+    point_in_polygon,
 )
 from fp_engines.rules.interpreter import evaluate_rules
 from fp_engines.rules.scene import build_scene
 
 SOLVER_VERSION = "0.1.0"
 SNAP_M = 0.05
+FLOOR_GRID_M = 0.25  # Rasterweite freie Boden-Platzierung (ab M5/Wohnen)
+P1_CAP = 400  # Backtracking-Kandidaten-Deckel je P1-Objekt (Explosionsschutz)
 
 
 class NoFeasiblePlacement(Exception):
@@ -91,6 +97,49 @@ def _wall_candidates(room: dict[str, Any], item: dict[str, Any]) -> list[_Kandid
             pz = sz + uz * t + f[1] * (d / 2)
             out.append(_Kandidat((round(px, 4), round(pz, 4)), yaw, wi))
     return out
+
+
+def _floor_candidates(room: dict[str, Any], item: dict[str, Any]) -> list[_Kandidat]:
+    """Freie Boden-Posen auf einem Raster über der Bounding-Box des Bodenpolygons.
+
+    Nur für Standmöbel (mount == «boden»): Rasterweite FLOOR_GRID_M, je Punkt die
+    vier achsparallelen Yaws (0/90/180/270). Offensichtlich daneben liegende
+    Kandidaten (Zentrum ausserhalb des Polygons) werden hier schon weggelassen;
+    den Rest erledigen `_schnell_unzulaessig` und die volle Regelauswertung.
+    Reihenfolge ist deterministisch (Raster + Yaw geschachtelt), damit der
+    spätere shuffle reproduzierbar bleibt.
+    """
+    floor = room["shell"]["floor"]["polygon"]
+    xs = [p[0] for p in floor]
+    zs = [p[1] for p in floor]
+    x_min, x_max = min(xs), max(xs)
+    z_min, z_max = min(zs), max(zs)
+    nx = int((x_max - x_min) / FLOOR_GRID_M)
+    nz = int((z_max - z_min) / FLOOR_GRID_M)
+    out: list[_Kandidat] = []
+    for ix in range(nx + 1):
+        px = round(x_min + ix * FLOOR_GRID_M, 4)
+        for iz in range(nz + 1):
+            pz = round(z_min + iz * FLOOR_GRID_M, 4)
+            if not point_in_polygon((px, pz), floor):
+                continue
+            for yaw in (0.0, 90.0, 180.0, 270.0):
+                out.append(_Kandidat((px, pz), yaw, -1))
+    return out
+
+
+def _candidates(room: dict[str, Any], item: dict[str, Any]) -> list[_Kandidat]:
+    """Kandidaten je Item: Wand-Kandidaten + (bei Boden-Items) Boden-Kandidaten.
+
+    Wandgebundene Items (mount == «wand») bleiben bei den Wand-Kandidaten;
+    Standmöbel bekommen zusätzlich das freie Boden-Raster. Reihenfolge
+    deterministisch (erst Wand, dann Boden) – der seed-gesteuerte shuffle in den
+    Pässen sorgt für Variation.
+    """
+    kand = _wall_candidates(room, item)
+    if item.get("mount", "boden") == "boden":
+        kand = kand + _floor_candidates(room, item)
+    return kand
 
 
 def _als_placement(item: dict[str, Any], kandidat: _Kandidat, rnd: random.Random) -> dict[str, Any]:
@@ -201,9 +250,9 @@ def solve(
         if not rest:
             return True
         item, *uebrige = rest
-        kandidaten = _wall_candidates(room, item)
+        kandidaten = _candidates(room, item)
         rnd.shuffle(kandidaten)
-        for kandidat in kandidaten:
+        for kandidat in kandidaten[:P1_CAP]:
             placement = _als_placement(item, kandidat, rnd)
             placements.append(placement)
             if not _schnell_unzulaessig(room, placements, by_id, placement) and (
@@ -226,7 +275,7 @@ def solve(
                     rules,
                     norm_profile,
                 )
-                for k in _wall_candidates(room, item)
+                for k in _candidates(room, item)
             )
             if not einzeln:
                 raise NoFeasiblePlacement(item["funktionsTyp"])
@@ -248,7 +297,7 @@ def solve(
             if teile[0] == "near" and teile[1] in typ_pos:
                 anker = typ_pos[teile[1]]
                 max_dist = float(teile[2]) if len(teile) > 2 else math.inf
-        kandidaten = _wall_candidates(room, item)
+        kandidaten = _candidates(room, item)
         if anker is not None:
             kandidaten = [
                 k
@@ -272,7 +321,7 @@ def solve(
     # Pass 3 – P3 (Dekor): randomisiert auf zulässigen Restplätzen – hier
     # entsteht die Seed-Variation, ohne harte Regeln zu berühren.
     for item in p3:
-        kandidaten = _wall_candidates(room, item)
+        kandidaten = _candidates(room, item)
         rnd.shuffle(kandidaten)
         for kandidat in kandidaten[:200]:
             placement = _als_placement(item, kandidat, rnd)
