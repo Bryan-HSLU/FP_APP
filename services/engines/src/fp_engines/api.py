@@ -18,10 +18,12 @@ from fp_engines import __version__
 from fp_engines.auswertung import evaluate_plan
 from fp_engines.bauzeit import erzeuge_bauzeitenplan
 from fp_engines.dxf import grundriss_dxf
+from fp_engines.kueche import formwahl, solve_kueche
 from fp_engines.lv import erzeuge_lv
 from fp_engines.pdf import bauzeit_pdf, kv_pdf, lv_pdf, offertanfrage_pdf
 from fp_engines.rules import build_scene, evaluate_rules
 from fp_engines.solver import NoFeasiblePlacement, solve
+from fp_engines.zonen import zone_room
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 DATA_RULES = REPO_ROOT / "data" / "rules"
@@ -118,26 +120,79 @@ def catalog(room_type: str) -> Any:
         )
 
 
+def _kueche_zone_id(room: dict[str, Any]) -> str | None:
+    """ID der Küchen-Zone in einem Grossraum (für Auto-Routing), sonst None."""
+    for zone in room.get("zones", []):
+        if zone.get("roomType") == "kueche":
+            return str(zone["id"])
+    return None
+
+
+def _effektiver_raum(room: dict[str, Any], zone_id: str | None) -> dict[str, Any]:
+    """Effektiv geplanter Raum: Teilraum der Zone, falls zoneId; sonst der Raum.
+
+    Ohne explizite zoneId, aber mit einer Küchen-Zone im Grossraum, wird diese
+    automatisch geplant (Küchen-Detailkonzept Teil 3 – Zonen-Routing).
+    """
+    zid = zone_id or (None if room.get("roomType") == "kueche" else _kueche_zone_id(room))
+    if zid:
+        return zone_room(room, zid)
+    return room
+
+
+class FormenRequest(BaseModel):
+    """Raum (+ optional Stilprofil/Normprofil) → Top-3 Küchenformen."""
+
+    room: dict[str, Any]
+    styleProfile: dict[str, Any] | None = None
+    normProfile: str = "ch"
+    zoneId: str | None = None
+
+
+@app.post("/kueche/formen")
+def kueche_formen(req: FormenRequest) -> JSONResponse:
+    """Top-3 Küchenformen (I/L/U/Galley/Insel) für den effektiven Küchenraum."""
+    raum = _effektiver_raum(req.room, req.zoneId)
+    if raum["roomType"] != "kueche":
+        return JSONResponse(
+            status_code=400,
+            content={
+                "code": "SCHEMA_INVALID",
+                "message": "Formwahl nur für Küchenräume (roomType kueche oder Küchen-Zone).",
+                "details": {},
+            },
+        )
+    formen = formwahl(raum, req.styleProfile, req.normProfile)
+    return JSONResponse(content={"formen": formen})
+
+
 class SolveRequest(BaseModel):
     """Raum + (optionale) Auswahl + seed → normkonformer Plan.
 
     Ohne `auswahl` läuft die deterministische Kurator-Baseline (ADR-0007-Fallback).
     Gleicher Input + gleicher seed ⇒ gleicher Plan («Variante würfeln» = seed+1).
+    Küche: optional `normProfile`, `form` (Default Top-1 der Formwahl) und
+    `zoneId` (Grossraum → Teilraum). Response enthält zusätzlich `room` (der
+    effektiv verwendete Raum) für Viewer + Live-Ampel.
     """
 
     room: dict[str, Any]
     seed: int = 1
     normProfile: str = "ch"
+    form: str | None = None
+    zoneId: str | None = None
     auswahl: list[str] | None = None
     relationaleAbsichten: list[dict[str, Any]] = []
+    stilprofil: dict[str, Any] | None = None
     stilprofilRef: str | None = None
 
 
 @app.post("/solve")
 def solve_endpoint(req: SolveRequest) -> JSONResponse:
+    raum = _effektiver_raum(req.room, req.zoneId)
     try:
-        katalog = _catalog(req.room["roomType"])
-        rules = _load_rulesets(["basis", req.room["roomType"]])
+        katalog = _catalog(raum["roomType"])
+        rules = _load_rulesets(["basis", raum["roomType"]])
     except FileNotFoundError as e:
         return JSONResponse(
             status_code=400,
@@ -147,26 +202,49 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
                 "details": {},
             },
         )
-    if req.auswahl is None:
-        from fp_engines.kurator import BaselineKurator
-
-        neutral: dict[str, Any] = {"styleVector": {}, "derivedRequirements": [], "palette": []}
-        sel = BaselineKurator().kuratiere(neutral, req.room, katalog, None, req.seed)
-        auswahl, absichten = sel["auswahl"], sel["relationaleAbsichten"]
-    else:
-        auswahl, absichten = req.auswahl, req.relationaleAbsichten
+    created = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     try:
-        plan = solve(
-            req.room,
-            auswahl,
-            absichten,
-            katalog,
-            rules,
-            seed=req.seed,
-            norm_profile=req.normProfile,
-            stilprofil_ref=req.stilprofilRef,
-            created_at=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        )
+        if raum["roomType"] == "kueche":
+            # Küche = lineare Baugruppe (Formwahl + Slot-Füllung).
+            form = req.form
+            if form is None:
+                top = formwahl(raum, req.stilprofil, req.normProfile)
+                form = top[0]["form"] if top else "i"
+            plan = solve_kueche(
+                raum,
+                katalog,
+                rules,
+                form=form,
+                norm_profile=req.normProfile,
+                seed=req.seed,
+                style_profile=req.stilprofil,
+                stilprofil_ref=req.stilprofilRef,
+                created_at=created,
+            )
+        else:
+            if req.auswahl is None:
+                from fp_engines.kurator import BaselineKurator
+
+                neutral: dict[str, Any] = {
+                    "styleVector": {},
+                    "derivedRequirements": [],
+                    "palette": [],
+                }
+                sel = BaselineKurator().kuratiere(neutral, raum, katalog, None, req.seed)
+                auswahl, absichten = sel["auswahl"], sel["relationaleAbsichten"]
+            else:
+                auswahl, absichten = req.auswahl, req.relationaleAbsichten
+            plan = solve(
+                raum,
+                auswahl,
+                absichten,
+                katalog,
+                rules,
+                seed=req.seed,
+                norm_profile=req.normProfile,
+                stilprofil_ref=req.stilprofilRef,
+                created_at=created,
+            )
     except NoFeasiblePlacement as e:
         # Ehrliches Solver-Ergebnis (Engineering-Grundlagen §1) – kein 500.
         return JSONResponse(
@@ -177,8 +255,8 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
                 "details": {"funktionsTyp": e.funktions_typ},
             },
         )
-    hinweis = {} if req.room["meta"]["geometryConfirmed"] else {"hinweis": "GEOMETRY_UNCONFIRMED"}
-    return JSONResponse(content={"plan": plan, **hinweis})
+    hinweis = {} if raum["meta"]["geometryConfirmed"] else {"hinweis": "GEOMETRY_UNCONFIRMED"}
+    return JSONResponse(content={"plan": plan, "room": raum, **hinweis})
 
 
 class EvaluateRequest(BaseModel):

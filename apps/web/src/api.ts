@@ -50,6 +50,16 @@ export interface KV {
   hinweis: string;
 }
 
+/** Optionen für /solve – Küche braucht normProfile/form/zoneId, sonst Kurator. */
+export interface SolveOpts {
+  kurator?: KuratorAntwort;
+  stilprofilRef?: string;
+  stilprofil?: unknown | null;
+  normProfile?: string;
+  form?: string;
+  zoneId?: string;
+}
+
 export class ApiFehler extends Error {
   constructor(
     public code: string,
@@ -77,6 +87,15 @@ export interface KuratorAntwort {
   begruendung?: string;
 }
 
+/** Eine Küchenform-Empfehlung (Formwahl, M6). */
+export interface KuechenForm {
+  form: "i" | "l" | "u" | "galley" | "insel";
+  score: number;
+  begruendung: string;
+  anchorWallIds: string[];
+  nutzlaenge_m: number;
+}
+
 export const api = {
   rooms: () => call<Room[]>("/samples/rooms"),
   images: (roomType: string) => call<import("./Stil").BildItem[]>(`/images/${roomType}`),
@@ -93,15 +112,25 @@ export const api = {
     }),
   catalog: (roomType: string) => call<KatalogItem[]>(`/catalog/${roomType}`),
   rules: (roomType: string) => call<unknown[]>(`/rules/${roomType}`),
-  solve: (room: Room, seed: number, kurator?: KuratorAntwort, stilprofilRef?: string) =>
-    call<{ plan: Plan; hinweis?: string }>("/solve", {
+  /** Top-3 Küchenformen (Formwahl) für einen Küchen- oder Grossraum. */
+  kuecheFormen: (room: Room, stilprofil: unknown | null, normProfile: string, zoneId?: string) =>
+    call<{ formen: KuechenForm[] }>("/kueche/formen", {
+      method: "POST",
+      body: JSON.stringify({ room, styleProfile: stilprofil ?? undefined, normProfile, zoneId }),
+    }),
+  solve: (room: Room, seed: number, opts: SolveOpts = {}) =>
+    call<{ plan: Plan; room: Room; hinweis?: string }>("/solve", {
       method: "POST",
       body: JSON.stringify({
         room,
         seed,
-        auswahl: kurator?.auswahl,
-        relationaleAbsichten: kurator?.relationaleAbsichten ?? [],
-        stilprofilRef,
+        auswahl: opts.kurator?.auswahl,
+        relationaleAbsichten: opts.kurator?.relationaleAbsichten ?? [],
+        stilprofilRef: opts.stilprofilRef,
+        stilprofil: opts.stilprofil ?? undefined,
+        normProfile: opts.normProfile,
+        form: opts.form,
+        zoneId: opts.zoneId,
       }),
     }),
   evaluate: (room: Room, plan: Plan) =>

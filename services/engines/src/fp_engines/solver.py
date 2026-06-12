@@ -40,6 +40,9 @@ SOLVER_VERSION = "0.1.0"
 SNAP_M = 0.05
 FLOOR_GRID_M = 0.25  # Rasterweite freie Boden-Platzierung (ab M5/Wohnen)
 P1_CAP = 400  # Backtracking-Kandidaten-Deckel je P1-Objekt (Explosionsschutz)
+# Halbe Rundungsquante des Interpreters (0.1 cm): kleinere Überlappungen sind
+# Berührung, keine Kollision.
+_BERUEHRUNGS_EPS = 5e-4
 
 
 class NoFeasiblePlacement(Exception):
@@ -186,7 +189,12 @@ def _schnell_unzulaessig(
         o_quad = footprint(
             tuple(p["pose"]["pos"]), o["masse"]["w"], o["masse"]["d"], p["pose"]["yawDeg"]
         )
-        if overlap_depth(quad, o_quad) is not None:
+        tiefe = overlap_depth(quad, o_quad)
+        # Berührung zählt nicht als Kollision: Der Interpreter rundet Margen auf
+        # 0.1 cm – exakt anliegende Korpusse (Küchenzeile!) erzeugen durch
+        # Float-Krümel Überlappungen ~1e-16, die das Urteil NICHT verletzen.
+        # Der Vorfilter darf nie strenger sein als die volle Regelauswertung.
+        if tiefe is not None and tiefe > _BERUEHRUNGS_EPS:
             return True
     return False
 

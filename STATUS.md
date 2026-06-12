@@ -18,7 +18,7 @@
 | **M3** Durchstich BAD ⭐ | Sample-Bad → Baseline → Solver P1–P3 → Viewer → Report → Mengen/KV-PDF | 🟢 DoD erfüllt |
 | **M4** Auswertung voll + Kurator | LV, Bauzeitenplan, Offert-Paket, DXF · Kurator + Mini-Eval · Stil-UI | 🟢 DoD erfüllt |
 | **M5** Durchstich WOHNEN | Sample-Wohnzimmer → Regelsatz/Katalog/Bilder wohnen → Solver mit freier Boden-Platzierung → LV/Bauzeit/Dokumente | 🟢 fertig |
-| **M6** Durchstich KÜCHE | Phase A (Stammdaten/Sample-Räume/Zonen-Ableitung) fertig; Phase B (Formwahl + lineare Baugruppe) offen | 🟡 Phase A fertig |
+| **M6** Durchstich KÜCHE | Formwahl + lineare Baugruppe + API + Frontend; Grossraum über Zone geplant | 🟢 DoD erfüllt |
 | **M7** Scan-Integration (+AR) | | ⚪ offen |
 
 ## Was konkret existiert
@@ -145,14 +145,54 @@
     Schema-Check + beide Schema-Tests (TS+Py) um die 3 neuen Raum-Fixtures und
     die Regelsätze wohnen/kueche erweitert. Alles grün (Python 122, vitest 19).
 
+- **M6 Phase B (2026-06-12, Durchstich KÜCHE – Formwahl + Baugruppe):**
+  - **Küchen-Solver** `services/engines/src/fp_engines/kueche.py`:
+    - `formwahl(room, style_profile, norm_profile)` – Wandzüge (massiv,
+      achsparallel) + Anschlusswand (Wasser/Abwasser-Fixpunkte am nächsten);
+      Kandidaten-Formen nach Tabelle 1a hart gefiltert (I ≥2.4 m + Querbreite
+      ≥1.6; Galley 2 parallel + Breite ≥2.4; L ≥1.8+≥1.2; U 3 Züge + Innenbreite
+      ≥1.2; Insel Breite ≥3.4 UND Boden-Fixpunkt); Soft-Score
+      0.35·stil+0.30·ergo+0.20·arbeitsplatte+0.15·stauraum mit Stil→Form-
+      Heuristik (`_FORM_STILZIEL` auf den Stilachsen). Rückgabe Top-3 DISTINKTE
+      Formen (Begründung, Score, anchorWallIds, Nutzlänge).
+    - `solve_kueche(...)` – lineare Baugruppe: Raster ch55/eu60, Slots ab
+      Wandzug-Anfang (türfreies Teilstück), AMK-Füllung **P1** Spüle@Wasser →
+      GS direkt daneben → Kochfeld ≥1 Slot Abstand + nahe Starkstrom → Kühl an
+      Zeilenende → Dunstabzug als Wand-Placement über dem Kochfeld; **P2**
+      Hochschrank an Enden, Unterschränke in Restslots, Hängeschrank-Ebene (nicht
+      über Kochfeld, nicht vor Fenster), Füllstücke (0.05/0.15) ans Zeilenende;
+      **P3** 1–2 Deko über `_floor_candidates`. Jede Platzierung gegen
+      `_zulaessig` (evaluate_rules) – Solver-Invariante **verletzt==0** gewahrt,
+      sonst `NoFeasiblePlacement`. `plan.assemblies` = eine kuechenzeile-UUID je
+      Zeile, `meta.normProfile`. Stil-Auswahl reuse über `kurator._cos`.
+      Regel-Interpreter **nicht angefasst** (Paritäts-Gesetz). Solve-Zeiten:
+      geschlossene Küche ~0.09–0.12 s, Grossraum-Zone ~0.13 s (< 2 s).
+  - **API:** `POST /kueche/formen` (Top-3) · `/solve` erweitert um
+    `normProfile`/`form`/`zoneId`, Routing über `_effektiver_raum` (zoneId ODER
+    Auto-Küchenzone im Grossraum → `zone_room`), Küchen-Pfad → `solve_kueche`;
+    Response liefert zusätzlich `room` (effektiv geplanter Teilraum) für Viewer +
+    Live-Ampel. Alle `/export/*` laufen für Küchen-Pläne (placements-basiert).
+  - **Frontend:** Küchen-Erkennung (roomType kueche ODER Küchen-Zone);
+    Normprofil-Toggle CH/EU, Formwahl-Karten (Name, Begründung, Score-Balken),
+    Grossraum-Hinweis «geplant wird die Zone Küche»; Viewer + Ampel nutzen den
+    von `/solve` zurückgegebenen effektiven Raum; «Variante würfeln» behält
+    Form + Normprofil. Bad/Wohnen-Flows unverändert.
+  - **Tests:** `test_kueche.py` (Formwahl: Insel ausgeschlossen, Anschlusswand
+    in jeder Top-Form, Stil verschiebt Ranking · Baugruppe Property-Test
+    {kueche, grossraum+zone}×{ch,eu}×6 Seeds = 0 ❌ + schema-valide +
+    deterministisch · GS neben Spüle · Kochfeld↔Spüle ≥0.6 m · eine Assembly-ID
+    je Zeile · Rasterpositionen · ch55/eu60-Varianten · Grossraum-Placements in
+    Zone · Seed-Variation) + Endpoint-Tests (/kueche/formen, /solve kueche,
+    /solve Grossraum-Zone, 1 Export-Smoke). **Gesamt: Python 163 grün (~9 s),
+    vitest 19 grün, mypy/ruff sauber, Schema-Check 11 Files.**
+
 ## Nächste Schritte (für die nächste Session)
 
-1. **M6 Phase B Durchstich KÜCHE:** Küchen-Solver = Formwahl (I/L/U/Galley/
-   Insel aus Stil + Geometrie, Küchen-Detailkonzept Teil 1) + **lineare
-   Baugruppe** (`plan.assemblies`, Raster ch55/eu60, Slot-/Zonenlogik Teil 2,
-   Füllstücke). Grossraum über `zone_room` ableiten und je Zone solven.
-   M3-Polituren **weiterhin offen:** 2D-Grundriss-Ansicht im Viewer,
-   «austauschen», Drag&Drop, circulation-Freiraum-Analyse (beidseitig!).
+1. **M7 Scan-Integration (+AR):** Raumerfassung an den Klickpfad anbinden
+   (Scan → Raummodell → Solver). M3-Polituren **weiterhin offen:** 2D-Grundriss-
+   Ansicht im Viewer, «austauschen», Drag&Drop, circulation-Freiraum-Analyse
+   (beidseitig!). Küchen-Politur: Eckschrank statt Totraum (L/U), Arbeitsdreieck
+   als echter Score, mehr Slot-Breiten (30/45/90) post-POC.
 2. **M2 Scan-Spike weiterführen:** Restmasse R1 (Raumhöhe, Türbreite,
    Objektmasse) + Neuaufnahme nach Guideline (Bryan); danach
    `spike_eval.ipynb` in Colab (T4) auf altem+neuem Material laufen lassen,
@@ -175,6 +215,14 @@
 | M6-A: Grossraum-Sample mit echter `wall.kind:"offen"`-Kante mitten im Raum (statt nur Zonen-Polygone) | Code verträgt innenliegende Segmente problemlos (kein Hüllen-Closure-Validator; Solver/Interpreter filtern auf `kind=="massiv"`). Die offene Kante modelliert die reale offene Zonengrenze explizit; `zone_room` clippt sie auf die Zonenkante und erhält `kind:"offen"`. Die synthetische `virtuell`-Erzeugung greift nur, wenn KEINE Hüllenwand die Zonenkante deckt (separat getestet) | grossraum-sample, zonen.py, test_zonen.py |
 | M6-A: GS↔Spüle-«maxDist»-Regel NICHT als `object-distance` umgesetzt | Der Regel-Interpreter kennt bei `object-distance` nur `minDist` (kein maxDist). «Geschirrspüler direkt neben Spüle» ist Baugruppen-/Slot-Logik → kommt in Phase B; Interpreter wird (Paritäts-Gesetz) nicht erweitert. Nähe bleibt v0 über `relationalRules:["near:spuele:0.9"]` am Katalog-Item | rules/kueche.json, catalog/kueche.json, STATUS |
 | M6-A: clearance je Küchen-Haupttyp (spuele/kochfeld/geschirrspueler/unterschrank) statt einer Sammelregel | `appliesTo` matcht auf `funktionsTyp`; eine Regel pro Typ ist die mit den bestehenden Regel-Typen ausdrückbare Form des «Gang vor Zeile ≥ 1.0 m». Echte Zeilen-/Gang-Geometrie (circulation) kommt mit Phase B | rules/kueche.json |
+| M6-B: Ecke bei L/U als Totraum (kein Eckschrank) | Schenkel werden nacheinander mit Rasterslots gefüllt; ein Eckschrank/Karussell ist eigene Geometrie. v0-Vereinfachung – die normkonforme Zeile entsteht trotzdem, nur die Eckfläche bleibt ungenutzt | kueche.py (`_zuege_der_form`/Slot-Füllung), Docstring |
+| M6-B: Fenster blockieren Unterschränke NICHT, nur die Hängeschrank-Ebene meidet Fenster | Brüstungsfenster (sill ≥ 0.9 m) erlauben darunter eine Arbeitsfläche/Unterschrank; nur Hängeschränke dürfen nicht vor ein Fenster. Türen blockieren dagegen die ganze Zeile (Nutzlänge = türfreies Teilstück) | kueche.py (`_fuelle_haengeschraenke`, `_freies_teilstueck_intervall`) |
+| M6-B: Hängeschrank-Heuristik = Ebene über allen Unterschränken ausser Kochfeld | Über dem Kochfeld hängt der Dunstabzug; sonst wird jede freie Wandposition mit Hängeschrank belegt (vertikal getrennt von den Korpussen → keine Kollision dank Höhenintervall-Prüfung des Interpreters). Einfach + deckt den Stauraum-Score | kueche.py (`_fuelle_haengeschraenke`) |
+| M6-B: GS-«direkt neben Spüle» als Slot-Nachbarschaft (nicht als Regel) | Der Interpreter kennt kein `maxDist` bei object-distance (M6-A-Entscheid); die Baugruppe setzt den GS deterministisch in den Nachbarslot der Spüle. Damit ist die Forderung konstruktiv erfüllt, ohne den Interpreter zu ändern | kueche.py (`_platziere_geschirrspueler`) |
+| M6-B (Review-Fix): P1-Geräte sind Pflicht – fehlt Spüle/GS/Kochfeld/Kühlschrank → 422 NO_FEASIBLE_PLACEMENT (nur Dunstabzug best-effort, lueftung-connection ist soft) | Vorher entstand still ein Rumpf-Plan ohne Kühlschrank (constraintReport 0 ❌, aber fachlich unvollständig) – ehrliches Scheitern statt stiller Degradation | kueche.py (solve_kueche) |
+| M6-B (Review-Fix): Solver-Vorfilter toleriert Berührung (Überlappung ≤ 0.05 cm = halbe Rundungsquante) | Exakt anliegende Korpusse (Küchenzeile!) erzeugen Float-Krümel-Überlappungen ~1e-16; der Vorfilter war strenger als das Interpreter-Urteil (0.1-cm-Rundung) und verwarf gültige Slots – deshalb fehlte der Kühlschrank | solver.py (_schnell_unzulaessig, _BERUEHRUNGS_EPS) |
+| M6-B: Ergonomie/Arbeitsdreieck nur als einfacher Proxy im Formwahl-Score | v0: kompaktere I-Zeile besser, L/U/Galley pauschaler Bonus. Ein echtes Arbeitsdreieck-Mass (Spüle-Kochfeld-Kühl-Summe 3.5–6.5 m) ist post-POC; die harten Slot-Regeln (Abstände, Anschlüsse) sichern die Funktionalität bereits | kueche.py (`formwahl`) |
+| M6-B: /solve-Response um `room` (effektiver Raum) erweitert | Response ist kein Schema-Vertrag (Plan-Schema bleibt unberührt). Der Grossraum-Fall braucht den abgeleiteten Teilraum für Viewer + Live-Ampel; additiv am pydantic-Response-Modell | api.py (`/solve`), App.tsx (`planRoom`) |
 
 ## Offene Fragen an Bryan
 

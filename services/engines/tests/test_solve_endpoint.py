@@ -63,6 +63,57 @@ def test_samples_und_katalog() -> None:
     assert client.get("/catalog/garage").status_code == 404
 
 
+def test_kueche_formen_endpoint() -> None:
+    """M6: /kueche/formen liefert Top-3 Formen für die Sample-Küche."""
+    client = TestClient(app)
+    room = _room("raummodell.kueche-sample")
+    res = client.post("/kueche/formen", json={"room": room})
+    assert res.status_code == 200
+    formen = res.json()["formen"]
+    assert 1 <= len(formen) <= 3
+    assert all("form" in f and "score" in f and "begruendung" in f for f in formen)
+    assert "insel" not in {f["form"] for f in formen}
+
+
+def test_solve_kueche_smoke() -> None:
+    """M6: /solve auf der Sample-Küche → Baugruppe mit assemblies, 0 ❌."""
+    client = TestClient(app)
+    room = _room("raummodell.kueche-sample")
+    res = client.post("/solve", json={"room": room, "seed": 1, "normProfile": "eu"})
+    assert res.status_code == 200
+    body = res.json()
+    plan = body["plan"]
+    assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+    assert plan["assemblies"][0]["type"] == "kuechenzeile"
+    assert plan["meta"]["normProfile"] == "eu"
+    assert body["room"]["id"] == room["id"]
+
+
+def test_solve_grossraum_zone_room_zurueck() -> None:
+    """M6: /solve mit zoneId plant den Teilraum; Response.room ist der Teilraum,
+    Placements liegen in der Zone (x ≤ 2.8)."""
+    client = TestClient(app)
+    gr = _room("raummodell.grossraum-sample")
+    zid = "aaaa0001-3000-4000-8000-000000003001"
+    res = client.post("/solve", json={"room": gr, "seed": 1, "zoneId": zid, "form": "l"})
+    assert res.status_code == 200
+    body = res.json()
+    assert body["room"]["id"] != gr["id"]  # eigenständiger Teilraum
+    assert body["room"]["roomType"] == "kueche"
+    assert all(p["pose"]["pos"][0] <= 2.8 + 1e-6 for p in body["plan"]["placements"])
+
+
+def test_export_kueche_plan() -> None:
+    """M6: LV (JSON) + glTF laufen für einen Küchen-Plan (placements-basiert)."""
+    client = TestClient(app)
+    room = _room("raummodell.kueche-sample")
+    plan = client.post("/solve", json={"room": room, "seed": 1}).json()["plan"]
+    lv = client.post("/export/lv", json={"room": room, "plan": plan})
+    assert lv.status_code == 200
+    gltf = client.post("/export/gltf", json={"room": room, "plan": plan})
+    assert gltf.status_code == 200
+
+
 def test_solve_wohnen_kernmoebel() -> None:
     """M5: Sample-Wohnzimmer → /solve liefert Plan mit Sofa + Esstisch + TV-Möbel."""
     client = TestClient(app)

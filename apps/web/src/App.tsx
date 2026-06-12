@@ -12,7 +12,15 @@ import {
   type RuleResult,
 } from "@fp/shared/rules";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { api, ApiFehler, type KatalogItem, type KV, type Plan, type Room } from "./api";
+import {
+  api,
+  ApiFehler,
+  type KatalogItem,
+  type KuechenForm,
+  type KV,
+  type Plan,
+  type Room,
+} from "./api";
 import { SmartSpider, StilSwipe, type Achse, type BildItem, type Stilprofil } from "./Stil";
 import { Viewer3D } from "./Viewer3D";
 
@@ -68,6 +76,12 @@ export function App() {
   const [stilprofil, setStilprofil] = useState<Stilprofil | null>(null);
   const [swipeOffen, setSwipeOffen] = useState(false);
   const [begruendung, setBegruendung] = useState<string>("");
+  // Küche (M6): Normprofil-Toggle, Formwahl-Karten, gewählte Form.
+  const [normProfile, setNormProfile] = useState<"ch" | "eu">("ch");
+  const [formen, setFormen] = useState<KuechenForm[] | null>(null);
+  const [form, setForm] = useState<string | null>(null);
+  // Effektiv geplanter Raum (Viewer/Ampel): bei Grossraum die Küchen-Zone.
+  const [planRoom, setPlanRoom] = useState<Room | null>(null);
 
   useEffect(() => {
     api
@@ -75,6 +89,16 @@ export function App() {
       .then(setRooms)
       .catch(() => setMeldung("Engines-Dienst nicht erreichbar – «pnpm api» starten."));
   }, []);
+
+  // Küchen-Zone eines (Gross-)Raums: roomType kueche ODER eine Zone roomType
+  // kueche. Liefert {istKueche, zoneId, effektiverRoomType}.
+  const kuecheInfo = useMemo(() => {
+    if (!room) return { istKueche: false, zoneId: undefined as string | undefined };
+    if (room.roomType === "kueche") return { istKueche: true, zoneId: undefined };
+    const zonen = (room as Room & { zones?: { id: string; roomType: string }[] }).zones ?? [];
+    const z = zonen.find((zone) => zone.roomType === "kueche");
+    return { istKueche: !!z, zoneId: z?.id };
+  }, [room]);
 
   const raumWaehlen = useCallback(
     async (r: Room) => {
@@ -84,13 +108,31 @@ export function App() {
       setGewaehltId(null);
       setStilprofil(null);
       setBegruendung("");
-      setCatalog(await api.catalog(r.roomType));
-      setRules((await api.rules(r.roomType)) as Rule[]);
+      setFormen(null);
+      setForm(null);
+      setPlanRoom(null);
+      // Für Küchen den Katalog/Regeln des effektiven Raumtyps laden.
+      const istKueche =
+        r.roomType === "kueche" ||
+        ((r as Room & { zones?: { roomType: string }[] }).zones ?? []).some(
+          (z) => z.roomType === "kueche",
+        );
+      const effTyp = istKueche ? "kueche" : r.roomType;
+      setCatalog(await api.catalog(effTyp));
+      setRules((await api.rules(effTyp)) as Rule[]);
       setBilder(await api.images(r.roomType).catch(() => []));
       if (achsen.length === 0) setAchsen((await api.taxonomy()).achsen);
     },
     [achsen.length],
   );
+
+  // Küche: vor dem ersten Solve die Top-3 Formen holen.
+  const formenLaden = useCallback(async () => {
+    if (!room || !kuecheInfo.istKueche) return;
+    const res = await api.kuecheFormen(room, stilprofil, normProfile, kuecheInfo.zoneId);
+    setFormen(res.formen);
+    setForm(res.formen[0]?.form ?? null);
+  }, [room, kuecheInfo, stilprofil, normProfile]);
 
   const loesen = useCallback(
     async (s: number) => {
@@ -98,15 +140,35 @@ export function App() {
       setMeldung("");
       setKv(null);
       try {
-        // Mit Stilprofil: erst Kurator («KI wählt»), dann Solver («platziert»).
-        let kurator;
-        if (stilprofil) {
-          const k = await api.curate(room, stilprofil, s);
-          kurator = k.kurator;
-          setBegruendung(`${k.port}: ${k.kurator.begruendung ?? ""}`);
+        let res: { plan: Plan; room: Room; hinweis?: string };
+        if (kuecheInfo.istKueche) {
+          // Küche: lineare Baugruppe – Form + Normprofil (+ Zone) an den Solver.
+          let f = form;
+          if (f === null) {
+            const fr = await api.kuecheFormen(room, stilprofil, normProfile, kuecheInfo.zoneId);
+            setFormen(fr.formen);
+            f = fr.formen[0]?.form ?? "i";
+            setForm(f);
+          }
+          res = await api.solve(room, s, {
+            normProfile,
+            form: f,
+            zoneId: kuecheInfo.zoneId,
+            stilprofil,
+            stilprofilRef: stilprofil?.id,
+          });
+        } else {
+          // Bad/Wohnen: mit Stilprofil erst Kurator («KI wählt»), dann Solver.
+          let kurator;
+          if (stilprofil) {
+            const k = await api.curate(room, stilprofil, s);
+            kurator = k.kurator;
+            setBegruendung(`${k.port}: ${k.kurator.begruendung ?? ""}`);
+          }
+          res = await api.solve(room, s, { kurator, stilprofilRef: stilprofil?.id });
         }
-        const res = await api.solve(room, s, kurator, stilprofil?.id);
         setPlan(res.plan);
+        setPlanRoom(res.room);
         setSeed(s);
         if (res.hinweis)
           setMeldung("Hinweis: Geometrie unbestätigt – Ampel rechnet mit Messunsicherheit.");
@@ -117,21 +179,24 @@ export function App() {
         } else throw e;
       }
     },
-    [room, stilprofil],
+    [room, stilprofil, kuecheInfo, form, normProfile],
   );
+
+  // Effektiver Raum für Viewer + Ampel: bei Küche/Grossraum die geplante Zone.
+  const aktuellerRaum = planRoom ?? room;
 
   // Live-Ampel: TS-Interpreter über die aktuelle (ggf. editierte) Szene.
   const report: ConstraintReport | null = useMemo(() => {
-    if (!room || !plan || rules.length === 0) return null;
+    if (!aktuellerRaum || !plan || rules.length === 0) return null;
     return evaluateRules(
       buildScene(
-        room,
+        aktuellerRaum,
         { placements: plan.placements, meta: { normProfile: plan.meta.normProfile } },
         catalog,
       ),
       rules,
     );
-  }, [room, plan, rules, catalog]);
+  }, [aktuellerRaum, plan, rules, catalog]);
 
   const bewege = useCallback(
     (dx: number, dz: number, drehung = 0) => {
@@ -258,9 +323,9 @@ export function App() {
       </header>
 
       <main>
-        {room ? (
+        {aktuellerRaum ? (
           <Viewer3D
-            room={room}
+            room={aktuellerRaum}
             placements={plan?.placements ?? []}
             catalog={catalog}
             gewaehltId={gewaehltId}
@@ -273,6 +338,76 @@ export function App() {
 
       <aside style={stil.panel}>
         {meldung && <p style={{ color: "#c96f2e" }}>{meldung}</p>}
+
+        {kuecheInfo.istKueche && (
+          <section>
+            <h3 style={{ marginTop: 0 }}>Küche planen</h3>
+            {kuecheInfo.zoneId && (
+              <p style={{ fontSize: 12, color: "#1f4d3a" }}>
+                Grossraum – geplant wird die Zone «Küche».
+              </p>
+            )}
+            <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+              {(["ch", "eu"] as const).map((np) => (
+                <button
+                  key={np}
+                  onClick={() => {
+                    setNormProfile(np);
+                    setFormen(null);
+                    setForm(null);
+                  }}
+                  style={{
+                    ...stil.knopf,
+                    background: normProfile === np ? "#1f4d3a" : "#a3b9aa",
+                  }}
+                >
+                  {np === "ch" ? "CH (55er)" : "EU (60er)"}
+                </button>
+              ))}
+              <button style={stil.knopf} onClick={() => void formenLaden()}>
+                Formen zeigen
+              </button>
+            </div>
+            {formen && (
+              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                {formen.map((f) => (
+                  <li
+                    key={f.form}
+                    onClick={() => setForm(f.form)}
+                    style={{
+                      border: `2px solid ${form === f.form ? "#c96f2e" : "#ddd"}`,
+                      borderRadius: 6,
+                      padding: 8,
+                      marginBottom: 6,
+                      cursor: "pointer",
+                      background: "white",
+                    }}
+                  >
+                    <strong>{f.form.toUpperCase()}-Form</strong> · {f.nutzlaenge_m} m
+                    <div style={{ fontSize: 12, color: "#555" }}>{f.begruendung}</div>
+                    <div
+                      style={{
+                        height: 6,
+                        marginTop: 4,
+                        background: "#eee",
+                        borderRadius: 3,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${Math.round(f.score * 100)}%`,
+                          height: 6,
+                          background: "#5b8a72",
+                          borderRadius: 3,
+                        }}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
 
         {stilprofil && (
           <section>
