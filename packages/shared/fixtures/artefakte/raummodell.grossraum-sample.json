@@ -1,0 +1,168 @@
+{
+  "id": "44444444-4444-4444-8444-444444444444",
+  "schemaVersion": "0.1.0",
+  "name": "Sample-Grossraum Küche + Wohnen 7.0 × 4.5 m",
+  "roomType": "wohnen",
+  "source": "sample",
+  "units": "m",
+  "shell": {
+    "walls": [
+      {
+        "id": "cccccccc-3001-4000-8000-000000003001",
+        "start": [0, 0],
+        "end": [7.0, 0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv",
+        "openings": ["dddddddd-3001-4000-8000-000000003001"]
+      },
+      {
+        "id": "cccccccc-3002-4000-8000-000000003002",
+        "start": [7.0, 0],
+        "end": [7.0, 4.5],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv"
+      },
+      {
+        "id": "cccccccc-3003-4000-8000-000000003003",
+        "start": [7.0, 4.5],
+        "end": [0, 4.5],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv",
+        "openings": ["dddddddd-3002-4000-8000-000000003002"]
+      },
+      {
+        "id": "cccccccc-3004-4000-8000-000000003004",
+        "start": [0, 4.5],
+        "end": [0, 0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv"
+      },
+      {
+        "id": "cccccccc-3005-4000-8000-000000003005",
+        "start": [2.8, 0],
+        "end": [2.8, 4.5],
+        "height": 2.5,
+        "thickness": 0,
+        "kind": "offen"
+      }
+    ],
+    "floor": {
+      "polygon": [
+        [0, 0],
+        [7.0, 0],
+        [7.0, 4.5],
+        [0, 4.5]
+      ],
+      "area": 31.5
+    },
+    "ceiling": { "height": 2.5 }
+  },
+  "openings": [
+    {
+      "id": "dddddddd-3001-4000-8000-000000003001",
+      "type": "window",
+      "hostWall": "cccccccc-3001-4000-8000-000000003001",
+      "offset": 0.9,
+      "width": 1.0,
+      "height": 1.2,
+      "sill": 0.9
+    },
+    {
+      "id": "dddddddd-3002-4000-8000-000000003002",
+      "type": "door",
+      "hostWall": "cccccccc-3003-4000-8000-000000003003",
+      "offset": 0.4,
+      "width": 0.9,
+      "height": 2.0,
+      "sill": 0
+    }
+  ],
+  "zones": [
+    {
+      "id": "aaaa0001-3000-4000-8000-000000003001",
+      "name": "Küche",
+      "roomType": "kueche",
+      "polygon": [
+        [0, 0],
+        [2.8, 0],
+        [2.8, 4.5],
+        [0, 4.5]
+      ]
+    },
+    {
+      "id": "aaaa0002-3000-4000-8000-000000003002",
+      "name": "Wohnen",
+      "roomType": "wohnen",
+      "polygon": [
+        [2.8, 0],
+        [7.0, 0],
+        [7.0, 4.5],
+        [2.8, 4.5]
+      ]
+    }
+  ],
+  "fixpoints": [
+    {
+      "id": "eeeeeeee-3001-4000-8000-000000003001",
+      "type": "wasser",
+      "position": [0, 1.2],
+      "wall": "cccccccc-3004-4000-8000-000000003004",
+      "heightFromFloor": 0.55,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": "aaaa0001-3000-4000-8000-000000003001"
+    },
+    {
+      "id": "eeeeeeee-3002-4000-8000-000000003002",
+      "type": "abwasser",
+      "position": [0, 1.8],
+      "wall": "cccccccc-3004-4000-8000-000000003004",
+      "heightFromFloor": 0.3,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": "aaaa0001-3000-4000-8000-000000003001"
+    },
+    {
+      "id": "eeeeeeee-3003-4000-8000-000000003003",
+      "type": "starkstrom",
+      "position": [0, 2.7],
+      "wall": "cccccccc-3004-4000-8000-000000003004",
+      "heightFromFloor": 0.5,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": "aaaa0001-3000-4000-8000-000000003001"
+    },
+    {
+      "id": "eeeeeeee-3004-4000-8000-000000003004",
+      "type": "elektro",
+      "position": [0, 0.6],
+      "wall": "cccccccc-3004-4000-8000-000000003004",
+      "heightFromFloor": 1.1,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": "aaaa0001-3000-4000-8000-000000003001"
+    },
+    {
+      "id": "eeeeeeee-3005-4000-8000-000000003005",
+      "type": "lueftung",
+      "position": [0, 2.7],
+      "wall": "cccccccc-3004-4000-8000-000000003004",
+      "heightFromFloor": 2.1,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": "aaaa0001-3000-4000-8000-000000003001"
+    }
+  ],
+  "objects": [],
+  "meta": {
+    "captureMethod": "sample",
+    "coverageScore": 1,
+    "estimatedError_cm": 2,
+    "geometryConfirmed": false,
+    "geometryRef": "sample"
+  }
+}

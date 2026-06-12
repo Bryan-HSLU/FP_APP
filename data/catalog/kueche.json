@@ -1,0 +1,1355 @@
+[
+  {
+    "id": "cccccccc-0001-4000-8000-000000000001",
+    "schemaVersion": "0.1.0",
+    "name": "Spülenschrank Edelstahl-Becken (CH 55)",
+    "kategorie": "kueche-spuele",
+    "funktionsTyp": "spuele",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.55,
+      "d": 0.6,
+      "h": 0.9
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.3,
+      "kontur": 0.4,
+      "epoche": 0.4
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "wasser",
+      "abwasser"
+    ],
+    "relationalRules": [],
+    "preis": {
+      "value": 680,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55"
+  },
+  {
+    "id": "cccccccc-0002-4000-8000-000000000002",
+    "schemaVersion": "0.1.0",
+    "name": "Spülenschrank Edelstahl-Becken (EU 60)",
+    "kategorie": "kueche-spuele",
+    "funktionsTyp": "spuele",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 0.88
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.3,
+      "kontur": 0.4,
+      "epoche": 0.4
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "wasser",
+      "abwasser"
+    ],
+    "relationalRules": [],
+    "preis": {
+      "value": 720,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60"
+  },
+  {
+    "id": "cccccccc-0003-4000-8000-000000000003",
+    "schemaVersion": "0.1.0",
+    "name": "Spülenschrank Granit-Becken Anthrazit (CH 55)",
+    "kategorie": "kueche-spuele",
+    "funktionsTyp": "spuele",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.55,
+      "d": 0.6,
+      "h": 0.9
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": -0.4,
+      "opulenz": 0.3,
+      "materialitaet": 0.5
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "wasser",
+      "abwasser"
+    ],
+    "relationalRules": [],
+    "preis": {
+      "value": 890,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55"
+  },
+  {
+    "id": "cccccccc-0004-4000-8000-000000000004",
+    "schemaVersion": "0.1.0",
+    "name": "Spülenschrank Granit-Becken Anthrazit (EU 60)",
+    "kategorie": "kueche-spuele",
+    "funktionsTyp": "spuele",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 0.88
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": -0.4,
+      "opulenz": 0.3,
+      "materialitaet": 0.5
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "wasser",
+      "abwasser"
+    ],
+    "relationalRules": [],
+    "preis": {
+      "value": 930,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60"
+  },
+  {
+    "id": "cccccccc-0005-4000-8000-000000000005",
+    "schemaVersion": "0.1.0",
+    "name": "Kochfeld-Unterschrank Induktion (CH 55)",
+    "kategorie": "kueche-kochfeld",
+    "funktionsTyp": "kochfeld",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.55,
+      "d": 0.6,
+      "h": 0.9
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "epoche": 0.7,
+      "kontur": 0.5,
+      "helligkeit": 0.2
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "starkstrom"
+    ],
+    "relationalRules": [],
+    "preis": {
+      "value": 1150,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55"
+  },
+  {
+    "id": "cccccccc-0006-4000-8000-000000000006",
+    "schemaVersion": "0.1.0",
+    "name": "Kochfeld-Unterschrank Induktion (EU 60)",
+    "kategorie": "kueche-kochfeld",
+    "funktionsTyp": "kochfeld",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 0.88
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "epoche": 0.7,
+      "kontur": 0.5,
+      "helligkeit": 0.2
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "starkstrom"
+    ],
+    "relationalRules": [],
+    "preis": {
+      "value": 1190,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60"
+  },
+  {
+    "id": "cccccccc-0007-4000-8000-000000000007",
+    "schemaVersion": "0.1.0",
+    "name": "Kochfeld-Unterschrank Glaskeramik (CH 55)",
+    "kategorie": "kueche-kochfeld",
+    "funktionsTyp": "kochfeld",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.55,
+      "d": 0.6,
+      "h": 0.9
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "epoche": 0.3,
+      "kontur": 0.3
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "starkstrom"
+    ],
+    "relationalRules": [],
+    "preis": {
+      "value": 920,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55"
+  },
+  {
+    "id": "cccccccc-0008-4000-8000-000000000008",
+    "schemaVersion": "0.1.0",
+    "name": "Kochfeld-Unterschrank Glaskeramik (EU 60)",
+    "kategorie": "kueche-kochfeld",
+    "funktionsTyp": "kochfeld",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 0.88
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "epoche": 0.3,
+      "kontur": 0.3
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "starkstrom"
+    ],
+    "relationalRules": [],
+    "preis": {
+      "value": 950,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60"
+  },
+  {
+    "id": "cccccccc-0009-4000-8000-000000000009",
+    "schemaVersion": "0.1.0",
+    "name": "Kühl-/Gefrierkombi Hochschrank (CH 55)",
+    "kategorie": "kueche-kuehlschrank",
+    "funktionsTyp": "kuehlschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.55,
+      "d": 0.6,
+      "h": 2.0
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": 0.4,
+      "kontur": 0.4
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "elektro"
+    ],
+    "relationalRules": [],
+    "preis": {
+      "value": 1280,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55"
+  },
+  {
+    "id": "cccccccc-0010-4000-8000-000000000010",
+    "schemaVersion": "0.1.0",
+    "name": "Kühl-/Gefrierkombi Hochschrank (EU 60)",
+    "kategorie": "kueche-kuehlschrank",
+    "funktionsTyp": "kuehlschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 2.0
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": 0.4,
+      "kontur": 0.4
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "elektro"
+    ],
+    "relationalRules": [],
+    "preis": {
+      "value": 1340,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60"
+  },
+  {
+    "id": "cccccccc-0011-4000-8000-000000000011",
+    "schemaVersion": "0.1.0",
+    "name": "Kühlschrank Hochschrank Edelstahl (CH 55)",
+    "kategorie": "kueche-kuehlschrank",
+    "funktionsTyp": "kuehlschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.55,
+      "d": 0.6,
+      "h": 2.0
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.2,
+      "helligkeit": 0.1,
+      "kontur": 0.5
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "elektro"
+    ],
+    "relationalRules": [],
+    "preis": {
+      "value": 1490,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55"
+  },
+  {
+    "id": "cccccccc-0012-4000-8000-000000000012",
+    "schemaVersion": "0.1.0",
+    "name": "Kühlschrank Hochschrank Edelstahl (EU 60)",
+    "kategorie": "kueche-kuehlschrank",
+    "funktionsTyp": "kuehlschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 2.0
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.2,
+      "helligkeit": 0.1,
+      "kontur": 0.5
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "elektro"
+    ],
+    "relationalRules": [],
+    "preis": {
+      "value": 1550,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60"
+  },
+  {
+    "id": "cccccccc-0013-4000-8000-000000000013",
+    "schemaVersion": "0.1.0",
+    "name": "Geschirrspüler integriert (CH 55)",
+    "kategorie": "kueche-geschirrspueler",
+    "funktionsTyp": "geschirrspueler",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.55,
+      "d": 0.6,
+      "h": 0.9
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "epoche": 0.5,
+      "helligkeit": 0.2
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "wasser",
+      "abwasser",
+      "elektro"
+    ],
+    "relationalRules": [
+      "near:spuele:0.9"
+    ],
+    "preis": {
+      "value": 980,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55"
+  },
+  {
+    "id": "cccccccc-0014-4000-8000-000000000014",
+    "schemaVersion": "0.1.0",
+    "name": "Geschirrspüler integriert (EU 60)",
+    "kategorie": "kueche-geschirrspueler",
+    "funktionsTyp": "geschirrspueler",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 0.88
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "mount": "boden",
+    "achsenTags": {
+      "epoche": 0.5,
+      "helligkeit": 0.2
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "wasser",
+      "abwasser",
+      "elektro"
+    ],
+    "relationalRules": [
+      "near:spuele:0.9"
+    ],
+    "preis": {
+      "value": 1010,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60"
+  },
+  {
+    "id": "cccccccc-0015-4000-8000-000000000015",
+    "schemaVersion": "0.1.0",
+    "name": "Unterschrank Auszüge Eiche (CH 55)",
+    "kategorie": "kueche-unterschrank",
+    "funktionsTyp": "unterschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.55,
+      "d": 0.6,
+      "h": 0.9
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.6,
+      "epoche": 0.2
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 540,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55"
+  },
+  {
+    "id": "cccccccc-0016-4000-8000-000000000016",
+    "schemaVersion": "0.1.0",
+    "name": "Unterschrank Auszüge Eiche (EU 60)",
+    "kategorie": "kueche-unterschrank",
+    "funktionsTyp": "unterschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 0.88
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.6,
+      "epoche": 0.2
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 560,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60"
+  },
+  {
+    "id": "cccccccc-0017-4000-8000-000000000017",
+    "schemaVersion": "0.1.0",
+    "name": "Unterschrank Auszüge Weiss matt (CH 55)",
+    "kategorie": "kueche-unterschrank",
+    "funktionsTyp": "unterschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.55,
+      "d": 0.6,
+      "h": 0.9
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": 0.8,
+      "opulenz": -0.4,
+      "epoche": 0.6
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 510,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55"
+  },
+  {
+    "id": "cccccccc-0018-4000-8000-000000000018",
+    "schemaVersion": "0.1.0",
+    "name": "Unterschrank Auszüge Weiss matt (EU 60)",
+    "kategorie": "kueche-unterschrank",
+    "funktionsTyp": "unterschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 0.88
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": 0.8,
+      "opulenz": -0.4,
+      "epoche": 0.6
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 530,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60"
+  },
+  {
+    "id": "cccccccc-0019-4000-8000-000000000019",
+    "schemaVersion": "0.1.0",
+    "name": "Hängeschrank Eiche (CH 55)",
+    "kategorie": "kueche-haengeschrank",
+    "funktionsTyp": "haengeschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.55,
+      "d": 0.35,
+      "h": 0.72
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "wand",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.6
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 320,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55",
+    "mountHeightRange": {
+      "min": 1.4,
+      "max": 1.5
+    }
+  },
+  {
+    "id": "cccccccc-0020-4000-8000-000000000020",
+    "schemaVersion": "0.1.0",
+    "name": "Hängeschrank Eiche (EU 60)",
+    "kategorie": "kueche-haengeschrank",
+    "funktionsTyp": "haengeschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.35,
+      "h": 0.72
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "wand",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.6
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 340,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60",
+    "mountHeightRange": {
+      "min": 1.4,
+      "max": 1.5
+    }
+  },
+  {
+    "id": "cccccccc-0021-4000-8000-000000000021",
+    "schemaVersion": "0.1.0",
+    "name": "Hängeschrank Weiss Hochglanz (CH 55)",
+    "kategorie": "kueche-haengeschrank",
+    "funktionsTyp": "haengeschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.55,
+      "d": 0.35,
+      "h": 0.72
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "wand",
+    "achsenTags": {
+      "helligkeit": 0.8,
+      "kontur": 0.4,
+      "epoche": 0.7
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 300,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55",
+    "mountHeightRange": {
+      "min": 1.4,
+      "max": 1.5
+    }
+  },
+  {
+    "id": "cccccccc-0022-4000-8000-000000000022",
+    "schemaVersion": "0.1.0",
+    "name": "Hängeschrank Weiss Hochglanz (EU 60)",
+    "kategorie": "kueche-haengeschrank",
+    "funktionsTyp": "haengeschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.35,
+      "h": 0.72
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "wand",
+    "achsenTags": {
+      "helligkeit": 0.8,
+      "kontur": 0.4,
+      "epoche": 0.7
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 320,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60",
+    "mountHeightRange": {
+      "min": 1.4,
+      "max": 1.5
+    }
+  },
+  {
+    "id": "cccccccc-0023-4000-8000-000000000023",
+    "schemaVersion": "0.1.0",
+    "name": "Hochschrank Vorrat Eiche (CH 55)",
+    "kategorie": "kueche-hochschrank",
+    "funktionsTyp": "hochschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.55,
+      "d": 0.6,
+      "h": 2.0
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.5
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 760,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55"
+  },
+  {
+    "id": "cccccccc-0024-4000-8000-000000000024",
+    "schemaVersion": "0.1.0",
+    "name": "Hochschrank Vorrat Eiche (EU 60)",
+    "kategorie": "kueche-hochschrank",
+    "funktionsTyp": "hochschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 2.0
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.5
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 790,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60"
+  },
+  {
+    "id": "cccccccc-0025-4000-8000-000000000025",
+    "schemaVersion": "0.1.0",
+    "name": "Hochschrank Vorrat Weiss (CH 55)",
+    "kategorie": "kueche-hochschrank",
+    "funktionsTyp": "hochschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.55,
+      "d": 0.6,
+      "h": 2.0
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": 0.8,
+      "opulenz": -0.3
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 730,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55"
+  },
+  {
+    "id": "cccccccc-0026-4000-8000-000000000026",
+    "schemaVersion": "0.1.0",
+    "name": "Hochschrank Vorrat Weiss (EU 60)",
+    "kategorie": "kueche-hochschrank",
+    "funktionsTyp": "hochschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 2.0
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": 0.8,
+      "opulenz": -0.3
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 760,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60"
+  },
+  {
+    "id": "cccccccc-0027-4000-8000-000000000027",
+    "schemaVersion": "0.1.0",
+    "name": "Wand-Dunstabzug Edelstahl (CH 55)",
+    "kategorie": "kueche-dunstabzug",
+    "funktionsTyp": "dunstabzug",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.55,
+      "d": 0.45,
+      "h": 0.55
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "wand",
+    "achsenTags": {
+      "materialitaet": 0.2,
+      "kontur": 0.5,
+      "epoche": 0.6
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "elektro",
+      "lueftung"
+    ],
+    "relationalRules": [
+      "near:kochfeld:0.6"
+    ],
+    "preis": {
+      "value": 580,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55",
+    "mountHeightRange": {
+      "min": 1.55,
+      "max": 1.65
+    }
+  },
+  {
+    "id": "cccccccc-0028-4000-8000-000000000028",
+    "schemaVersion": "0.1.0",
+    "name": "Wand-Dunstabzug Edelstahl (EU 60)",
+    "kategorie": "kueche-dunstabzug",
+    "funktionsTyp": "dunstabzug",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.45,
+      "h": 0.55
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "wand",
+    "achsenTags": {
+      "materialitaet": 0.2,
+      "kontur": 0.5,
+      "epoche": 0.6
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "elektro",
+      "lueftung"
+    ],
+    "relationalRules": [
+      "near:kochfeld:0.6"
+    ],
+    "preis": {
+      "value": 610,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60",
+    "mountHeightRange": {
+      "min": 1.55,
+      "max": 1.65
+    }
+  },
+  {
+    "id": "cccccccc-0029-4000-8000-000000000029",
+    "schemaVersion": "0.1.0",
+    "name": "Wand-Dunstabzug Schwarz Glas (CH 55)",
+    "kategorie": "kueche-dunstabzug",
+    "funktionsTyp": "dunstabzug",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.55,
+      "d": 0.45,
+      "h": 0.55
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "wand",
+    "achsenTags": {
+      "helligkeit": -0.6,
+      "kontur": 0.6,
+      "epoche": 0.7
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "elektro",
+      "lueftung"
+    ],
+    "relationalRules": [
+      "near:kochfeld:0.6"
+    ],
+    "preis": {
+      "value": 690,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55",
+    "mountHeightRange": {
+      "min": 1.55,
+      "max": 1.65
+    }
+  },
+  {
+    "id": "cccccccc-0030-4000-8000-000000000030",
+    "schemaVersion": "0.1.0",
+    "name": "Wand-Dunstabzug Schwarz Glas (EU 60)",
+    "kategorie": "kueche-dunstabzug",
+    "funktionsTyp": "dunstabzug",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.45,
+      "h": 0.55
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "wand",
+    "achsenTags": {
+      "helligkeit": -0.6,
+      "kontur": 0.6,
+      "epoche": 0.7
+    },
+    "attributTags": [],
+    "anschluesse": [
+      "elektro",
+      "lueftung"
+    ],
+    "relationalRules": [
+      "near:kochfeld:0.6"
+    ],
+    "preis": {
+      "value": 720,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60",
+    "mountHeightRange": {
+      "min": 1.55,
+      "max": 1.65
+    }
+  },
+  {
+    "id": "cccccccc-0031-4000-8000-000000000031",
+    "schemaVersion": "0.1.0",
+    "name": "Füllstück / Passleiste schmal (CH 55)",
+    "kategorie": "kueche-fuellstueck",
+    "funktionsTyp": "fuellstueck",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.05,
+      "d": 0.6,
+      "h": 0.9
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {},
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 45,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55"
+  },
+  {
+    "id": "cccccccc-0032-4000-8000-000000000032",
+    "schemaVersion": "0.1.0",
+    "name": "Füllstück / Passleiste schmal (EU 60)",
+    "kategorie": "kueche-fuellstueck",
+    "funktionsTyp": "fuellstueck",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.05,
+      "d": 0.6,
+      "h": 0.88
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {},
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 48,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60"
+  },
+  {
+    "id": "cccccccc-0033-4000-8000-000000000033",
+    "schemaVersion": "0.1.0",
+    "name": "Füllstück / Passleiste breit (CH 55)",
+    "kategorie": "kueche-fuellstueck",
+    "funktionsTyp": "fuellstueck",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.15,
+      "d": 0.6,
+      "h": 0.9
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {},
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 65,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55"
+  },
+  {
+    "id": "cccccccc-0034-4000-8000-000000000034",
+    "schemaVersion": "0.1.0",
+    "name": "Füllstück / Passleiste breit (EU 60)",
+    "kategorie": "kueche-fuellstueck",
+    "funktionsTyp": "fuellstueck",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.15,
+      "d": 0.6,
+      "h": 0.88
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {},
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 68,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60"
+  },
+  {
+    "id": "cccccccc-0035-4000-8000-000000000035",
+    "schemaVersion": "0.1.0",
+    "name": "Messerblock Holz",
+    "kategorie": "kueche-deko",
+    "funktionsTyp": "deko",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.25,
+      "d": 0.12,
+      "h": 0.25
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.5
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 95,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "cccccccc-0036-4000-8000-000000000036",
+    "schemaVersion": "0.1.0",
+    "name": "Küchenkraut-Pflanze im Topf",
+    "kategorie": "kueche-deko",
+    "funktionsTyp": "pflanze",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.18,
+      "d": 0.18,
+      "h": 0.3
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.7,
+      "farbigkeit": 0.5
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 25,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "cccccccc-0037-4000-8000-000000000037",
+    "schemaVersion": "0.1.0",
+    "name": "Obstschale Keramik",
+    "kategorie": "kueche-deko",
+    "funktionsTyp": "deko",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.3,
+      "d": 0.3,
+      "h": 0.12
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": 0.4,
+      "farbigkeit": 0.4
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 35,
+      "currency": "CHF",
+      "stand": "2026-06-12",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    }
+  }
+]

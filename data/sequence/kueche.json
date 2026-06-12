@@ -1,0 +1,26 @@
+{
+  "roomType": "kueche",
+  "beschreibung": "Standard-Renovations-Sequenz Küche (Küchen-Detailkonzept): Phasen-DAG. Roh-Installation (Sanitär + Elektro + Lüftung) vor dem Maler, danach Boden, dann Küchenmontage und Fein-Installation/Anschluss der Geräte. POC: strikt sequenziell = konservativ. Richtwerte v0, zu-verifizieren.",
+  "phasen": [
+    { "id": "vorbereitung", "name": "Baustelleneinrichtung", "nach": [] },
+    { "id": "abbruch", "name": "Demontage Bestandsküche", "nach": ["vorbereitung"] },
+    {
+      "id": "installation-roh",
+      "name": "Roh-Installation Sanitär + Elektro + Lüftung",
+      "nach": ["abbruch"]
+    },
+    { "id": "maler", "name": "Malerarbeiten Wände + Decke", "nach": ["installation-roh"], "trocknung_tage": 1 },
+    { "id": "belaege", "name": "Bodenbelag verlegen", "nach": ["maler"], "trocknung_tage": 1 },
+    { "id": "montage", "name": "Küchenmontage (Korpusse + Arbeitsplatte)", "nach": ["belaege"] },
+    {
+      "id": "fein-installation",
+      "name": "Fein-Installation / Geräteanschluss",
+      "nach": ["montage"]
+    },
+    { "id": "endreinigung", "name": "Endreinigung", "nach": ["fein-installation"] }
+  ],
+  "teamgroesse": 1,
+  "stunden_pro_tag": 8,
+  "mindestdauer_tage": 0.5,
+  "bandbreitePct": 30
+}

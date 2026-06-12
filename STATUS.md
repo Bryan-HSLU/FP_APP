@@ -18,7 +18,7 @@
 | **M3** Durchstich BAD ⭐ | Sample-Bad → Baseline → Solver P1–P3 → Viewer → Report → Mengen/KV-PDF | 🟢 DoD erfüllt |
 | **M4** Auswertung voll + Kurator | LV, Bauzeitenplan, Offert-Paket, DXF · Kurator + Mini-Eval · Stil-UI | 🟢 DoD erfüllt |
 | **M5** Durchstich WOHNEN | Sample-Wohnzimmer → Regelsatz/Katalog/Bilder wohnen → Solver mit freier Boden-Platzierung → LV/Bauzeit/Dokumente | 🟢 fertig |
-| **M6** Durchstich KÜCHE | | ⚪ offen |
+| **M6** Durchstich KÜCHE | Phase A (Stammdaten/Sample-Räume/Zonen-Ableitung) fertig; Phase B (Formwahl + lineare Baugruppe) offen | 🟡 Phase A fertig |
 | **M7** Scan-Integration (+AR) | | ⚪ offen |
 
 ## Was konkret existiert
@@ -115,13 +115,44 @@
     steht frei vor dem Sofa, Wandabstand >0.3 m). Alle Dokument-Exporte
     (LV/Bauzeit/KV/DXF/glTF/Plan-PDF) laufen für wohnen E2E.
 
+- **M6 Phase A (2026-06-12, Durchstich KÜCHE – Stammdaten/Zonen):**
+  - **Sample-Räume:** `raummodell.kueche-sample` (geschlossene Küche 3.2×2.6 m,
+    4 massive Wände, Tür 0.9 m, Fenster, Fixpunkte wasser/abwasser/starkstrom/
+    elektro/lueftung an der Anschluss-Längswand) · `raummodell.grossraum-sample`
+    (eine Hülle 7.0×4.5 m, `zones[]` = Küche 2.8×4.5 + Wohnen; Zonengrenze als
+    `wall.kind:"offen"` mitten im Raum; Fixpunkte mit `zone`-Referenz an der
+    massiven Stirnwand der Küchenzone). Beide automatisch in `/samples/rooms`.
+  - **Stammdaten küche:** `data/rules/kueche.json` (connection spüle→wasser/
+    abwasser, kochfeld→starkstrom, GS→wasser/abwasser, kühlschrank→elektro je
+    hard, dunstabzug→lueftung soft · object-distance kochfeld↔spüle 0.3 hard ·
+    clearance ≥1.0 m je Haupttyp · host-binding Hängeschrank/Dunstabzug an Wand)
+    · `data/catalog/kueche.json` (37 Items, `normProfileVariante` ch55/eu60 für
+    Korpusse+Geräte, Präfix `cccccccc-…`) · `data/images/kueche.json` + 8 SVG
+    (2 Presets) · `data/positions/kueche.json` (Gewerke Küchenbauer/Sanitär/
+    Elektro/Lüftung/Maler/Bodenleger) · `data/sequence/kueche.json` (Demontage →
+    Roh-Installation → Maler[Trocknung] → Boden → Küchenmontage →
+    Fein-Installation → Endreinigung).
+  - **Zonen-Ableitung:** `services/engines/src/fp_engines/zonen.py` –
+    `zone_room(room, zone_id)` projiziert eine Zone auf ein eigenständiges,
+    schema-valides Teilraum-Raummodell (floor=Zonen-Polygon via Shoelace, Wände
+    auf die Zonenkanten geclippt: deckende Hüllenwand erbt kind massiv/offen,
+    sonst synthetisch `virtuell`; Öffnungen + Offset umgehängt; nur Fixpunkte
+    der Zone). Solver/Interpreter laufen unverändert darauf (nutzen nur
+    `kind=="massiv"`). v0-Annahme: achsparallele Rechteck-Zonen.
+  - **Tests:** `test_zonen.py` (Teilraum schema-valide, floor=Zonen-Polygon,
+    nur Küchen-Fixpunkte, virtuelle Kante bei fehlender Hüllenwand, offene
+    Zonengrenze nicht montierbar, massive Stirnwand erhalten, reine Funktion) ·
+    Schema-Check + beide Schema-Tests (TS+Py) um die 3 neuen Raum-Fixtures und
+    die Regelsätze wohnen/kueche erweitert. Alles grün (Python 122, vitest 19).
+
 ## Nächste Schritte (für die nächste Session)
 
-1. **M6 Durchstich KÜCHE** (Reihenfolge Bad → Wohnen → **Küche**): Regelsatz/
-   Katalog/Bilder/Positions/Sequenz küche; Küche bringt Anschluss-/Zeilen-
-   Logik (siehe Küchen-Detailkonzept im Brain). M3-Polituren **weiterhin
-   offen:** 2D-Grundriss-Ansicht im Viewer, «austauschen», Drag&Drop,
-   circulation-Freiraum-Analyse (beidseitig!).
+1. **M6 Phase B Durchstich KÜCHE:** Küchen-Solver = Formwahl (I/L/U/Galley/
+   Insel aus Stil + Geometrie, Küchen-Detailkonzept Teil 1) + **lineare
+   Baugruppe** (`plan.assemblies`, Raster ch55/eu60, Slot-/Zonenlogik Teil 2,
+   Füllstücke). Grossraum über `zone_room` ableiten und je Zone solven.
+   M3-Polituren **weiterhin offen:** 2D-Grundriss-Ansicht im Viewer,
+   «austauschen», Drag&Drop, circulation-Freiraum-Analyse (beidseitig!).
 2. **M2 Scan-Spike weiterführen:** Restmasse R1 (Raumhöhe, Türbreite,
    Objektmasse) + Neuaufnahme nach Guideline (Bryan); danach
    `spike_eval.ipynb` in Colab (T4) auf altem+neuem Material laufen lassen,
@@ -141,6 +172,9 @@
 | M5: Bett-Regel «Zugang ≥1 Längsseite» nicht umgesetzt → Wohnzimmer-Fokus | Mit den aktuellen Regel-Typen (clearance/object-distance/host-binding) nicht ausdrückbar; Schlafen-Spezifika (Bett, beidseitiger Zugang) auf später verschoben statt Interpreter zu ändern (Paritäts-Gesetz) | STATUS, wohnen.json |
 | M5: Esstisch inkl. Stühlen als EIN Footprint | POC-Vereinfachung – Stuhl-Einzelplatzierung wäre eigene Solver-Stufe; Footprint deckt Tisch + ausgezogene Stühle ab, clearance-Regel zusätzlich ≥1.0 m | catalog/wohnen.json (Item-Beschreibung) |
 | M5: relationalRules-Distanzen wohnen als Zentrum-zu-Zentrum kalibriert (z.B. `near:sofa:1.3` statt 0.45) | Der Solver-Relationsfilter misst Zentrumsabstand; bei grossen Ankern (Sofa 2.1×0.95) wäre der ergonomische Kantenabstand 0.40–0.45 m als Zentrumswert kollidierend. Die ergonomische Norm bleibt als **soft** object-distance-Regel (Kantenmass 0.40 m) erhalten | catalog/wohnen.json, rules/wohnen.json |
+| M6-A: Grossraum-Sample mit echter `wall.kind:"offen"`-Kante mitten im Raum (statt nur Zonen-Polygone) | Code verträgt innenliegende Segmente problemlos (kein Hüllen-Closure-Validator; Solver/Interpreter filtern auf `kind=="massiv"`). Die offene Kante modelliert die reale offene Zonengrenze explizit; `zone_room` clippt sie auf die Zonenkante und erhält `kind:"offen"`. Die synthetische `virtuell`-Erzeugung greift nur, wenn KEINE Hüllenwand die Zonenkante deckt (separat getestet) | grossraum-sample, zonen.py, test_zonen.py |
+| M6-A: GS↔Spüle-«maxDist»-Regel NICHT als `object-distance` umgesetzt | Der Regel-Interpreter kennt bei `object-distance` nur `minDist` (kein maxDist). «Geschirrspüler direkt neben Spüle» ist Baugruppen-/Slot-Logik → kommt in Phase B; Interpreter wird (Paritäts-Gesetz) nicht erweitert. Nähe bleibt v0 über `relationalRules:["near:spuele:0.9"]` am Katalog-Item | rules/kueche.json, catalog/kueche.json, STATUS |
+| M6-A: clearance je Küchen-Haupttyp (spuele/kochfeld/geschirrspueler/unterschrank) statt einer Sammelregel | `appliesTo` matcht auf `funktionsTyp`; eine Regel pro Typ ist die mit den bestehenden Regel-Typen ausdrückbare Form des «Gang vor Zeile ≥ 1.0 m». Echte Zeilen-/Gang-Geometrie (circulation) kommt mit Phase B | rules/kueche.json |
 
 ## Offene Fragen an Bryan
 

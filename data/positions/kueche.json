@@ -1,0 +1,295 @@
+[
+  {
+    "id": "pos-baustelleneinrichtung-kueche",
+    "trigger": { "art": "projekt" },
+    "posNr": "100.10",
+    "gewerk": "baumeister",
+    "phase": "vorbereitung",
+    "text": "Baustelleneinrichtung, Schutz Bestand, Zufahrt",
+    "einheit": "pausch",
+    "mengeQuelle": "pauschal",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 450,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 30
+    },
+    "aufwandswert_h": 4
+  },
+  {
+    "id": "pos-demontage-kueche",
+    "trigger": { "art": "projekt" },
+    "posNr": "260.10",
+    "gewerk": "kueche",
+    "phase": "abbruch",
+    "text": "Demontage Bestandsküche inkl. Geräte und Entsorgung",
+    "einheit": "pausch",
+    "mengeQuelle": "pauschal",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 850,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 30
+    },
+    "aufwandswert_h": 8
+  },
+  {
+    "id": "pos-installation-roh-sanitaer-kueche",
+    "trigger": {
+      "art": "placement",
+      "anschluss": "wasser|abwasser",
+      "einmalJe": "funktionsTyp"
+    },
+    "posNr": "230.30",
+    "gewerk": "sanitaer",
+    "phase": "installation-roh",
+    "text": "Anschlusspunkt Wasser/Abwasser für Spüle/Geschirrspüler erstellen bzw. anpassen",
+    "einheit": "Stk",
+    "mengeQuelle": "stk",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 350,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 35
+    },
+    "aufwandswert_h": 2.5
+  },
+  {
+    "id": "pos-installation-roh-starkstrom-kueche",
+    "trigger": {
+      "art": "placement",
+      "anschluss": "starkstrom",
+      "einmalJe": "funktionsTyp"
+    },
+    "posNr": "240.30",
+    "gewerk": "elektro",
+    "phase": "installation-roh",
+    "text": "Starkstrom-Anschluss (400 V) für Kochfeld erstellen bzw. anpassen",
+    "einheit": "Stk",
+    "mengeQuelle": "stk",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 420,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 35
+    },
+    "aufwandswert_h": 3
+  },
+  {
+    "id": "pos-installation-roh-elektro-kueche",
+    "trigger": {
+      "art": "placement",
+      "anschluss": "elektro",
+      "einmalJe": "funktionsTyp"
+    },
+    "posNr": "240.10",
+    "gewerk": "elektro",
+    "phase": "installation-roh",
+    "text": "Steckdosen-/Anschlusspunkt (230 V) für Geräte erstellen bzw. anpassen",
+    "einheit": "Stk",
+    "mengeQuelle": "stk",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 140,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 30
+    },
+    "aufwandswert_h": 1.2
+  },
+  {
+    "id": "pos-lueftung-dunstabzug-kueche",
+    "trigger": {
+      "art": "placement",
+      "anschluss": "lueftung",
+      "einmalJe": "funktionsTyp"
+    },
+    "posNr": "244.10",
+    "gewerk": "lueftung",
+    "phase": "installation-roh",
+    "text": "Abluft-/Lüftungsanschluss für Dunstabzug erstellen bzw. anpassen",
+    "einheit": "Stk",
+    "mengeQuelle": "stk",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 380,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 35
+    },
+    "aufwandswert_h": 2.5
+  },
+  {
+    "id": "pos-maler-waende-kueche",
+    "trigger": { "art": "projekt" },
+    "posNr": "285.10",
+    "gewerk": "maler",
+    "phase": "maler",
+    "text": "Wände grundieren, spachteln und zweimal streichen",
+    "einheit": "m2",
+    "mengeQuelle": "wandflaeche",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 22,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 25
+    },
+    "aufwandswert_h": 0.22
+  },
+  {
+    "id": "pos-maler-decke-kueche",
+    "trigger": { "art": "projekt" },
+    "posNr": "285.20",
+    "gewerk": "maler",
+    "phase": "maler",
+    "text": "Decke grundieren und zweimal streichen",
+    "einheit": "m2",
+    "mengeQuelle": "bodenflaeche",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 26,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 25
+    },
+    "aufwandswert_h": 0.25
+  },
+  {
+    "id": "pos-bodenbelag-kueche",
+    "trigger": { "art": "projekt" },
+    "posNr": "282.10",
+    "gewerk": "bodenleger",
+    "phase": "belaege",
+    "text": "Bodenbelag (Platten/Vinyl) liefern und verlegen, inkl. 8 % Verschnitt",
+    "einheit": "m2",
+    "mengeQuelle": "bodenflaeche",
+    "faktor": 1.08,
+    "einheitspreis": {
+      "value": 105,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 20
+    },
+    "aufwandswert_h": 0.6
+  },
+  {
+    "id": "pos-kuechenmontage-korpus-kueche",
+    "trigger": {
+      "art": "placement",
+      "gewerk": "kueche"
+    },
+    "posNr": "260.20",
+    "gewerk": "kueche",
+    "phase": "montage",
+    "text": "Küchenelement montieren (Korpus/Hochschrank/Hängeschrank/Füllstück), inkl. Ausrichten",
+    "einheit": "Stk",
+    "mengeQuelle": "stk",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 120,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 25
+    },
+    "aufwandswert_h": 1.0
+  },
+  {
+    "id": "pos-arbeitsplatte-kueche",
+    "trigger": { "art": "projekt" },
+    "posNr": "260.30",
+    "gewerk": "kueche",
+    "phase": "montage",
+    "text": "Arbeitsplatte aufmessen, liefern und montieren (inkl. Ausschnitte Spüle/Kochfeld)",
+    "einheit": "pausch",
+    "mengeQuelle": "pauschal",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 1400,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 30
+    },
+    "aufwandswert_h": 6
+  },
+  {
+    "id": "pos-feinanschluss-sanitaer-kueche",
+    "trigger": {
+      "art": "placement",
+      "funktionsTyp": "spuele|geschirrspueler",
+      "gewerk": "kueche"
+    },
+    "posNr": "230.40",
+    "gewerk": "sanitaer",
+    "phase": "fein-installation",
+    "text": "Feinanschluss Spüle/Geschirrspüler (Armatur, Siphon, Wasser/Abwasser)",
+    "einheit": "Stk",
+    "mengeQuelle": "stk",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 280,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 25
+    },
+    "aufwandswert_h": 2
+  },
+  {
+    "id": "pos-feinanschluss-geraete-kueche",
+    "trigger": {
+      "art": "placement",
+      "funktionsTyp": "kochfeld|kuehlschrank|dunstabzug",
+      "gewerk": "kueche"
+    },
+    "posNr": "240.40",
+    "gewerk": "elektro",
+    "phase": "fein-installation",
+    "text": "Feinanschluss Geräte (Kochfeld/Kühlschrank/Dunstabzug) an vorbereitete Anschlüsse",
+    "einheit": "Stk",
+    "mengeQuelle": "stk",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 180,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 25
+    },
+    "aufwandswert_h": 1.5
+  },
+  {
+    "id": "pos-endreinigung-kueche",
+    "trigger": { "art": "projekt" },
+    "posNr": "287.10",
+    "gewerk": "maler",
+    "phase": "endreinigung",
+    "text": "Endreinigung Baustelle",
+    "einheit": "pausch",
+    "mengeQuelle": "pauschal",
+    "faktor": 1,
+    "einheitspreis": {
+      "value": 250,
+      "currency": "CHF",
+      "quelle": "eigene-kennwerte (Schätzung)",
+      "stand": "2026-06",
+      "bandbreitePct": 30
+    },
+    "aufwandswert_h": 3
+  }
+]

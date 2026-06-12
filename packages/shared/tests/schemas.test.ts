@@ -20,6 +20,9 @@ const load = (path: string): unknown => JSON.parse(readFileSync(path, "utf-8"));
 const fixtureMap: { file: string; schema: string; array: boolean }[] = [
   { file: "raummodell.bad-sample.json", schema: "raummodell", array: false },
   { file: "raummodell.r1-wc.json", schema: "raummodell", array: false },
+  { file: "raummodell.wohnen-sample.json", schema: "raummodell", array: false },
+  { file: "raummodell.kueche-sample.json", schema: "raummodell", array: false },
+  { file: "raummodell.grossraum-sample.json", schema: "raummodell", array: false },
   { file: "plan.bad-ok.json", schema: "plan", array: false },
   { file: "plan.bad-verletzt.json", schema: "plan", array: false },
   { file: "stilprofil.beispiel.json", schema: "stilprofil", array: false },
@@ -43,7 +46,7 @@ describe("Verträge: Beispiel-Instanzen validieren", () => {
 });
 
 describe("Stammdaten (data/) validieren", () => {
-  for (const ruleset of ["basis", "bad"]) {
+  for (const ruleset of ["basis", "bad", "wohnen", "kueche"]) {
     it(`rules/${ruleset}.json → regel`, () => {
       for (const rule of load(join(dataDir, "rules", `${ruleset}.json`)) as unknown[]) {
         const result = validator.validate("regel", rule);

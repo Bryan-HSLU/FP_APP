@@ -35,6 +35,9 @@ def _validator(schema_name: str) -> Draft202012Validator:
 FIXTURE_MAP = [
     ("raummodell.bad-sample.json", "raummodell", False),
     ("raummodell.r1-wc.json", "raummodell", False),
+    ("raummodell.wohnen-sample.json", "raummodell", False),
+    ("raummodell.kueche-sample.json", "raummodell", False),
+    ("raummodell.grossraum-sample.json", "raummodell", False),
     ("plan.bad-ok.json", "plan", False),
     ("plan.bad-verletzt.json", "plan", False),
     ("stilprofil.beispiel.json", "stilprofil", False),
@@ -54,7 +57,7 @@ def test_fixture_valid(file: str, schema: str, is_array: bool) -> None:
         assert errors == []
 
 
-@pytest.mark.parametrize("ruleset", ["basis", "bad"])
+@pytest.mark.parametrize("ruleset", ["basis", "bad", "wohnen", "kueche"])
 def test_rules_valid(ruleset: str) -> None:
     validator = _validator("regel")
     for rule in _load(DATA / "rules" / f"{ruleset}.json"):

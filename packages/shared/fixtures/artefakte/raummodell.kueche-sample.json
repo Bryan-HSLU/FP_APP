@@ -1,0 +1,137 @@
+{
+  "id": "33333333-3333-4333-8333-333333333333",
+  "schemaVersion": "0.1.0",
+  "name": "Sample-Küche 3.2 × 2.6 m",
+  "roomType": "kueche",
+  "source": "sample",
+  "units": "m",
+  "shell": {
+    "walls": [
+      {
+        "id": "cccccccc-2001-4000-8000-000000002001",
+        "start": [0, 0],
+        "end": [3.2, 0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv",
+        "openings": ["dddddddd-2002-4000-8000-000000002002"]
+      },
+      {
+        "id": "cccccccc-2002-4000-8000-000000002002",
+        "start": [3.2, 0],
+        "end": [3.2, 2.6],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv",
+        "openings": ["dddddddd-2001-4000-8000-000000002001"]
+      },
+      {
+        "id": "cccccccc-2003-4000-8000-000000002003",
+        "start": [3.2, 2.6],
+        "end": [0, 2.6],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv"
+      },
+      {
+        "id": "cccccccc-2004-4000-8000-000000002004",
+        "start": [0, 2.6],
+        "end": [0, 0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv"
+      }
+    ],
+    "floor": {
+      "polygon": [
+        [0, 0],
+        [3.2, 0],
+        [3.2, 2.6],
+        [0, 2.6]
+      ],
+      "area": 8.32
+    },
+    "ceiling": { "height": 2.5 }
+  },
+  "openings": [
+    {
+      "id": "dddddddd-2001-4000-8000-000000002001",
+      "type": "door",
+      "hostWall": "cccccccc-2002-4000-8000-000000002002",
+      "offset": 0.3,
+      "width": 0.9,
+      "height": 2.0,
+      "sill": 0
+    },
+    {
+      "id": "dddddddd-2002-4000-8000-000000002002",
+      "type": "window",
+      "hostWall": "cccccccc-2001-4000-8000-000000002001",
+      "offset": 1.1,
+      "width": 1.0,
+      "height": 1.2,
+      "sill": 0.9
+    }
+  ],
+  "zones": [],
+  "fixpoints": [
+    {
+      "id": "eeeeeeee-2001-4000-8000-000000002001",
+      "type": "wasser",
+      "position": [1.0, 2.6],
+      "wall": "cccccccc-2003-4000-8000-000000002003",
+      "heightFromFloor": 0.55,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": null
+    },
+    {
+      "id": "eeeeeeee-2002-4000-8000-000000002002",
+      "type": "abwasser",
+      "position": [1.6, 2.6],
+      "wall": "cccccccc-2003-4000-8000-000000002003",
+      "heightFromFloor": 0.3,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": null
+    },
+    {
+      "id": "eeeeeeee-2003-4000-8000-000000002003",
+      "type": "starkstrom",
+      "position": [2.5, 2.6],
+      "wall": "cccccccc-2003-4000-8000-000000002003",
+      "heightFromFloor": 0.5,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": null
+    },
+    {
+      "id": "eeeeeeee-2004-4000-8000-000000002004",
+      "type": "elektro",
+      "position": [0.5, 2.6],
+      "wall": "cccccccc-2003-4000-8000-000000002003",
+      "heightFromFloor": 1.1,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": null
+    },
+    {
+      "id": "eeeeeeee-2005-4000-8000-000000002005",
+      "type": "lueftung",
+      "position": [2.5, 2.6],
+      "wall": "cccccccc-2003-4000-8000-000000002003",
+      "heightFromFloor": 2.1,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": null
+    }
+  ],
+  "objects": [],
+  "meta": {
+    "captureMethod": "sample",
+    "coverageScore": 1,
+    "estimatedError_cm": 2,
+    "geometryConfirmed": false,
+    "geometryRef": "sample"
+  }
+}
