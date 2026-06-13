@@ -219,13 +219,17 @@
     ziehen (unverriegelte Items), Live-Ampel rechnet sofort mit. Pointer→Welt
     über die SVG-CTM + `toWorld` (Umkehrung von `toScreen`, Roundtrip-Test).
     Pfeiltasten/«r»/sperren bleiben.
+  - **«austauschen» (2026-06-13):** Im Auswahl-Panel das Item gegen eine
+    Katalog-Alternative tauschen (gleicher Funktionstyp + gleiche
+    normProfileVariante → Küchenzeile bleibt konsistent); Pose bleibt, Ampel
+    rechnet die neuen Masse sofort durch.
 
 ## Nächste Schritte (für die nächste Session)
 
 1. **M7 Scan-Integration (+AR):** Raumerfassung an den Klickpfad anbinden
    (Scan → Raummodell → Solver). M3-Polituren: **2D-Grundriss + circulation
-   + Drag&Drop erledigt (2026-06-13)**; offen bleibt «austauschen» (Item gegen
-   eine Katalog-Alternative tauschen). circulation-Folgeschritte: (a) Solver verkehrsweg-aware
+   + Drag&Drop + «austauschen» erledigt (2026-06-13)** – die M3-Editor-Polituren
+   sind damit komplett. circulation-Folgeschritte: (a) Solver verkehrsweg-aware
    (Korridor in P2/P3 freihalten) → dann (b) circulation auf **hard** hochstufen;
    (c) Tuning gegen Pessimismus (Türmund-Effekt, Euklid statt Manhattan, feineres
    Raster). Küchen-Politur: Eckschrank statt Totraum (L/U), Arbeitsdreieck als
@@ -245,7 +249,8 @@
 | `circulation` v0 **soft** statt hard (Norm-Regelsatz nennt hard) | Norm-Regelsatz lässt unter «Offene Fragen» hard/soft explizit offen; soft informiert ohne die Solver-Invariante zu brechen (Solver ist noch nicht verkehrsweg-aware). Hochstufung auf hard = bewusster Folgeschritt mit Solver-Support | rules/basis.json, rules-README, Learning |
 | `circulation`-Marge grob/konservativ (0.05-m-Raster, bbox-Blocker, Türmund-Pessimismus) | v0-Freiraumanalyse: ganzzahlig (paritätssicher), Manhattan-Distanztransform, achsparallele Bounding-Box je bodenstehendem Objekt; Türbreite cappt den Bottleneck. Tuning (Euklid, feiner, türbewusst) post-POC | interpreter.py/.ts (Docstring), Learning |
 | Kollision prüft vertikale Überlappung (Höhenintervalle) | Spiegel ÜBER Lavabo ist keine Kollision – nötig für P2-Wandobjekte | Interpreter beidseitig, Learning im Brain |
-| Editor: Drag&Drop nur im 2D-Grundriss (3D bleibt Pfeiltasten); «austauschen» noch offen | 2D hat eine eindeutige Screen→Welt-Umkehrung (toWorld); 3D-Drag bräuchte Raycasting – später | Viewer2D, plan2d.ts |
+| Editor: Drag&Drop nur im 2D-Grundriss (3D bleibt Pfeiltasten) | 2D hat eine eindeutige Screen→Welt-Umkehrung (toWorld); 3D-Drag bräuchte Raycasting – später | Viewer2D, plan2d.ts |
+| «austauschen» bietet nur gleichen Funktionstyp + gleiche normProfileVariante | hält Plan/Küchenzeile konsistent; typübergreifender Tausch (z.B. Dusche→Badewanne) wäre eine eigene Re-Solve-Logik – post-POC | App.tsx (alternativen) |
 | `door-swing` v0 als Rechteck (Breite×Radius) statt Viertelkreis | identische, einfache Geometrie in TS & Python; konservative Näherung | Code-Kommentar + Fixtures |
 | M5: Bett-Regel «Zugang ≥1 Längsseite» nicht umgesetzt → Wohnzimmer-Fokus | Mit den aktuellen Regel-Typen (clearance/object-distance/host-binding) nicht ausdrückbar; Schlafen-Spezifika (Bett, beidseitiger Zugang) auf später verschoben statt Interpreter zu ändern (Paritäts-Gesetz) | STATUS, wohnen.json |
 | M5: Esstisch inkl. Stühlen als EIN Footprint | POC-Vereinfachung – Stuhl-Einzelplatzierung wäre eigene Solver-Stufe; Footprint deckt Tisch + ausgezogene Stühle ab, clearance-Regel zusätzlich ≥1.0 m | catalog/wohnen.json (Item-Beschreibung) |

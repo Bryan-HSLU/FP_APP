@@ -249,6 +249,27 @@ export function App() {
     });
   }, [plan, gewaehltId]);
 
+  // «austauschen»: das gewählte Item gegen eine Katalog-Alternative tauschen
+  // (Pose bleibt; Live-Ampel rechnet die neuen Masse sofort durch).
+  const tauscheItem = useCallback(
+    (neueId: string) => {
+      if (!gewaehltId) return;
+      setKv(null);
+      setPlan((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "bearbeitet",
+              placements: prev.placements.map((p) =>
+                p.id === gewaehltId ? { ...p, source: "user", catalogItemId: neueId } : p,
+              ),
+            }
+          : prev,
+      );
+    },
+    [gewaehltId],
+  );
+
   // Absolutes Verschieben per Drag&Drop (Viewer2D). Funktionales setPlan, weil
   // beim Ziehen sehr schnell hintereinander aufgerufen wird; gesperrte bleiben.
   const verschiebeNach = useCallback((id: string, welt: [number, number]) => {
@@ -292,6 +313,18 @@ export function App() {
           (c) => c.id === plan.placements.find((p) => p.id === gewaehltId)?.catalogItemId,
         )
       : null;
+
+  // Tausch-Alternativen: gleicher Funktionstyp, gleiche Normprofil-Variante
+  // (Küchenzeile bleibt konsistent), ohne das aktuelle Item selbst.
+  const alternativen = gewaehltesItem
+    ? catalog.filter(
+        (c) =>
+          c.funktionsTyp === gewaehltesItem.funktionsTyp &&
+          c.id !== gewaehltesItem.id &&
+          (c as { normProfileVariante?: string }).normProfileVariante ===
+            (gewaehltesItem as { normProfileVariante?: string }).normProfileVariante,
+      )
+    : [];
 
   return (
     <div style={stil.seite}>
@@ -487,6 +520,27 @@ export function App() {
             <p style={{ fontSize: 12 }}>
               Ziehen (2D) oder Pfeiltasten = verschieben · «r» = rotieren · Klick daneben = abwählen
             </p>
+            {alternativen.length > 0 && (
+              <label style={{ display: "block", fontSize: 12, marginBottom: 8 }}>
+                Austauschen:{" "}
+                <select
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) tauscheItem(e.target.value);
+                    e.target.value = "";
+                  }}
+                >
+                  <option value="" disabled>
+                    Alternative wählen… ({alternativen.length})
+                  </option>
+                  {alternativen.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <button style={stil.knopf} onClick={sperren}>
               🔒 sperren/entsperren
             </button>
