@@ -205,12 +205,23 @@
   - **Gesamt grün:** Python 171 (~20 s, 0.05-Raster), vitest 23, Parität
     beidseitig, mypy/ruff/Prettier/Schema sauber.
 
+- **M3-Politur (2026-06-13, 2D-Grundriss-Ansicht):** Neuer **Aufriss von oben**
+  als SVG (`apps/web/src/Viewer2D.tsx`) – Header-Umschalter 3D↔2D, **2D ist
+  Default** (normgerecht beurteilbar). Wände (massiv/offen), Öffnungen mit
+  **Türschwenk**, Footprints **nach der Norm-Ampel eingefärbt** (verletzt/knapp/
+  ok/gesperrt), wandmontierte Objekte gestrichelt+transparent, klick-auswählbar,
+  Legende. Geometrie-Kern `plan2d.ts` nutzt **`footprint()` aus @fp/shared/rules**
+  → exakt deckungsgleich mit Solver/Interpreter/3D-Viewer (kein zweites
+  Rotations-Mathe). **Test-Infra für `apps/web` neu aufgesetzt** (vitest 4.1.8):
+  `plan2d.test.ts` (Transform/Footprint/Normale) + `Viewer2D.test.tsx`
+  (Render-Smoke via renderToStaticMarkup). apps/web 7 Tests grün, Build ok.
+
 ## Nächste Schritte (für die nächste Session)
 
 1. **M7 Scan-Integration (+AR):** Raumerfassung an den Klickpfad anbinden
-   (Scan → Raummodell → Solver). M3-Polituren **weiterhin offen:** 2D-Grundriss-
-   Ansicht im Viewer, «austauschen», Drag&Drop. **circulation erledigt
-   (2026-06-13)**, aber Folgeschritte: (a) Solver verkehrsweg-aware machen
+   (Scan → Raummodell → Solver). M3-Polituren: **2D-Grundriss + circulation
+   erledigt (2026-06-13)**; offen bleiben «austauschen» (Item tauschen) und
+   Drag&Drop im Editor. circulation-Folgeschritte: (a) Solver verkehrsweg-aware
    (Korridor in P2/P3 freihalten) → dann (b) circulation auf **hard** hochstufen;
    (c) Tuning gegen Pessimismus (Türmund-Effekt, Euklid statt Manhattan, feineres
    Raster). Küchen-Politur: Eckschrank statt Totraum (L/U), Arbeitsdreieck als

@@ -22,6 +22,7 @@ import {
   type Room,
 } from "./api";
 import { SmartSpider, StilSwipe, type Achse, type BildItem, type Stilprofil } from "./Stil";
+import { Viewer2D } from "./Viewer2D";
 import { Viewer3D } from "./Viewer3D";
 
 const AMPEL: Record<RuleResult["status"], string> = {
@@ -82,6 +83,8 @@ export function App() {
   const [form, setForm] = useState<string | null>(null);
   // Effektiv geplanter Raum (Viewer/Ampel): bei Grossraum die Küchen-Zone.
   const [planRoom, setPlanRoom] = useState<Room | null>(null);
+  // Ansicht: 2D-Grundriss (normgerecht beurteilbar) oder 3D-Box-Platzhalter.
+  const [ansicht, setAnsicht] = useState<"2d" | "3d">("2d");
 
   useEffect(() => {
     api
@@ -197,6 +200,20 @@ export function App() {
       rules,
     );
   }, [aktuellerRaum, plan, rules, catalog]);
+
+  // Pro-Placement-Status aus dem Report (verletzt schlägt knapp) – färbt die
+  // Footprints im 2D-Grundriss nach der Norm-Ampel.
+  const statusById = useMemo(() => {
+    const m = new Map<string, "verletzt" | "knapp">();
+    if (!report) return m;
+    for (const r of report.results) {
+      if (r.status !== "verletzt" && r.status !== "knapp") continue;
+      for (const pid of r.placements) {
+        if (r.status === "verletzt" || m.get(pid) !== "verletzt") m.set(pid, r.status);
+      }
+    }
+    return m;
+  }, [report]);
 
   const bewege = useCallback(
     (dx: number, dz: number, drehung = 0) => {
@@ -315,6 +332,12 @@ export function App() {
           <option value="dxf|grundriss.dxf">2D-Plan (DXF)</option>
           <option value="gltf|szene.gltf">3D-Export (glTF)</option>
         </select>
+        <button
+          style={{ ...stil.knopf, background: "#5b8a72" }}
+          onClick={() => setAnsicht((a) => (a === "2d" ? "3d" : "2d"))}
+        >
+          {ansicht === "2d" ? "🧊 3D-Ansicht" : "🗺️ 2D-Grundriss"}
+        </button>
         {plan && (
           <span style={{ fontSize: 12 }}>
             Seed {plan.meta.seed} · Solver {plan.meta.solverVersion}
@@ -324,13 +347,24 @@ export function App() {
 
       <main>
         {aktuellerRaum ? (
-          <Viewer3D
-            room={aktuellerRaum}
-            placements={plan?.placements ?? []}
-            catalog={catalog}
-            gewaehltId={gewaehltId}
-            onSelect={setGewaehltId}
-          />
+          ansicht === "2d" ? (
+            <Viewer2D
+              room={aktuellerRaum}
+              placements={plan?.placements ?? []}
+              catalog={catalog}
+              gewaehltId={gewaehltId}
+              statusById={statusById}
+              onSelect={setGewaehltId}
+            />
+          ) : (
+            <Viewer3D
+              room={aktuellerRaum}
+              placements={plan?.placements ?? []}
+              catalog={catalog}
+              gewaehltId={gewaehltId}
+              onSelect={setGewaehltId}
+            />
+          )
         ) : (
           <p style={{ padding: 24 }}>Raum wählen, dann «Plan vorschlagen». {meldung}</p>
         )}
