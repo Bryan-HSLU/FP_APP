@@ -249,6 +249,25 @@ export function App() {
     });
   }, [plan, gewaehltId]);
 
+  // Absolutes Verschieben per Drag&Drop (Viewer2D). Funktionales setPlan, weil
+  // beim Ziehen sehr schnell hintereinander aufgerufen wird; gesperrte bleiben.
+  const verschiebeNach = useCallback((id: string, welt: [number, number]) => {
+    setKv(null);
+    setPlan((prev) =>
+      prev
+        ? {
+            ...prev,
+            status: "bearbeitet",
+            placements: prev.placements.map((p) =>
+              p.id !== id || p.locked
+                ? p
+                : { ...p, source: "user", pose: { ...p.pose, pos: welt } },
+            ),
+          }
+        : prev,
+    );
+  }, []);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const schritt = 0.05;
@@ -355,6 +374,7 @@ export function App() {
               gewaehltId={gewaehltId}
               statusById={statusById}
               onSelect={setGewaehltId}
+              onMove={verschiebeNach}
             />
           ) : (
             <Viewer3D
@@ -465,7 +485,7 @@ export function App() {
           <section>
             <h3 style={{ marginTop: 0 }}>{gewaehltesItem.name}</h3>
             <p style={{ fontSize: 12 }}>
-              Pfeiltasten = verschieben · «r» = rotieren · Klick daneben = abwählen
+              Ziehen (2D) oder Pfeiltasten = verschieben · «r» = rotieren · Klick daneben = abwählen
             </p>
             <button style={stil.knopf} onClick={sperren}>
               🔒 sperren/entsperren

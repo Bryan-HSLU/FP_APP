@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { footprint, type Vec2 } from "@fp/shared/rules";
-import { computeTransform, footprintPoints, innwardNormal, toScreen } from "./plan2d.ts";
+import { computeTransform, footprintPoints, innwardNormal, toScreen, toWorld } from "./plan2d.ts";
 
 const RAUM: Vec2[] = [
   [0, 0],
@@ -32,6 +32,19 @@ describe("computeTransform / toScreen", () => {
     const p = toScreen([1, 1], t);
     expect(p[0] - o[0]).toBeCloseTo(t.scale, 6);
     expect(p[1] - o[1]).toBeCloseTo(t.scale, 6);
+  });
+
+  it("toWorld ist die exakte Umkehrung von toScreen", () => {
+    const t = computeTransform(RAUM, 1000, 40);
+    for (const welt of [
+      [0, 0],
+      [1.5, 1.2],
+      [3, 2.4],
+    ] as Vec2[]) {
+      const zurueck = toWorld(toScreen(welt, t), t);
+      expect(zurueck[0]).toBeCloseTo(welt[0], 9);
+      expect(zurueck[1]).toBeCloseTo(welt[1], 9);
+    }
   });
 });
 

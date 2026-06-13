@@ -37,6 +37,11 @@ export function toScreen(p: Vec2, t: PlanTransform): Vec2 {
   return [p[0] * t.scale + t.offsetX, p[1] * t.scale + t.offsetY];
 }
 
+/** SVG-Punkt → Welt (x,z); Umkehrung von toScreen (für Drag&Drop). */
+export function toWorld(p: Vec2, t: PlanTransform): Vec2 {
+  return [(p[0] - t.offsetX) / t.scale, (p[1] - t.offsetY) / t.scale];
+}
+
 /** SVG-`points`-String des (rotierten) Footprints eines Objekts. */
 export function footprintPoints(
   center: Vec2,

@@ -5,9 +5,10 @@
  *  Geometrie kommt aus `plan2d` (= footprint() von @fp/shared/rules), also exakt
  *  deckungsgleich mit Solver, Interpreter und 3D-Viewer.
  */
+import { useRef, useState } from "react";
 import type { Vec2 } from "@fp/shared/rules";
 import type { KatalogItem, Placement, Room } from "./api";
-import { computeTransform, footprintPoints, innwardNormal, toScreen } from "./plan2d.ts";
+import { computeTransform, footprintPoints, innwardNormal, toScreen, toWorld } from "./plan2d.ts";
 
 const SIZE = 1000;
 const PAD = 48;
@@ -109,6 +110,7 @@ export function Viewer2D({
   gewaehltId,
   statusById,
   onSelect,
+  onMove,
 }: {
   room: Room;
   placements: Placement[];
@@ -116,19 +118,45 @@ export function Viewer2D({
   gewaehltId: string | null;
   statusById: Map<string, Status>;
   onSelect: (id: string | null) => void;
+  /** Item per Drag verschieben (absolute Welt-Position). Fehlt → kein Drag. */
+  onMove?: (id: string, world: [number, number]) => void;
 }) {
   const byId = new Map(catalog.map((c) => [c.id, c]));
   const floor = room.shell.floor.polygon as Vec2[];
   const t = computeTransform(floor, SIZE, PAD);
   const floorPts = floor.map((p) => toScreen(p, t).join(",")).join(" ");
 
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  // Pointer-Event (Bildschirm) → Welt (x,z): via SVG-CTM in viewBox-Einheiten,
+  // dann toWorld. So stimmt das Mapping unabhängig von der gerenderten Grösse.
+  const pointerWelt = (e: { clientX: number; clientY: number }): Vec2 | null => {
+    const svg = svgRef.current;
+    const ctm = svg?.getScreenCTM();
+    if (!svg || !ctm) return null;
+    const lokal = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
+    return toWorld([lokal.x, lokal.y], t);
+  };
+
   return (
     <svg
+      ref={svgRef}
       viewBox={`0 0 ${SIZE} ${SIZE}`}
       width="100%"
       height="100%"
-      style={{ background: "#faf7f0", display: "block" }}
+      style={{ background: "#faf7f0", display: "block", touchAction: "none" }}
       onClick={() => onSelect(null)}
+      onPointerMove={(e) => {
+        if (!dragId || !onMove) return;
+        const w = pointerWelt(e);
+        if (w) onMove(dragId, [w[0], w[1]]);
+      }}
+      onPointerUp={(e) => {
+        if (!dragId) return;
+        svgRef.current?.releasePointerCapture(e.pointerId);
+        setDragId(null);
+      }}
       role="img"
       aria-label="2D-Grundriss"
     >
@@ -167,7 +195,14 @@ export function Viewer2D({
               e.stopPropagation();
               onSelect(p.id);
             }}
-            style={{ cursor: "pointer" }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              onSelect(p.id);
+              if (p.locked || !onMove) return;
+              svgRef.current?.setPointerCapture(e.pointerId);
+              setDragId(p.id);
+            }}
+            style={{ cursor: p.locked ? "pointer" : "grab" }}
           >
             <polygon
               points={footprintPoints(
