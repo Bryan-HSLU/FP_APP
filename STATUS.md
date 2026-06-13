@@ -6,7 +6,7 @@
 > Abweichungen gibt es. Meilenstein-Definitionen: Brain →
 > `vault/50_Umsetzung/Bauplan-Meilensteine.md`.
 
-**Stand: 2026-06-12**
+**Stand: 2026-06-13**
 
 ## Meilensteine
 
@@ -186,13 +186,35 @@
     /solve Grossraum-Zone, 1 Export-Smoke). **Gesamt: Python 163 grün (~9 s),
     vitest 19 grün, mypy/ruff sauber, Schema-Check 11 Files.**
 
+- **M3-Politur (2026-06-13, Verkehrsweg-Freiraumanalyse `circulation`):**
+  Der seit M3 offene `circulation`-Stub ist jetzt ein **echter Evaluator** in
+  BEIDEN Interpretern (1:1, ganzzahlige Raster/Erosion-Analyse: Bodenraster →
+  freie Zellen → Manhattan-Distanztransform → Bottleneck via Union-Find über
+  fallende Clearance-Schwellen; Anker = Türmünder, bei 1 Tür zusätzlich der
+  offenste Punkt). **Marge = 2·Bottleneck − minWidth** (0.05-m-Raster). Die
+  Live-Ampel und alle Reports zeigen jetzt ein Verkehrsweg-Urteil.
+  - **Bewusst SOFT in v0** (Norm-Regelsatz lässt hard/soft offen): informiert,
+    ohne die Solver-Invariante zu berühren. Der Solver ist noch nicht
+    verkehrsweg-optimierend → seine Pläne zeigen oft eine **soft**
+    circulation-Verletzung (bad knapp, wohnen/kueche verletzt) – ehrlich.
+  - **Performance:** circulation läuft NICHT im Solver-Hot-Path – `_zulaessig`
+    wertet dort per `nur_hart=True` nur harte Regeln (verhaltensneutral, da
+    soft nie in `hard.summary` zählt); voller Report inkl. circulation nur 1×.
+  - **Parität:** neuer goldener Fall `flur-circulation-verletzt` (Trennwand
+    pincht Korridor) lockt den Verletzungs-Pfad TS↔Python; +4 Unit-Tests.
+  - **Gesamt grün:** Python 171 (~20 s, 0.05-Raster), vitest 23, Parität
+    beidseitig, mypy/ruff/Prettier/Schema sauber.
+
 ## Nächste Schritte (für die nächste Session)
 
 1. **M7 Scan-Integration (+AR):** Raumerfassung an den Klickpfad anbinden
    (Scan → Raummodell → Solver). M3-Polituren **weiterhin offen:** 2D-Grundriss-
-   Ansicht im Viewer, «austauschen», Drag&Drop, circulation-Freiraum-Analyse
-   (beidseitig!). Küchen-Politur: Eckschrank statt Totraum (L/U), Arbeitsdreieck
-   als echter Score, mehr Slot-Breiten (30/45/90) post-POC.
+   Ansicht im Viewer, «austauschen», Drag&Drop. **circulation erledigt
+   (2026-06-13)**, aber Folgeschritte: (a) Solver verkehrsweg-aware machen
+   (Korridor in P2/P3 freihalten) → dann (b) circulation auf **hard** hochstufen;
+   (c) Tuning gegen Pessimismus (Türmund-Effekt, Euklid statt Manhattan, feineres
+   Raster). Küchen-Politur: Eckschrank statt Totraum (L/U), Arbeitsdreieck als
+   echter Score, mehr Slot-Breiten (30/45/90) post-POC.
 2. **M2 Scan-Spike weiterführen:** Restmasse R1 (Raumhöhe, Türbreite,
    Objektmasse) + Neuaufnahme nach Guideline (Bryan); danach
    `spike_eval.ipynb` in Colab (T4) auf altem+neuem Material laufen lassen,
@@ -205,7 +227,8 @@
 | Entscheid | Grund | Wo dokumentiert |
 |---|---|---|
 | Eigener Code proprietär (kein LICENSE-File) | Entscheid Bryan 2026-06-11 | README, CLAUDE.md |
-| Regel-Typ `circulation` weiterhin Stub (`nicht-geprueft`) | Freiraum-Analyse nicht DoD-kritisch für M3; kommt als M3-Politur/M4 (beidseitig + Goldens) | STATUS, rules-README |
+| `circulation` v0 **soft** statt hard (Norm-Regelsatz nennt hard) | Norm-Regelsatz lässt unter «Offene Fragen» hard/soft explizit offen; soft informiert ohne die Solver-Invariante zu brechen (Solver ist noch nicht verkehrsweg-aware). Hochstufung auf hard = bewusster Folgeschritt mit Solver-Support | rules/basis.json, rules-README, Learning |
+| `circulation`-Marge grob/konservativ (0.05-m-Raster, bbox-Blocker, Türmund-Pessimismus) | v0-Freiraumanalyse: ganzzahlig (paritätssicher), Manhattan-Distanztransform, achsparallele Bounding-Box je bodenstehendem Objekt; Türbreite cappt den Bottleneck. Tuning (Euklid, feiner, türbewusst) post-POC | interpreter.py/.ts (Docstring), Learning |
 | Kollision prüft vertikale Überlappung (Höhenintervalle) | Spiegel ÜBER Lavabo ist keine Kollision – nötig für P2-Wandobjekte | Interpreter beidseitig, Learning im Brain |
 | Editor v0: Pfeiltasten/Buttons statt Drag&Drop; «austauschen» fehlt | minimal gemäss DoD («ansehen + minimal editieren + Ampel»); Ausbau M4 | STATUS |
 | `door-swing` v0 als Rechteck (Breite×Radius) statt Viertelkreis | identische, einfache Geometrie in TS & Python; konservative Näherung | Code-Kommentar + Fixtures |

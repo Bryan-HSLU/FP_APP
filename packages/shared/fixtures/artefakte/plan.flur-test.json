@@ -1,0 +1,33 @@
+{
+  "id": "99990002-4000-8000-0000-000000000002",
+  "schemaVersion": "0.1.0",
+  "roomRef": "99999999-0001-4000-8000-000000000001",
+  "stilprofilRef": "00000000-0000-4000-8000-000000000000",
+  "version": 1,
+  "status": "vorschlag",
+  "placements": [
+    {
+      "id": "99990003-4000-8000-0000-000000000003",
+      "catalogItemId": "99990001-4000-8000-0000-000000000001",
+      "pose": { "pos": [1.2, 1.2], "yawDeg": 0 },
+      "gewerk": "schreiner",
+      "locked": false,
+      "source": "solver"
+    }
+  ],
+  "assemblies": [],
+  "interventions": [],
+  "finishes": [],
+  "constraintReport": {
+    "hard": { "ok": true, "summary": { "erfuellt": 0, "knapp": 0, "verletzt": 0 } },
+    "results": [],
+    "softScore": { "stil": 0, "ergonomie": 0, "relation": 0 }
+  },
+  "meta": {
+    "solverVersion": "fixture",
+    "seed": 1,
+    "normProfile": "ch",
+    "barrierefrei": false,
+    "createdAt": "2026-06-13T12:00:00Z"
+  }
+}

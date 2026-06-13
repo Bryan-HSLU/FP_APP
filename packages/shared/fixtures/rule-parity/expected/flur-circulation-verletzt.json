@@ -1,0 +1,45 @@
+{
+  "hard": {
+    "ok": true,
+    "summary": {
+      "erfuellt": 3,
+      "knapp": 0,
+      "verletzt": 0
+    }
+  },
+  "results": [
+    {
+      "ruleId": "basis-kollision",
+      "status": "ok",
+      "margin_cm": null,
+      "placements": [],
+      "hinweis": "Objekte überlappen nicht und liegen vollständig im Raum."
+    },
+    {
+      "ruleId": "basis-tuer-schwenk",
+      "status": "ok",
+      "margin_cm": 10.0,
+      "placements": [],
+      "hinweis": "Türöffnungsbereich frei; v0 als Rechteck Türbreite × radius genähert (konservativ Richtung Raum)."
+    },
+    {
+      "ruleId": "basis-fenster-frei",
+      "status": "ok",
+      "margin_cm": null,
+      "placements": [],
+      "hinweis": "Fenster nicht durch hohe Möbel verstellen (Objekte höher als maxObjektHoehe blockieren)."
+    },
+    {
+      "ruleId": "basis-verkehrsweg",
+      "status": "verletzt",
+      "margin_cm": -30.0,
+      "placements": [],
+      "hinweis": "Durchgehender Verkehrsweg ≥ 0.90 m (Grid/Erosion-Freiraumanalyse). v0 SOFT/informativ – der Solver ist noch nicht verkehrsweg-optimierend; Hochstufung auf hard braucht Solver-Support."
+    }
+  ],
+  "softScore": {
+    "stil": 0.0,
+    "ergonomie": 0.0,
+    "relation": 0.0
+  }
+}

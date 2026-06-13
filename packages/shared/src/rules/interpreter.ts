@@ -156,6 +156,19 @@ function vertikalGetrennt(a: SceneObject, b: SceneObject): boolean {
   return aLo + a.h <= bLo || bLo + b.h <= aLo;
 }
 
+// --- Verkehrsweg-Freiraum (circulation), 1:1 zu interpreter.py ---------------
+// Ganzzahlige Raster/Erosion-Analyse → bit-identisch zu Python. Float nur bei
+// Zell-Mittelpunkten und der Schluss-Marge (gleiche Formeln/Reihenfolge).
+const CIRC_CELL = 0.05; // Rasterweite (m). Läuft NICHT im Solver-Hot-Path (nur_hart), daher fein.
+const CIRC_MAX_CELLS = 20000; // Schutz: riesige Räume vergröbern statt Speicher sprengen.
+// Feste Nachbarschaftsreihenfolge – Determinismus/Parität (BFS-Erst-Treffer!).
+const CIRC_NB: [number, number][] = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+];
+
 const evaluators: Record<string, Evaluator | null> = {
   collision(scene, _params, _appliesTo, offenders) {
     let margin: number | null = null;
@@ -341,9 +354,224 @@ const evaluators: Record<string, Evaluator | null> = {
     return margin;
   },
 
-  // Verkehrsweg braucht Freiraum-Analyse (Grid/Erosion) → kommt mit M3 (Solver).
-  // Ehrlich «nicht-geprueft» statt stilles ok (STATUS.md, Abweichungen).
-  circulation: null,
+  // Verkehrsweg-Freiraum v0 (Grid/Erosion) – 1:1-Spiegel von
+  // fp_engines/rules/interpreter._eval_circulation (siehe Docstring dort).
+  // Ganzzahlig (Grid/BFS/Union-Find) → bit-identisches Urteil zu Python.
+  // v0 ohne Verursacher-Zuordnung → nur scene + params (Evaluator-Typ erlaubt weniger Args).
+  circulation(scene, params) {
+    const minWidth = num(params, "minWidth", 0.9);
+    const floor = scene.floor;
+    const xs = floor.map((p) => p[0]);
+    const zs = floor.map((p) => p[1]);
+    const x0 = Math.min(...xs);
+    const x1 = Math.max(...xs);
+    const z0 = Math.min(...zs);
+    const z1 = Math.max(...zs);
+    let cell = CIRC_CELL;
+    let nx = Math.floor((x1 - x0) / cell) + 1;
+    let nz = Math.floor((z1 - z0) / cell) + 1;
+    while (nx * nz > CIRC_MAX_CELLS) {
+      cell *= 2;
+      nx = Math.floor((x1 - x0) / cell) + 1;
+      nz = Math.floor((z1 - z0) / cell) + 1;
+    }
+
+    const boxes: [number, number, number, number][] = [];
+    for (const o of scene.objects) {
+      if (o.mount === "wand") continue;
+      const qx = o.quad.map((c) => c[0]);
+      const qz = o.quad.map((c) => c[1]);
+      boxes.push([Math.min(...qx), Math.max(...qx), Math.min(...qz), Math.max(...qz)]);
+    }
+
+    const cx = (i: number): number => x0 + (i + 0.5) * cell;
+    const cz = (j: number): number => z0 + (j + 0.5) * cell;
+
+    // Flache typisierte Arrays (Index k = i*nz+j); Werte identisch zur 2D-Liste
+    // in interpreter.py, nur TS-ergonomischer (Element-Typ number/boolean).
+    const idx = (i: number, j: number): number => i * nz + j;
+    const free = new Uint8Array(nx * nz);
+    let nFree = 0;
+    for (let i = 0; i < nx; i++) {
+      const px = cx(i);
+      for (let j = 0; j < nz; j++) {
+        const pz = cz(j);
+        if (!pointInPolygon([px, pz], floor)) continue;
+        let blocked = false;
+        for (const [xa, xb, za, zb] of boxes) {
+          if (xa <= px && px <= xb && za <= pz && pz <= zb) {
+            blocked = true;
+            break;
+          }
+        }
+        if (!blocked) {
+          free[idx(i, j)] = 1;
+          nFree++;
+        }
+      }
+    }
+    if (nFree === 0) return null;
+
+    const inf = nx + nz + 1;
+    const dist = new Int32Array(nx * nz);
+    const queue: number[] = [];
+    for (let i = 0; i < nx; i++) {
+      for (let j = 0; j < nz; j++) {
+        const k = idx(i, j);
+        if (free[k]) dist[k] = inf;
+        else queue.push(k);
+      }
+    }
+    let head = 0;
+    while (head < queue.length) {
+      const c = queue[head] as number;
+      head++;
+      const i = Math.floor(c / nz);
+      const j = c % nz;
+      for (const [di, dj] of CIRC_NB) {
+        const ni = i + di;
+        const nj = j + dj;
+        if (ni >= 0 && ni < nx && nj >= 0 && nj < nz) {
+          const nk = idx(ni, nj);
+          const dc = dist[c] as number;
+          if ((dist[nk] as number) > dc + 1) {
+            dist[nk] = dc + 1;
+            queue.push(nk);
+          }
+        }
+      }
+    }
+
+    const cellAt = (px: number, pz: number): number => {
+      let ci = Math.floor((px - x0) / cell);
+      let cj = Math.floor((pz - z0) / cell);
+      ci = ci < 0 ? 0 : ci > nx - 1 ? nx - 1 : ci;
+      cj = cj < 0 ? 0 : cj > nz - 1 ? nz - 1 : cj;
+      return idx(ci, cj);
+    };
+
+    const nearestFree = (px: number, pz: number): number | null => {
+      const start = cellAt(px, pz);
+      if (free[start]) return start;
+      const seen = new Set<number>([start]);
+      const bfs: number[] = [start];
+      let h = 0;
+      while (h < bfs.length) {
+        const c = bfs[h] as number;
+        h++;
+        const i = Math.floor(c / nz);
+        const j = c % nz;
+        for (const [di, dj] of CIRC_NB) {
+          const ni = i + di;
+          const nj = j + dj;
+          if (ni >= 0 && ni < nx && nj >= 0 && nj < nz) {
+            const nk = idx(ni, nj);
+            if (!seen.has(nk)) {
+              if (free[nk]) return nk;
+              seen.add(nk);
+              bfs.push(nk);
+            }
+          }
+        }
+      }
+      return null;
+    };
+
+    const doors = scene.openings.filter((o) => o.type === "door");
+    const anchors: number[] = [];
+    for (const d of doors) {
+      const wall = scene.walls.find((w) => w.id === d.hostWall);
+      if (!wall) continue;
+      const sx = wall.start[0];
+      const sz = wall.start[1];
+      const ex = wall.end[0];
+      const ez = wall.end[1];
+      const wl = Math.sqrt((ex - sx) ** 2 + (ez - sz) ** 2);
+      if (wl === 0) continue;
+      const ux = (ex - sx) / wl;
+      const uz = (ez - sz) / wl;
+      const mid = d.offset + d.width / 2;
+      const mx = sx + ux * mid;
+      const mz = sz + uz * mid;
+      for (const sgn of [1, -1]) {
+        const tx = mx + -uz * sgn * cell * 1.5;
+        const tz = mz + ux * sgn * cell * 1.5;
+        if (pointInPolygon([tx, tz], floor)) {
+          const a = nearestFree(tx, tz);
+          if (a !== null) anchors.push(a);
+          break;
+        }
+      }
+    }
+    if (doors.length === 1) {
+      let best: number | null = null;
+      let bestC = -1;
+      for (let i = 0; i < nx; i++) {
+        for (let j = 0; j < nz; j++) {
+          const k = idx(i, j);
+          const clearance = dist[k] as number;
+          if (free[k] && clearance > bestC) {
+            bestC = clearance;
+            best = k;
+          }
+        }
+      }
+      if (best !== null) anchors.push(best);
+    }
+    if (anchors.length < 2) return null;
+
+    let maxLvl = 0;
+    const buckets: number[][] = [];
+    for (let i = 0; i < nx; i++) {
+      for (let j = 0; j < nz; j++) {
+        const k = idx(i, j);
+        if (free[k]) {
+          const lvl = dist[k] as number;
+          (buckets[lvl] ??= []).push(k);
+          if (lvl > maxLvl) maxLvl = lvl;
+        }
+      }
+    }
+    const parent = new Map<number, number>();
+    const find = (x: number): number => {
+      let r = x;
+      while ((parent.get(r) as number) !== r) {
+        parent.set(r, parent.get(parent.get(r) as number) as number);
+        r = parent.get(r) as number;
+      }
+      return r;
+    };
+
+    const active = new Set<number>();
+    let bottleneck = -1;
+    for (let lvl = maxLvl; lvl >= 0; lvl--) {
+      for (const c of buckets[lvl] ?? []) {
+        parent.set(c, c);
+        active.add(c);
+        const ci = Math.floor(c / nz);
+        const cj = c % nz;
+        for (const [di, dj] of CIRC_NB) {
+          const ni = ci + di;
+          const nj = cj + dj;
+          if (ni >= 0 && ni < nx && nj >= 0 && nj < nz) {
+            const nb = idx(ni, nj);
+            if (active.has(nb)) {
+              const ra = find(c);
+              const rb = find(nb);
+              if (ra !== rb) parent.set(ra, rb);
+            }
+          }
+        }
+      }
+      if (anchors.every((a) => active.has(a)) && new Set(anchors.map((a) => find(a))).size === 1) {
+        bottleneck = lvl;
+        break;
+      }
+    }
+
+    if (bottleneck < 0) return -minWidth;
+    return 2 * bottleneck * cell - minWidth;
+  },
   relation: null,
 };
 

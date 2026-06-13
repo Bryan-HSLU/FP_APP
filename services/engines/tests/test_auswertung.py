@@ -45,8 +45,12 @@ def test_kv_summen_stimmen() -> None:
     assert kv["von_chf"] < kv["summe_chf"] < kv["bis_chf"]
     assert kv["mengen"]["bodenflaeche_m2"] == 7.2
     assert "KEINE Offerte" in kv["hinweis"]
-    # «knapp»-Regeln und nicht-geprüfte landen im Next-Steps-Leitfaden
-    assert any("verkehrsweg" in s.lower() for s in kv["nextSteps"])
+    # Verkehrsweg wird jetzt AKTIV ausgewertet (nicht mehr perpetuell «nicht-geprueft»).
+    results = plan["constraintReport"]["results"]
+    circ = next(r for r in results if r["ruleId"] == "basis-verkehrsweg")
+    assert circ["status"] == "ok"
+    # Sauberer Solver-Plan ⇒ keine offenen «knapp»/nicht-geprüften Punkte mehr.
+    assert kv["nextSteps"] == []
 
 
 def test_kv_pdf_smoke() -> None:

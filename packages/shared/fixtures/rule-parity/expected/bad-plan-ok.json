@@ -31,10 +31,10 @@
     },
     {
       "ruleId": "basis-verkehrsweg",
-      "status": "nicht-geprueft",
-      "margin_cm": null,
+      "status": "ok",
+      "margin_cm": 60.0,
       "placements": [],
-      "hinweis": "Durchgehender Verkehrsweg ≥ 0.90 m. Auswertung kommt mit M3 (Freiraum-Analyse im Solver); bis dahin Status «nicht-geprueft»."
+      "hinweis": "Durchgehender Verkehrsweg ≥ 0.90 m (Grid/Erosion-Freiraumanalyse). v0 SOFT/informativ – der Solver ist noch nicht verkehrsweg-optimierend; Hochstufung auf hard braucht Solver-Support."
     },
     {
       "ruleId": "bad-wc-seitenabstand",

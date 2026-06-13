@@ -1,0 +1,26 @@
+[
+  {
+    "id": "99990001-4000-8000-0000-000000000001",
+    "schemaVersion": "0.1.0",
+    "name": "Test-Trennwand (Paritäts-Fixture circulation)",
+    "kategorie": "moebel-trennwand",
+    "funktionsTyp": "trennwand",
+    "roomTypes": ["flur"],
+    "gewerk": "schreiner",
+    "masse": { "w": 1.8, "d": 0.4, "h": 2.0 },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {},
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 500,
+      "currency": "CHF",
+      "stand": "2026-06-13",
+      "quelle": "Fixture (kein realer Preis)",
+      "bandbreitePct": 30
+    }
+  }
+]

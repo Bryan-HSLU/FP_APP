@@ -1,0 +1,88 @@
+{
+  "id": "99999999-0001-4000-8000-000000000001",
+  "schemaVersion": "0.1.0",
+  "name": "Test-Flur 2.4 × 2.4 m (zwei Türen, Trennwand-Fall)",
+  "roomType": "flur",
+  "source": "sample",
+  "units": "m",
+  "shell": {
+    "walls": [
+      {
+        "id": "c9990001-4000-8000-0000-000000000001",
+        "start": [0, 0],
+        "end": [2.4, 0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv",
+        "openings": ["d9990001-4000-8000-0000-000000000001"]
+      },
+      {
+        "id": "c9990002-4000-8000-0000-000000000002",
+        "start": [2.4, 0],
+        "end": [2.4, 2.4],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv",
+        "openings": []
+      },
+      {
+        "id": "c9990003-4000-8000-0000-000000000003",
+        "start": [2.4, 2.4],
+        "end": [0, 2.4],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv",
+        "openings": ["d9990002-4000-8000-0000-000000000002"]
+      },
+      {
+        "id": "c9990004-4000-8000-0000-000000000004",
+        "start": [0, 2.4],
+        "end": [0, 0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv",
+        "openings": []
+      }
+    ],
+    "floor": {
+      "polygon": [
+        [0, 0],
+        [2.4, 0],
+        [2.4, 2.4],
+        [0, 2.4]
+      ],
+      "area": 5.76
+    },
+    "ceiling": { "height": 2.5 }
+  },
+  "openings": [
+    {
+      "id": "d9990001-4000-8000-0000-000000000001",
+      "type": "door",
+      "hostWall": "c9990001-4000-8000-0000-000000000001",
+      "offset": 0.8,
+      "width": 0.8,
+      "height": 2.0,
+      "sill": 0
+    },
+    {
+      "id": "d9990002-4000-8000-0000-000000000002",
+      "type": "door",
+      "hostWall": "c9990003-4000-8000-0000-000000000003",
+      "offset": 0.8,
+      "width": 0.8,
+      "height": 2.0,
+      "sill": 0
+    }
+  ],
+  "zones": [],
+  "fixpoints": [],
+  "objects": [],
+  "meta": {
+    "captureMethod": "sample",
+    "coverageScore": 1,
+    "estimatedError_cm": 0,
+    "geometryConfirmed": true,
+    "geometryRef": "sample"
+  }
+}

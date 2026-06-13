@@ -41,10 +41,10 @@
     "appliesTo": "*",
     "kategorie": "rahmen",
     "type": "circulation",
-    "severity": "hard",
+    "severity": "soft",
     "params": { "minWidth": 0.9 },
     "quelle": "Richtwert",
     "status": "zu-verifizieren",
-    "hinweis": "Durchgehender Verkehrsweg ≥ 0.90 m. Auswertung kommt mit M3 (Freiraum-Analyse im Solver); bis dahin Status «nicht-geprueft»."
+    "hinweis": "Durchgehender Verkehrsweg ≥ 0.90 m (Grid/Erosion-Freiraumanalyse). v0 SOFT/informativ – der Solver ist noch nicht verkehrsweg-optimierend; Hochstufung auf hard braucht Solver-Support."
   }
 ]

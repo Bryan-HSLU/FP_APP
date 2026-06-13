@@ -519,7 +519,7 @@ def solve_kueche(
         placement = _slot_placement(item, slot, rnd, assembly_id, mount_height)
         placements.append(placement)
         if not _schnell_unzulaessig(room, placements, by_id, placement) and (
-            _zulaessig(room, placements, catalog, rules, norm_profile) is not None
+            _zulaessig(room, placements, catalog, rules, norm_profile, nur_hart=True) is not None
         ):
             belegt.add(slot_idx)
             return True
@@ -787,7 +787,7 @@ def _platziere_dunstabzug(
     )
     placements.append(placement)
     if _schnell_unzulaessig(room, placements, by_id, placement) or (
-        _zulaessig(room, placements, catalog, rules, norm_profile) is None
+        _zulaessig(room, placements, catalog, rules, norm_profile, nur_hart=True) is None
     ):
         placements.pop()
 
@@ -855,7 +855,7 @@ def _fuelle_haengeschraenke(
         )
         placements.append(placement)
         if _schnell_unzulaessig(room, placements, by_id, placement) or (
-            _zulaessig(room, placements, catalog, rules, norm_profile) is None
+            _zulaessig(room, placements, catalog, rules, norm_profile, nur_hart=True) is None
         ):
             placements.pop()
 
@@ -897,7 +897,8 @@ def _fuelle_fuellstuecke(
                 )
                 placements.append(placement)
                 if _schnell_unzulaessig(room, placements, by_id, placement) or (
-                    _zulaessig(room, placements, catalog, rules, norm_profile) is None
+                    _zulaessig(room, placements, catalog, rules, norm_profile, nur_hart=True)
+                    is None
                 ):
                     placements.pop()
                     break
@@ -934,7 +935,8 @@ def _platziere_deko(
             placement = _als_placement(item, k, rnd)
             placements.append(placement)
             if not _schnell_unzulaessig(room, placements, by_id, placement) and (
-                _zulaessig(room, placements, catalog, rules, norm_profile) is not None
+                _zulaessig(room, placements, catalog, rules, norm_profile, nur_hart=True)
+                is not None
             ):
                 gesetzt += 1
                 break

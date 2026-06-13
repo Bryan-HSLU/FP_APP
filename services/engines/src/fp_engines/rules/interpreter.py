@@ -341,10 +341,196 @@ def _eval_connection(
     return margin
 
 
+# --- Verkehrsweg-Freiraum (circulation) -------------------------------------
+# Raster/Erosion-Analyse v0. Bewusst ganzzahlig gehalten (Grid-Indizes, BFS,
+# Union-Find), damit TS & Python BIT-identisch urteilen – Float nur bei
+# Zell-Mittelpunkten und der Schluss-Marge (identische Formeln/Reihenfolge).
+_CIRC_CELL = 0.05  # Rasterweite (m). Läuft NICHT im Solver-Hot-Path (nur_hart), daher fein.
+_CIRC_MAX_CELLS = 20000  # Schutz: riesige Räume vergröbern statt Speicher sprengen.
+# Feste Nachbarschaftsreihenfolge – Determinismus/Parität (BFS-Erst-Treffer!).
+_CIRC_NB: tuple[tuple[int, int], ...] = ((1, 0), (-1, 0), (0, 1), (0, -1))
+
+
+def _eval_circulation(
+    scene: Scene, params: Params, applies_to: str, offenders: list[str]
+) -> float | None:
+    """Gibt es einen durchgehenden Verkehrsweg ≥ minWidth (Detailkonzept/Norm-Regelsatz)?
+
+    Deterministische Grid/Erosion-Analyse: Bodenraster → freie Zellen (im Raum,
+    nicht unter BODENstehenden Objekten; Wandobjekte blockieren nicht, man läuft
+    darunter durch) → Manhattan-Distanztransform als Engstellen-Mass → Bottleneck
+    (breitester Korridor, der die Anker verbindet) via Union-Find über fallende
+    Clearance-Schwellen. Anker = alle Türmünder; bei genau EINER Tür zusätzlich
+    der offenste Punkt («kommt man von der Tür in den Raum?»). 0/1 Anker ⇒ keine
+    Durchgangs-Anforderung (None → trivial erfüllt).
+
+    Marge = 2·Bottleneck − minWidth (grob ±Raster). v0: keine Verursacher-
+    Zuordnung (`offenders` bleibt leer); bodenstehende Objekte werden als
+    achsparallele Bounding-Box genähert (konservativ, schnell, paritätssicher).
+    """
+    min_width = _num(params, "minWidth", 0.9)
+    floor = scene.floor
+    xs = [p[0] for p in floor]
+    zs = [p[1] for p in floor]
+    x0, x1 = min(xs), max(xs)
+    z0, z1 = min(zs), max(zs)
+    cell = _CIRC_CELL
+    nx = int((x1 - x0) / cell) + 1
+    nz = int((z1 - z0) / cell) + 1
+    while nx * nz > _CIRC_MAX_CELLS:
+        cell *= 2
+        nx = int((x1 - x0) / cell) + 1
+        nz = int((z1 - z0) / cell) + 1
+
+    boxes: list[tuple[float, float, float, float]] = []
+    for o in scene.objects:
+        if o.mount == "wand":
+            continue
+        qx = [c[0] for c in o.quad]
+        qz = [c[1] for c in o.quad]
+        boxes.append((min(qx), max(qx), min(qz), max(qz)))
+
+    def cx(i: int) -> float:
+        return x0 + (i + 0.5) * cell
+
+    def cz(j: int) -> float:
+        return z0 + (j + 0.5) * cell
+
+    free = [[False] * nz for _ in range(nx)]
+    n_free = 0
+    for i in range(nx):
+        px = cx(i)
+        for j in range(nz):
+            pz = cz(j)
+            if not point_in_polygon((px, pz), floor):
+                continue
+            blocked = False
+            for xa, xb, za, zb in boxes:
+                if xa <= px <= xb and za <= pz <= zb:
+                    blocked = True
+                    break
+            if not blocked:
+                free[i][j] = True
+                n_free += 1
+    if n_free == 0:
+        return None
+
+    inf = nx + nz + 1
+    dist = [[0 if not free[i][j] else inf for j in range(nz)] for i in range(nx)]
+    queue: list[tuple[int, int]] = [(i, j) for i in range(nx) for j in range(nz) if dist[i][j] == 0]
+    head = 0
+    while head < len(queue):
+        i, j = queue[head]
+        head += 1
+        for di, dj in _CIRC_NB:
+            ni, nj = i + di, j + dj
+            if 0 <= ni < nx and 0 <= nj < nz and dist[ni][nj] > dist[i][j] + 1:
+                dist[ni][nj] = dist[i][j] + 1
+                queue.append((ni, nj))
+
+    def cell_at(px: float, pz: float) -> tuple[int, int]:
+        ci = int((px - x0) / cell)
+        cj = int((pz - z0) / cell)
+        ci = 0 if ci < 0 else (nx - 1 if ci > nx - 1 else ci)
+        cj = 0 if cj < 0 else (nz - 1 if cj > nz - 1 else cj)
+        return ci, cj
+
+    def nearest_free(px: float, pz: float) -> tuple[int, int] | None:
+        si, sj = cell_at(px, pz)
+        if free[si][sj]:
+            return (si, sj)
+        seen = {(si, sj)}
+        bfs: list[tuple[int, int]] = [(si, sj)]
+        h = 0
+        while h < len(bfs):
+            i, j = bfs[h]
+            h += 1
+            for di, dj in _CIRC_NB:
+                ni, nj = i + di, j + dj
+                if 0 <= ni < nx and 0 <= nj < nz and (ni, nj) not in seen:
+                    if free[ni][nj]:
+                        return (ni, nj)
+                    seen.add((ni, nj))
+                    bfs.append((ni, nj))
+        return None
+
+    doors = [o for o in scene.openings if o["type"] == "door"]
+    anchors: list[tuple[int, int]] = []
+    for d in doors:
+        wall = next((w for w in scene.walls if w["id"] == d["hostWall"]), None)
+        if wall is None:
+            continue
+        sx, sz = wall["start"][0], wall["start"][1]
+        ex, ez = wall["end"][0], wall["end"][1]
+        wl = math.sqrt((ex - sx) ** 2 + (ez - sz) ** 2)
+        if wl == 0:
+            continue
+        ux, uz = (ex - sx) / wl, (ez - sz) / wl
+        mid = d["offset"] + d["width"] / 2
+        mx, mz = sx + ux * mid, sz + uz * mid
+        # 1.5 Zellen ins Rauminnere schieben (Seite via Polygon-Test bestimmen).
+        for sgn in (1, -1):
+            tx = mx + (-uz * sgn) * cell * 1.5
+            tz = mz + (ux * sgn) * cell * 1.5
+            if point_in_polygon((tx, tz), floor):
+                a = nearest_free(tx, tz)
+                if a is not None:
+                    anchors.append(a)
+                break
+    if len(doors) == 1:
+        best: tuple[int, int] | None = None
+        best_c = -1
+        for i in range(nx):
+            for j in range(nz):
+                if free[i][j] and dist[i][j] > best_c:
+                    best_c = dist[i][j]
+                    best = (i, j)
+        if best is not None:
+            anchors.append(best)
+    if len(anchors) < 2:
+        return None
+
+    max_lvl = 0
+    buckets: dict[int, list[tuple[int, int]]] = {}
+    for i in range(nx):
+        for j in range(nz):
+            if free[i][j]:
+                lvl = dist[i][j]
+                buckets.setdefault(lvl, []).append((i, j))
+                if lvl > max_lvl:
+                    max_lvl = lvl
+    parent: dict[tuple[int, int], tuple[int, int]] = {}
+
+    def find(x: tuple[int, int]) -> tuple[int, int]:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    active: set[tuple[int, int]] = set()
+    bottleneck = -1
+    for lvl in range(max_lvl, -1, -1):
+        for c in buckets.get(lvl, []):
+            parent[c] = c
+            active.add(c)
+            for di, dj in _CIRC_NB:
+                n = (c[0] + di, c[1] + dj)
+                if n in active:
+                    ra, rb = find(c), find(n)
+                    if ra != rb:
+                        parent[ra] = rb
+        if all(a in active for a in anchors) and len({find(a) for a in anchors}) == 1:
+            bottleneck = lvl
+            break
+
+    if bottleneck < 0:
+        return -min_width
+    return 2 * bottleneck * cell - min_width
+
+
 Evaluator = Callable[[Scene, Params, str, list[str]], float | None]
 
-# Verkehrsweg (circulation) braucht Freiraum-Analyse (Grid/Erosion) → kommt mit
-# M3 (Solver); relation ist Solver-Scoring. Ehrlich «nicht-geprueft» statt ok.
+# relation ist Solver-Scoring (soft) → ehrlich «nicht-geprueft» statt ok.
 _EVALUATORS: dict[str, Evaluator | None] = {
     "collision": _eval_collision,
     "wall-distance": _eval_wall_distance,
@@ -354,7 +540,7 @@ _EVALUATORS: dict[str, Evaluator | None] = {
     "keep-clear": _eval_keep_clear,
     "host-binding": _eval_host_binding,
     "connection": _eval_connection,
-    "circulation": None,
+    "circulation": _eval_circulation,
     "relation": None,
 }
 

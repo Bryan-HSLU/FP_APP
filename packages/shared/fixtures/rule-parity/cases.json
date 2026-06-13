@@ -14,5 +14,13 @@
     "plan": "plan.bad-verletzt",
     "catalog": "katalog-items.bad",
     "rules": ["basis", "bad"]
+  },
+  {
+    "name": "flur-circulation-verletzt",
+    "beschreibung": "Trennwand pincht den Korridor zwischen zwei Türen < 0.90 m → circulation (soft) verletzt; lockt die Parität auf dem Verletzungs-Pfad der Freiraumanalyse.",
+    "room": "raummodell.flur-test",
+    "plan": "plan.flur-test",
+    "catalog": "katalog-items.flur-test",
+    "rules": ["basis"]
   }
 ]

@@ -205,10 +205,18 @@ def _zulaessig(
     catalog: list[dict[str, Any]],
     rules: list[dict[str, Any]],
     norm_profile: str,
+    nur_hart: bool = False,
 ) -> dict[str, Any] | None:
-    """Urteil des Regel-Interpreters über die Teil-Szene; Report wenn 0 verletzt."""
+    """Urteil des Regel-Interpreters über die Teil-Szene; Report wenn 0 verletzt.
+
+    `nur_hart=True` wertet nur harte Regeln aus – für den Solver-Hot-Path: die
+    Zulässigkeit hängt einzig an `hard.summary.verletzt`, weiche Regeln (z.B. die
+    teure circulation-Freiraumanalyse) tragen dort NICHTS bei. Der finale Report
+    eines Plans wird bewusst mit allen Regeln (nur_hart=False) erzeugt.
+    """
+    aktive = [r for r in rules if r.get("severity") == "hard"] if nur_hart else rules
     plan_stub = {"placements": placements, "meta": {"normProfile": norm_profile}}
-    report = evaluate_rules(build_scene(room, plan_stub, catalog), rules)
+    report = evaluate_rules(build_scene(room, plan_stub, catalog), aktive)
     return report if report["hard"]["summary"]["verletzt"] == 0 else None
 
 
@@ -264,7 +272,8 @@ def solve(
             placement = _als_placement(item, kandidat, rnd)
             placements.append(placement)
             if not _schnell_unzulaessig(room, placements, by_id, placement) and (
-                _zulaessig(room, placements, catalog, rules, norm_profile) is not None
+                _zulaessig(room, placements, catalog, rules, norm_profile, nur_hart=True)
+                is not None
             ):
                 if backtrack(uebrige):
                     return True
@@ -282,6 +291,7 @@ def solve(
                     catalog,
                     rules,
                     norm_profile,
+                    nur_hart=True,
                 )
                 for k in _candidates(room, item)
             )
@@ -319,7 +329,8 @@ def solve(
             placement = _als_placement(item, kandidat, rnd)
             placements.append(placement)
             if not _schnell_unzulaessig(room, placements, by_id, placement) and (
-                _zulaessig(room, placements, catalog, rules, norm_profile) is not None
+                _zulaessig(room, placements, catalog, rules, norm_profile, nur_hart=True)
+                is not None
             ):
                 typ_pos[item["funktionsTyp"]] = kandidat.pos
                 break
@@ -335,7 +346,8 @@ def solve(
             placement = _als_placement(item, kandidat, rnd)
             placements.append(placement)
             if not _schnell_unzulaessig(room, placements, by_id, placement) and (
-                _zulaessig(room, placements, catalog, rules, norm_profile) is not None
+                _zulaessig(room, placements, catalog, rules, norm_profile, nur_hart=True)
+                is not None
             ):
                 break
             placements.pop()

@@ -8,18 +8,18 @@ mit Konfidenz-Ampel: **ok | knapp | verletzt | nicht-geprueft**.
 
 ## Parameter-Konventionen je Regel-Typ (v0)
 
-| `type`            | params                                             | Semantik                                                                                                 |
-| ----------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `collision`       | –                                                  | kein Überlappen; vollständig im Raum (Ecken-Heuristik)                                                   |
-| `wall-distance`   | `minDist`                                          | Objekt-**Mitte** → nächste massive Wand ≥ minDist                                                        |
-| `object-distance` | `target`, `minDist`, `measure: edge\|center`       | Abstand zu Objekten vom Typ target                                                                       |
-| `clearance`       | `depth`, `width?` (Default Objektbreite)           | Zone vor der Objekt-**Front** (lokal +z) frei + im Raum                                                  |
-| `door-swing`      | `radius`                                           | v0: Rechteck Türbreite × radius ins Rauminnere (statt Viertelkreis – konservative Näherung)              |
-| `keep-clear`      | `depth`, `maxObjektHoehe`                          | Streifen vor Fenster frei von Objekten mit Gesamthöhe > maxObjektHoehe                                   |
-| `host-binding`    | `mount`, `maxWandabstand`, `minHoehe?`/`maxHoehe?` | Wand-/Bodenbindung; Höhenfenster prüft die **Oberkante** = `mountHeight` (Unterkante, Plan) + Korpushöhe |
-| `connection`      | `anschluss`, `maxDist`                             | passender Fixpunkt in Reichweite des Footprints                                                          |
-| `circulation`     | `minWidth`                                         | **nicht-geprueft** bis M3 (braucht Freiraum-Analyse)                                                     |
-| `relation`        | `relation`                                         | soft, **nicht-geprueft** bis M3 (Solver-Scoring)                                                         |
+| `type`            | params                                             | Semantik                                                                                                          |
+| ----------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `collision`       | –                                                  | kein Überlappen; vollständig im Raum (Ecken-Heuristik)                                                            |
+| `wall-distance`   | `minDist`                                          | Objekt-**Mitte** → nächste massive Wand ≥ minDist                                                                 |
+| `object-distance` | `target`, `minDist`, `measure: edge\|center`       | Abstand zu Objekten vom Typ target                                                                                |
+| `clearance`       | `depth`, `width?` (Default Objektbreite)           | Zone vor der Objekt-**Front** (lokal +z) frei + im Raum                                                           |
+| `door-swing`      | `radius`                                           | v0: Rechteck Türbreite × radius ins Rauminnere (statt Viertelkreis – konservative Näherung)                       |
+| `keep-clear`      | `depth`, `maxObjektHoehe`                          | Streifen vor Fenster frei von Objekten mit Gesamthöhe > maxObjektHoehe                                            |
+| `host-binding`    | `mount`, `maxWandabstand`, `minHoehe?`/`maxHoehe?` | Wand-/Bodenbindung; Höhenfenster prüft die **Oberkante** = `mountHeight` (Unterkante, Plan) + Korpushöhe          |
+| `connection`      | `anschluss`, `maxDist`                             | passender Fixpunkt in Reichweite des Footprints                                                                   |
+| `circulation`     | `minWidth`                                         | v0 **soft**: Grid/Erosion-Freiraumanalyse – durchgehender Korridor ≥ minWidth zwischen Türen (Marge grob ±Raster) |
+| `relation`        | `relation`                                         | soft, **nicht-geprueft** bis M3 (Solver-Scoring)                                                                  |
 
 ## ⚠️ Paritäts-Gesetz
 
