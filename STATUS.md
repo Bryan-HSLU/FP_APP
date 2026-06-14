@@ -231,26 +231,32 @@
   (kein Interpreter/Goldens, kein Grid im Hot-Path), P1 unberührt. **Effekt: Bad
   von knapp/verletzt auf circulation ok (+60 cm)** – genau «Korridor in P2/P3
   freihalten». Test `test_tuer_korridor_frei_von_optionalen`. Suite 172 grün.
-  - **Wichtiger Befund – hard-Hochstufung NICHT jetzt (Empfehlung):** Wohnen/
-    Küche bleiben verletzt, aber der echte Evaluator zeigt: **kein** Single-Item-
-    Entfernen verbessert die Marge (>2 cm) → die Engstelle ist **keine** lös-
-    bare Möbel-Nähe, sondern eine **Metrik-Fragilität** am Tür-Anker (Sub-Raster-
-    Engstelle aus Bounding-Box-Näherung + Manhattan-Distanz). Den Solver hart
-    auf diese v0-Metrik zu zwingen = einem Artefakt hinterherlaufen. **Voraus-
-    setzung für hard:** Metrik-Refactor (Euklid statt Manhattan, Wände als
-    Hindernis statt Grid-Rand, tür-bewusster Anker, evtl. echte Footprints statt
-    bbox) – eigener, grösserer Schritt (mit Bryan abstimmen). Details: Brain-
-    Learning `Learning-Circulation-Metrik-Fragilitaet`.
+- **Verkehrsweg-aware Solver, Schritt 2 (2026-06-14, Metrik-Fix Tür-Anker):**
+  Die in Schritt 1 gefundene «Metrik-Fragilität» war der **Tür-Anker am Türmund**
+  (1.5 Zellen) – dadurch war faktisch die fixe **Türbreite** der Engpass statt
+  des durch Möbel beeinflussbaren Innenraum-Korridors. **Fix (1:1 TS & Python):
+  Anker ~minWidth/2 HINTER die Tür** (ins Korridor-Innere). Der grosse Refactor
+  (Chamfer/Wände-als-Hindernis) war NICHT nötig. **Effekt (echter Evaluator):
+  wohnen −70 → ok +10, kueche −70 → knapp 0, bad bleibt ok +60, flur (echte
+  Sperre) bleibt verletzt −30.** Goldens neu (Parität bit-identisch), 172 pytest
+  + 23 vitest grün. Die Metrik urteilt jetzt sinnvoll & verteidigbar.
+  - **hard-Hochstufung jetzt plausibel, aber bewusst noch soft:** Solverpläne
+    sind jetzt circulation ok/knapp (kein verletzt in der Praxis). Hürde für hard
+    ist nicht mehr die Metrik, sondern die **Hot-Path-Performance** (circulation
+    ist teuer ~0.4 s/Auswertung; als hard liefe sie je Kandidat). Der billige
+    Tür-Korridor-Filter (Schritt 1) verhindert die häufigsten Verletzungen schon
+    ohne Grid – ein finaler Hard-Check + Keep-out könnte reichen. Mit Bryan
+    abstimmen, ob/wann hard. Details: Brain `Learning-Circulation-Metrik-Fragilitaet`.
 
 ## Nächste Schritte (für die nächste Session)
 
 1. **M7 Scan-Integration (+AR):** Raumerfassung an den Klickpfad anbinden
    (Scan → Raummodell → Solver). M3-Polituren: **2D-Grundriss + circulation
-   + Drag&Drop + «austauschen» + Tür-Korridor erledigt** – die M3-Editor-
-   Polituren sind komplett. circulation-Folgeschritte (priorisiert): **(a)
-   Metrik-Refactor** (Euklid/Wände-als-Hindernis/tür-bewusst – Voraussetzung,
-   weil v0-Metrik wohnen/kueche fälschlich verletzt) → dann (b) circulation auf
-   **hard** hochstufen. Küchen-Politur: Eckschrank statt Totraum (L/U), Arbeitsdreieck als
+   + Drag&Drop + «austauschen» + Tür-Korridor + Metrik-Fix erledigt** – die
+   M3-Editor-Polituren sind komplett, die circulation-Metrik urteilt jetzt
+   sinnvoll. Verbleibender circulation-Folgeschritt: **circulation auf `hard`
+   hochstufen** – Hürde ist nur noch die Hot-Path-Performance (mit Bryan
+   abstimmen, ob/wann). Küchen-Politur: Eckschrank statt Totraum (L/U), Arbeitsdreieck als
    echter Score, mehr Slot-Breiten (30/45/90) post-POC.
 2. **M2 Scan-Spike weiterführen:** Restmasse R1 (Raumhöhe, Türbreite,
    Objektmasse) + Neuaufnahme nach Guideline (Bryan); danach
