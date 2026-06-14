@@ -13,7 +13,8 @@ import pytest
 from jsonschema import Draft202012Validator, FormatChecker
 
 from fp_engines.baseline import baseline_auswahl
-from fp_engines.solver import NoFeasiblePlacement, solve
+from fp_engines.rules.geometry import footprint, overlap_depth
+from fp_engines.solver import NoFeasiblePlacement, _tuer_korridore, solve
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 FIXTURES = REPO_ROOT / "packages" / "shared" / "fixtures" / "artefakte"
@@ -153,3 +154,23 @@ def test_wohnen_freie_platzierung_findet_statt() -> None:
     sofa = posen["sofa"]["pose"]["pos"]
     center_dist = ((ct[0] - sofa[0]) ** 2 + (ct[1] - sofa[1]) ** 2) ** 0.5
     assert wandabstand > 0.3 or center_dist <= 1.3
+
+
+def test_tuer_korridor_frei_von_optionalen() -> None:
+    """Verkehrsweg: optionale (P2/P3) Objekte stehen nicht im Tür-Zugangsstreifen."""
+    room = _load(FIXTURES / "raummodell.bad-sample.json")
+    plan = _solve("raummodell.bad-sample", 3)
+    by_id = {c["id"]: c for c in CATALOG}
+    korridore = _tuer_korridore(room)
+    assert korridore, "Sample-Bad hat eine Tür → mindestens ein Korridor"
+    for p in plan["placements"]:
+        item = by_id[p["catalogItemId"]]
+        if item["priorityClass"] == "P1" or item.get("mount") == "wand":
+            continue
+        quad = footprint(
+            (p["pose"]["pos"][0], p["pose"]["pos"][1]),
+            item["masse"]["w"],
+            item["masse"]["d"],
+            p["pose"]["yawDeg"],
+        )
+        assert all(overlap_depth(quad, z) is None for z in korridore), item["funktionsTyp"]

@@ -224,15 +224,33 @@
     normProfileVariante → Küchenzeile bleibt konsistent); Pose bleibt, Ampel
     rechnet die neuen Masse sofort durch.
 
+- **Verkehrsweg-aware Solver, Schritt 1 (2026-06-14, Tür-Korridor-Freihaltung):**
+  Optionale (P2/P3) Objekte werden NICHT mehr in einen Tür-Zugangsstreifen
+  (Türbreite × 0.9 m ins Rauminnere) platziert – reiner Geometrie-Filter in
+  `solver.py` (`_tuer_korridore`/`_blockiert_korridor`), billig, paritätsneutral
+  (kein Interpreter/Goldens, kein Grid im Hot-Path), P1 unberührt. **Effekt: Bad
+  von knapp/verletzt auf circulation ok (+60 cm)** – genau «Korridor in P2/P3
+  freihalten». Test `test_tuer_korridor_frei_von_optionalen`. Suite 172 grün.
+  - **Wichtiger Befund – hard-Hochstufung NICHT jetzt (Empfehlung):** Wohnen/
+    Küche bleiben verletzt, aber der echte Evaluator zeigt: **kein** Single-Item-
+    Entfernen verbessert die Marge (>2 cm) → die Engstelle ist **keine** lös-
+    bare Möbel-Nähe, sondern eine **Metrik-Fragilität** am Tür-Anker (Sub-Raster-
+    Engstelle aus Bounding-Box-Näherung + Manhattan-Distanz). Den Solver hart
+    auf diese v0-Metrik zu zwingen = einem Artefakt hinterherlaufen. **Voraus-
+    setzung für hard:** Metrik-Refactor (Euklid statt Manhattan, Wände als
+    Hindernis statt Grid-Rand, tür-bewusster Anker, evtl. echte Footprints statt
+    bbox) – eigener, grösserer Schritt (mit Bryan abstimmen). Details: Brain-
+    Learning `Learning-Circulation-Metrik-Fragilitaet`.
+
 ## Nächste Schritte (für die nächste Session)
 
 1. **M7 Scan-Integration (+AR):** Raumerfassung an den Klickpfad anbinden
    (Scan → Raummodell → Solver). M3-Polituren: **2D-Grundriss + circulation
-   + Drag&Drop + «austauschen» erledigt (2026-06-13)** – die M3-Editor-Polituren
-   sind damit komplett. circulation-Folgeschritte: (a) Solver verkehrsweg-aware
-   (Korridor in P2/P3 freihalten) → dann (b) circulation auf **hard** hochstufen;
-   (c) Tuning gegen Pessimismus (Türmund-Effekt, Euklid statt Manhattan, feineres
-   Raster). Küchen-Politur: Eckschrank statt Totraum (L/U), Arbeitsdreieck als
+   + Drag&Drop + «austauschen» + Tür-Korridor erledigt** – die M3-Editor-
+   Polituren sind komplett. circulation-Folgeschritte (priorisiert): **(a)
+   Metrik-Refactor** (Euklid/Wände-als-Hindernis/tür-bewusst – Voraussetzung,
+   weil v0-Metrik wohnen/kueche fälschlich verletzt) → dann (b) circulation auf
+   **hard** hochstufen. Küchen-Politur: Eckschrank statt Totraum (L/U), Arbeitsdreieck als
    echter Score, mehr Slot-Breiten (30/45/90) post-POC.
 2. **M2 Scan-Spike weiterführen:** Restmasse R1 (Raumhöhe, Türbreite,
    Objektmasse) + Neuaufnahme nach Guideline (Bryan); danach

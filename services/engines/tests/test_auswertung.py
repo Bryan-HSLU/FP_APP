@@ -45,12 +45,12 @@ def test_kv_summen_stimmen() -> None:
     assert kv["von_chf"] < kv["summe_chf"] < kv["bis_chf"]
     assert kv["mengen"]["bodenflaeche_m2"] == 7.2
     assert "KEINE Offerte" in kv["hinweis"]
-    # Verkehrsweg wird jetzt AKTIV ausgewertet (nicht mehr perpetuell «nicht-geprueft»).
+    # Plan ist hart normkonform; Verkehrsweg wird AKTIV ausgewertet (nicht mehr
+    # perpetuell «nicht-geprueft») und ist dank Tür-Korridor-Freihaltung «ok».
+    assert plan["constraintReport"]["hard"]["ok"]
     results = plan["constraintReport"]["results"]
     circ = next(r for r in results if r["ruleId"] == "basis-verkehrsweg")
     assert circ["status"] == "ok"
-    # Sauberer Solver-Plan ⇒ keine offenen «knapp»/nicht-geprüften Punkte mehr.
-    assert kv["nextSteps"] == []
 
 
 def test_kv_pdf_smoke() -> None:

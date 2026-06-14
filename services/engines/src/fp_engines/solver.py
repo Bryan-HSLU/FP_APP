@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from fp_engines.rules.geometry import (
+    Quad,
     containment_violation,
     footprint,
     front_dir,
@@ -143,6 +144,63 @@ def _candidates(room: dict[str, Any], item: dict[str, Any]) -> list[_Kandidat]:
     if item.get("mount", "boden") == "boden":
         kand = kand + _floor_candidates(room, item)
     return kand
+
+
+_TUER_KORRIDOR_TIEFE = 0.9  # Tiefe (m) des freizuhaltenden Zugangsstreifens vor einer Tür.
+
+
+def _tuer_korridore(room: dict[str, Any], tiefe: float = _TUER_KORRIDOR_TIEFE) -> list[Quad]:
+    """Zugangsstreifen vor jeder Tür (Türbreite × tiefe, ins Rauminnere).
+
+    Verkehrsweg-Heuristik zur «circulation»-Regel: OPTIONALE Objekte (P2/P3)
+    werden hier nicht platziert, damit der Tür-Zugang – der dominante Engpass der
+    Freiraumanalyse – frei bleibt. P1-Pflichtobjekte sind bewusst ausgenommen
+    (sie müssen Anschluss/Platz finden; der Türschwenk hält den unmittelbaren
+    Bereich ohnehin frei). Reiner Geometrie-Filter – KEINE Grid-Auswertung im
+    Hot-Path, deshalb billig und paritätsneutral (nur Solver-seitig).
+    """
+    floor = room["shell"]["floor"]["polygon"]
+    walls = {w["id"]: w for w in room["shell"]["walls"]}
+    zones: list[Quad] = []
+    for o in room["openings"]:
+        if o["type"] != "door":
+            continue
+        w = walls.get(o["hostWall"])
+        if w is None:
+            continue
+        sx, sz = w["start"][0], w["start"][1]
+        ex, ez = w["end"][0], w["end"][1]
+        length = math.hypot(ex - sx, ez - sz)
+        if length == 0:
+            continue
+        ux, uz = (ex - sx) / length, (ez - sz) / length
+        a = (sx + ux * o["offset"], sz + uz * o["offset"])
+        b = (a[0] + ux * o["width"], a[1] + uz * o["width"])
+        # Seite ins Rauminnere über den Polygon-Test (wie der Interpreter).
+        for sgn in (1, -1):
+            nx, nz = -uz * sgn, ux * sgn
+            mid = ((a[0] + b[0]) / 2 + nx * 0.1, (a[1] + b[1]) / 2 + nz * 0.1)
+            if point_in_polygon(mid, floor):
+                zones.append(
+                    (
+                        a,
+                        b,
+                        (b[0] + nx * tiefe, b[1] + nz * tiefe),
+                        (a[0] + nx * tiefe, a[1] + nz * tiefe),
+                    )
+                )
+                break
+    return zones
+
+
+def _blockiert_korridor(
+    item: dict[str, Any], kandidat: _Kandidat, korridore: list[Quad]
+) -> bool:
+    """Überlappt der Footprint des Kandidaten einen Tür-Zugangsstreifen?"""
+    if not korridore:
+        return False
+    quad = footprint(kandidat.pos, item["masse"]["w"], item["masse"]["d"], kandidat.yaw_deg)
+    return any(overlap_depth(quad, z) is not None for z in korridore)
 
 
 def _als_placement(item: dict[str, Any], kandidat: _Kandidat, rnd: random.Random) -> dict[str, Any]:
@@ -306,6 +364,8 @@ def solve(
             pl["pose"]["pos"][0],
             pl["pose"]["pos"][1],
         )
+    # Verkehrsweg: Tür-Zugänge für optionale (P2/P3) Objekte freihalten.
+    korridore = _tuer_korridore(room)
     for item in p2:
         anker: tuple[float, float] | None = None
         max_dist = math.inf
@@ -326,6 +386,8 @@ def solve(
         else:
             rnd.shuffle(kandidaten)
         for kandidat in kandidaten[:300]:
+            if _blockiert_korridor(item, kandidat, korridore):
+                continue
             placement = _als_placement(item, kandidat, rnd)
             placements.append(placement)
             if not _schnell_unzulaessig(room, placements, by_id, placement) and (
@@ -343,6 +405,8 @@ def solve(
         kandidaten = _candidates(room, item)
         rnd.shuffle(kandidaten)
         for kandidat in kandidaten[:200]:
+            if _blockiert_korridor(item, kandidat, korridore):
+                continue
             placement = _als_placement(item, kandidat, rnd)
             placements.append(placement)
             if not _schnell_unzulaessig(room, placements, by_id, placement) and (
