@@ -21,7 +21,8 @@ v0-Vereinfachungen (bewusst, dokumentiert in STATUS.md):
 - Wandzüge = achsparallele massive Wände; Nutzlänge = Wandlänge minus Tür-Bereich
   (Zeile nie über eine Tür; Fenster werden für Unterschränke ignoriert, nur die
   Hängeschrank-Ebene meidet Fenster).
-- L/U: Schenkel nacheinander gefüllt, die Ecke bleibt v0 Totraum (kein Eckschrank).
+- L/U: Schenkel nacheinander gefüllt; die Innenecke(n) bekommen einen Eckschrank
+  (Karussell) – das grid×grid-Eckquadrat wird dafür aus den Schenkel-Slots reserviert.
 - Insel braucht Boden-Fixpunkt; ohne ihn fällt die Form raus.
 - Arbeitsdreieck/Ergonomie nur als einfache Proxies (kompakte Zeile, L/U-Bonus).
 """
@@ -35,7 +36,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from fp_engines.kurator import _cos
-from fp_engines.rules.geometry import dist_point_to_segment
+from fp_engines.rules.geometry import Quad, dist_point_to_segment, footprint, overlap_depth
 from fp_engines.solver import (
     SOLVER_VERSION,
     NoFeasiblePlacement,
@@ -506,10 +507,23 @@ def solve_kueche(
     assembly_id = str(uuid.UUID(int=rnd.getrandbits(128), version=4))
     anchor_wall_id = anker.wall["id"] if anker else form_zuege[0].wall["id"]
 
-    # Slots über alle Schenkel (Ecke als Totraum: Schenkel nacheinander, v0).
+    # Slots über alle Schenkel.
     slots: list[_Slot] = []
     for z in form_zuege:
         slots.extend(_slots_fuer_zug(z, grid, tiefe))
+
+    # L/U: grid×grid am Wand-Stoss für EINEN Eckschrank reservieren – die
+    # überlappenden Schenkel-Erstslots fallen weg (waren sonst Totraum/Kollision).
+    eck_zonen = _eck_zonen(form_zuege, form, grid)
+    if eck_zonen:
+        slots = [
+            s
+            for s in slots
+            if all(
+                overlap_depth(footprint(s.pos, s.breite, tiefe, s.yaw), q) is None
+                for q, _c, _y in eck_zonen
+            )
+        ]
 
     placements: list[dict[str, Any]] = []
     belegt: set[int] = set()
@@ -559,6 +573,12 @@ def solve_kueche(
     _fuelle_haengeschraenke(
         room, slots, belegt, by_typ, by_id, style_profile, placements,
         assembly_id, kochfeld_idx, norm_profile, catalog, rules, tiefe, rnd,
+    )
+    # Eckschrank (L/U) zuerst in die reservierte Ecke – VOR den Füllstücken,
+    # damit diese ihm ausweichen statt die Ecke zuzustellen.
+    _platziere_eckschraenke(
+        eck_zonen, by_typ, by_id, placements, assembly_id,
+        style_profile, room, catalog, rules, norm_profile, rnd,
     )
     _fuelle_fuellstuecke(room, form_zuege, slots, belegt, by_typ, placements, by_id,
                          assembly_id, grid, tiefe, norm_profile, catalog, rules, rnd)
@@ -657,6 +677,62 @@ def _zuege_der_form(
         )[:2]
         return [basis, *schenkel]
     return [basis]
+
+
+def _eck_zonen(
+    form_zuege: list[_Wandzug], form: str, grid: float
+) -> list[tuple[Quad, tuple[float, float], float]]:
+    """Innen-Ecken bei L/U: (Reservierungs-Quad, Eckschrank-Zentrum, yaw).
+
+    Zwei rechtwinklige Schenkel beanspruchen sonst dasselbe Eckquadrat (der
+    zweite kollidiert → Totraum). Wir reservieren das grid×grid-Quadrat am
+    Wand-Stoss für einen Eckschrank (Karussell), der beide Schenkel verbindet.
+    """
+    if form not in ("l", "u") or len(form_zuege) < 2:
+        return []
+    basis = form_zuege[0]
+    zonen: list[tuple[Quad, tuple[float, float], float]] = []
+    for partner in form_zuege[1:]:
+        cb, cp = min(
+            ((b, p) for b in (basis.start, basis.end) for p in (partner.start, partner.end)),
+            key=lambda bp: math.hypot(bp[0][0] - bp[1][0], bp[0][1] - bp[1][1]),
+        )
+        if math.hypot(cb[0] - cp[0], cb[1] - cp[1]) > 0.2:
+            continue  # Schenkel stossen nicht zusammen → keine Ecke
+        c = ((cb[0] + cp[0]) / 2, (cb[1] + cp[1]) / 2)
+        center = (
+            c[0] + basis.n[0] * (grid / 2) + partner.n[0] * (grid / 2),
+            c[1] + basis.n[1] * (grid / 2) + partner.n[1] * (grid / 2),
+        )
+        zonen.append((footprint(center, grid, grid, basis.yaw), center, basis.yaw))
+    return zonen
+
+
+def _platziere_eckschraenke(
+    eck_zonen: list[tuple[Quad, tuple[float, float], float]],
+    by_typ: dict[str, list[dict[str, Any]]],
+    by_id: dict[str, dict[str, Any]],
+    placements: list[dict[str, Any]],
+    assembly_id: str,
+    style_profile: dict[str, Any] | None,
+    room: dict[str, Any],
+    catalog: list[dict[str, Any]],
+    rules: list[dict[str, Any]],
+    norm_profile: str,
+    rnd: random.Random,
+) -> None:
+    """Setzt je reservierter Ecke einen Eckschrank – additiv (nur wenn zulässig)."""
+    item = _stil_bestes(by_typ.get("eckschrank", []), style_profile, rnd)
+    if item is None:
+        return
+    for _quad, center, yaw in eck_zonen:
+        placement = _als_placement(item, _Kandidat(center, yaw, -1), rnd)
+        placement["assembly"] = assembly_id
+        placements.append(placement)
+        if _schnell_unzulaessig(room, placements, by_id, placement) or (
+            _zulaessig(room, placements, catalog, rules, norm_profile, nur_hart=True) is None
+        ):
+            placements.pop()
 
 
 def _platziere_spuele(

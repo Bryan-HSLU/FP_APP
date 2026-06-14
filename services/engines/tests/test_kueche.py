@@ -197,3 +197,18 @@ def test_seed_variation() -> None:
         for s in range(6)
     }
     assert len(posen) > 1
+
+
+@pytest.mark.parametrize(("name", "raum_fn"), RAEUME)
+@pytest.mark.parametrize(("form", "ecken"), [("l", 1), ("u", 2)])
+@pytest.mark.parametrize("norm", ["ch", "eu"])
+def test_eckschrank_fuellt_l_u_ecke(
+    name: str, raum_fn: Any, form: str, ecken: int, norm: str
+) -> None:
+    """L/U: der sonst tote Eckbereich bekommt einen Eckschrank (Karussell);
+    L hat eine Innenecke, U deren zwei. Invariante bleibt 0 ❌."""
+    by_id = {c["id"]: c for c in CATALOG}
+    plan = solve_kueche(raum_fn(), CATALOG, RULES, form=form, norm_profile=norm, seed=1)
+    assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+    typen = [by_id[p["catalogItemId"]]["funktionsTyp"] for p in plan["placements"]]
+    assert typen.count("eckschrank") == ecken

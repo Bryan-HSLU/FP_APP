@@ -5,9 +5,7 @@
     "name": "Spülenschrank Edelstahl-Becken (CH 55)",
     "kategorie": "kueche-spuele",
     "funktionsTyp": "spuele",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -23,10 +21,7 @@
       "epoche": 0.4
     },
     "attributTags": [],
-    "anschluesse": [
-      "wasser",
-      "abwasser"
-    ],
+    "anschluesse": ["wasser", "abwasser"],
     "relationalRules": [],
     "preis": {
       "value": 680,
@@ -43,9 +38,7 @@
     "name": "Spülenschrank Edelstahl-Becken (EU 60)",
     "kategorie": "kueche-spuele",
     "funktionsTyp": "spuele",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -61,10 +54,7 @@
       "epoche": 0.4
     },
     "attributTags": [],
-    "anschluesse": [
-      "wasser",
-      "abwasser"
-    ],
+    "anschluesse": ["wasser", "abwasser"],
     "relationalRules": [],
     "preis": {
       "value": 720,
@@ -81,9 +71,7 @@
     "name": "Spülenschrank Granit-Becken Anthrazit (CH 55)",
     "kategorie": "kueche-spuele",
     "funktionsTyp": "spuele",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -99,10 +87,7 @@
       "materialitaet": 0.5
     },
     "attributTags": [],
-    "anschluesse": [
-      "wasser",
-      "abwasser"
-    ],
+    "anschluesse": ["wasser", "abwasser"],
     "relationalRules": [],
     "preis": {
       "value": 890,
@@ -119,9 +104,7 @@
     "name": "Spülenschrank Granit-Becken Anthrazit (EU 60)",
     "kategorie": "kueche-spuele",
     "funktionsTyp": "spuele",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -137,10 +120,7 @@
       "materialitaet": 0.5
     },
     "attributTags": [],
-    "anschluesse": [
-      "wasser",
-      "abwasser"
-    ],
+    "anschluesse": ["wasser", "abwasser"],
     "relationalRules": [],
     "preis": {
       "value": 930,
@@ -157,9 +137,7 @@
     "name": "Kochfeld-Unterschrank Induktion (CH 55)",
     "kategorie": "kueche-kochfeld",
     "funktionsTyp": "kochfeld",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -175,9 +153,7 @@
       "helligkeit": 0.2
     },
     "attributTags": [],
-    "anschluesse": [
-      "starkstrom"
-    ],
+    "anschluesse": ["starkstrom"],
     "relationalRules": [],
     "preis": {
       "value": 1150,
@@ -194,9 +170,7 @@
     "name": "Kochfeld-Unterschrank Induktion (EU 60)",
     "kategorie": "kueche-kochfeld",
     "funktionsTyp": "kochfeld",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -212,9 +186,7 @@
       "helligkeit": 0.2
     },
     "attributTags": [],
-    "anschluesse": [
-      "starkstrom"
-    ],
+    "anschluesse": ["starkstrom"],
     "relationalRules": [],
     "preis": {
       "value": 1190,
@@ -231,9 +203,7 @@
     "name": "Kochfeld-Unterschrank Glaskeramik (CH 55)",
     "kategorie": "kueche-kochfeld",
     "funktionsTyp": "kochfeld",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -248,9 +218,7 @@
       "kontur": 0.3
     },
     "attributTags": [],
-    "anschluesse": [
-      "starkstrom"
-    ],
+    "anschluesse": ["starkstrom"],
     "relationalRules": [],
     "preis": {
       "value": 920,
@@ -267,9 +235,7 @@
     "name": "Kochfeld-Unterschrank Glaskeramik (EU 60)",
     "kategorie": "kueche-kochfeld",
     "funktionsTyp": "kochfeld",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -284,9 +250,7 @@
       "kontur": 0.3
     },
     "attributTags": [],
-    "anschluesse": [
-      "starkstrom"
-    ],
+    "anschluesse": ["starkstrom"],
     "relationalRules": [],
     "preis": {
       "value": 950,
@@ -303,9 +267,7 @@
     "name": "Kühl-/Gefrierkombi Hochschrank (CH 55)",
     "kategorie": "kueche-kuehlschrank",
     "funktionsTyp": "kuehlschrank",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -320,9 +282,7 @@
       "kontur": 0.4
     },
     "attributTags": [],
-    "anschluesse": [
-      "elektro"
-    ],
+    "anschluesse": ["elektro"],
     "relationalRules": [],
     "preis": {
       "value": 1280,
@@ -339,9 +299,7 @@
     "name": "Kühl-/Gefrierkombi Hochschrank (EU 60)",
     "kategorie": "kueche-kuehlschrank",
     "funktionsTyp": "kuehlschrank",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -356,9 +314,7 @@
       "kontur": 0.4
     },
     "attributTags": [],
-    "anschluesse": [
-      "elektro"
-    ],
+    "anschluesse": ["elektro"],
     "relationalRules": [],
     "preis": {
       "value": 1340,
@@ -375,9 +331,7 @@
     "name": "Kühlschrank Hochschrank Edelstahl (CH 55)",
     "kategorie": "kueche-kuehlschrank",
     "funktionsTyp": "kuehlschrank",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -393,9 +347,7 @@
       "kontur": 0.5
     },
     "attributTags": [],
-    "anschluesse": [
-      "elektro"
-    ],
+    "anschluesse": ["elektro"],
     "relationalRules": [],
     "preis": {
       "value": 1490,
@@ -412,9 +364,7 @@
     "name": "Kühlschrank Hochschrank Edelstahl (EU 60)",
     "kategorie": "kueche-kuehlschrank",
     "funktionsTyp": "kuehlschrank",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -430,9 +380,7 @@
       "kontur": 0.5
     },
     "attributTags": [],
-    "anschluesse": [
-      "elektro"
-    ],
+    "anschluesse": ["elektro"],
     "relationalRules": [],
     "preis": {
       "value": 1550,
@@ -449,9 +397,7 @@
     "name": "Geschirrspüler integriert (CH 55)",
     "kategorie": "kueche-geschirrspueler",
     "funktionsTyp": "geschirrspueler",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -466,14 +412,8 @@
       "helligkeit": 0.2
     },
     "attributTags": [],
-    "anschluesse": [
-      "wasser",
-      "abwasser",
-      "elektro"
-    ],
-    "relationalRules": [
-      "near:spuele:0.9"
-    ],
+    "anschluesse": ["wasser", "abwasser", "elektro"],
+    "relationalRules": ["near:spuele:0.9"],
     "preis": {
       "value": 980,
       "currency": "CHF",
@@ -489,9 +429,7 @@
     "name": "Geschirrspüler integriert (EU 60)",
     "kategorie": "kueche-geschirrspueler",
     "funktionsTyp": "geschirrspueler",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -506,14 +444,8 @@
       "helligkeit": 0.2
     },
     "attributTags": [],
-    "anschluesse": [
-      "wasser",
-      "abwasser",
-      "elektro"
-    ],
-    "relationalRules": [
-      "near:spuele:0.9"
-    ],
+    "anschluesse": ["wasser", "abwasser", "elektro"],
+    "relationalRules": ["near:spuele:0.9"],
     "preis": {
       "value": 1010,
       "currency": "CHF",
@@ -529,9 +461,7 @@
     "name": "Unterschrank Auszüge Eiche (CH 55)",
     "kategorie": "kueche-unterschrank",
     "funktionsTyp": "unterschrank",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -564,9 +494,7 @@
     "name": "Unterschrank Auszüge Eiche (EU 60)",
     "kategorie": "kueche-unterschrank",
     "funktionsTyp": "unterschrank",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -599,9 +527,7 @@
     "name": "Unterschrank Auszüge Weiss matt (CH 55)",
     "kategorie": "kueche-unterschrank",
     "funktionsTyp": "unterschrank",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -634,9 +560,7 @@
     "name": "Unterschrank Auszüge Weiss matt (EU 60)",
     "kategorie": "kueche-unterschrank",
     "funktionsTyp": "unterschrank",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -669,9 +593,7 @@
     "name": "Hängeschrank Eiche (CH 55)",
     "kategorie": "kueche-haengeschrank",
     "funktionsTyp": "haengeschrank",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -707,9 +629,7 @@
     "name": "Hängeschrank Eiche (EU 60)",
     "kategorie": "kueche-haengeschrank",
     "funktionsTyp": "haengeschrank",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -745,9 +665,7 @@
     "name": "Hängeschrank Weiss Hochglanz (CH 55)",
     "kategorie": "kueche-haengeschrank",
     "funktionsTyp": "haengeschrank",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -784,9 +702,7 @@
     "name": "Hängeschrank Weiss Hochglanz (EU 60)",
     "kategorie": "kueche-haengeschrank",
     "funktionsTyp": "haengeschrank",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -823,9 +739,7 @@
     "name": "Hochschrank Vorrat Eiche (CH 55)",
     "kategorie": "kueche-hochschrank",
     "funktionsTyp": "hochschrank",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -857,9 +771,7 @@
     "name": "Hochschrank Vorrat Eiche (EU 60)",
     "kategorie": "kueche-hochschrank",
     "funktionsTyp": "hochschrank",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -891,9 +803,7 @@
     "name": "Hochschrank Vorrat Weiss (CH 55)",
     "kategorie": "kueche-hochschrank",
     "funktionsTyp": "hochschrank",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -925,9 +835,7 @@
     "name": "Hochschrank Vorrat Weiss (EU 60)",
     "kategorie": "kueche-hochschrank",
     "funktionsTyp": "hochschrank",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -959,9 +867,7 @@
     "name": "Wand-Dunstabzug Edelstahl (CH 55)",
     "kategorie": "kueche-dunstabzug",
     "funktionsTyp": "dunstabzug",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -977,13 +883,8 @@
       "epoche": 0.6
     },
     "attributTags": [],
-    "anschluesse": [
-      "elektro",
-      "lueftung"
-    ],
-    "relationalRules": [
-      "near:kochfeld:0.6"
-    ],
+    "anschluesse": ["elektro", "lueftung"],
+    "relationalRules": ["near:kochfeld:0.6"],
     "preis": {
       "value": 580,
       "currency": "CHF",
@@ -1003,9 +904,7 @@
     "name": "Wand-Dunstabzug Edelstahl (EU 60)",
     "kategorie": "kueche-dunstabzug",
     "funktionsTyp": "dunstabzug",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -1021,13 +920,8 @@
       "epoche": 0.6
     },
     "attributTags": [],
-    "anschluesse": [
-      "elektro",
-      "lueftung"
-    ],
-    "relationalRules": [
-      "near:kochfeld:0.6"
-    ],
+    "anschluesse": ["elektro", "lueftung"],
+    "relationalRules": ["near:kochfeld:0.6"],
     "preis": {
       "value": 610,
       "currency": "CHF",
@@ -1047,9 +941,7 @@
     "name": "Wand-Dunstabzug Schwarz Glas (CH 55)",
     "kategorie": "kueche-dunstabzug",
     "funktionsTyp": "dunstabzug",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -1065,13 +957,8 @@
       "epoche": 0.7
     },
     "attributTags": [],
-    "anschluesse": [
-      "elektro",
-      "lueftung"
-    ],
-    "relationalRules": [
-      "near:kochfeld:0.6"
-    ],
+    "anschluesse": ["elektro", "lueftung"],
+    "relationalRules": ["near:kochfeld:0.6"],
     "preis": {
       "value": 690,
       "currency": "CHF",
@@ -1091,9 +978,7 @@
     "name": "Wand-Dunstabzug Schwarz Glas (EU 60)",
     "kategorie": "kueche-dunstabzug",
     "funktionsTyp": "dunstabzug",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -1109,13 +994,8 @@
       "epoche": 0.7
     },
     "attributTags": [],
-    "anschluesse": [
-      "elektro",
-      "lueftung"
-    ],
-    "relationalRules": [
-      "near:kochfeld:0.6"
-    ],
+    "anschluesse": ["elektro", "lueftung"],
+    "relationalRules": ["near:kochfeld:0.6"],
     "preis": {
       "value": 720,
       "currency": "CHF",
@@ -1135,9 +1015,7 @@
     "name": "Füllstück / Passleiste schmal (CH 55)",
     "kategorie": "kueche-fuellstueck",
     "funktionsTyp": "fuellstueck",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.05,
@@ -1166,9 +1044,7 @@
     "name": "Füllstück / Passleiste schmal (EU 60)",
     "kategorie": "kueche-fuellstueck",
     "funktionsTyp": "fuellstueck",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.05,
@@ -1197,9 +1073,7 @@
     "name": "Füllstück / Passleiste breit (CH 55)",
     "kategorie": "kueche-fuellstueck",
     "funktionsTyp": "fuellstueck",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.15,
@@ -1228,9 +1102,7 @@
     "name": "Füllstück / Passleiste breit (EU 60)",
     "kategorie": "kueche-fuellstueck",
     "funktionsTyp": "fuellstueck",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.15,
@@ -1259,9 +1131,7 @@
     "name": "Messerblock Holz",
     "kategorie": "kueche-deko",
     "funktionsTyp": "deko",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.25,
@@ -1292,9 +1162,7 @@
     "name": "Küchenkraut-Pflanze im Topf",
     "kategorie": "kueche-deko",
     "funktionsTyp": "pflanze",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.18,
@@ -1325,9 +1193,7 @@
     "name": "Obstschale Keramik",
     "kategorie": "kueche-deko",
     "funktionsTyp": "deko",
-    "roomTypes": [
-      "kueche"
-    ],
+    "roomTypes": ["kueche"],
     "gewerk": "kueche",
     "masse": {
       "w": 0.3,
@@ -1351,5 +1217,71 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     }
+  },
+  {
+    "id": "cccccccc-0038-4000-8000-000000000038",
+    "schemaVersion": "0.1.0",
+    "name": "Eckschrank Karussell Eiche (CH 55)",
+    "kategorie": "kueche-eckschrank",
+    "funktionsTyp": "eckschrank",
+    "roomTypes": ["kueche"],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.55,
+      "d": 0.55,
+      "h": 0.9
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.6,
+      "epoche": 0.2
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 720,
+      "currency": "CHF",
+      "stand": "2026-06-14",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "ch55"
+  },
+  {
+    "id": "cccccccc-0039-4000-8000-000000000039",
+    "schemaVersion": "0.1.0",
+    "name": "Eckschrank Karussell Weiss (EU 60)",
+    "kategorie": "kueche-eckschrank",
+    "funktionsTyp": "eckschrank",
+    "roomTypes": ["kueche"],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 0.9
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.6,
+      "epoche": 0.2
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 720,
+      "currency": "CHF",
+      "stand": "2026-06-14",
+      "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
+      "bandbreitePct": 30
+    },
+    "normProfileVariante": "eu60"
   }
 ]

@@ -256,8 +256,8 @@
    M3-Editor-Polituren sind komplett, die circulation-Metrik urteilt jetzt
    sinnvoll. Verbleibender circulation-Folgeschritt: **circulation auf `hard`
    hochstufen** – Hürde ist nur noch die Hot-Path-Performance (mit Bryan
-   abstimmen, ob/wann). Küchen-Politur: Eckschrank statt Totraum (L/U), Arbeitsdreieck als
-   echter Score, mehr Slot-Breiten (30/45/90) post-POC.
+   abstimmen, ob/wann). Küchen-Politur: **Eckschrank erledigt (2026-06-14)**;
+   offen: Arbeitsdreieck als echter Score, mehr Slot-Breiten (30/45/90) post-POC.
 2. **M2 Scan-Spike weiterführen:** Restmasse R1 (Raumhöhe, Türbreite,
    Objektmasse) + Neuaufnahme nach Guideline (Bryan); danach
    `spike_eval.ipynb` in Colab (T4) auf altem+neuem Material laufen lassen,
@@ -282,7 +282,7 @@
 | M6-A: Grossraum-Sample mit echter `wall.kind:"offen"`-Kante mitten im Raum (statt nur Zonen-Polygone) | Code verträgt innenliegende Segmente problemlos (kein Hüllen-Closure-Validator; Solver/Interpreter filtern auf `kind=="massiv"`). Die offene Kante modelliert die reale offene Zonengrenze explizit; `zone_room` clippt sie auf die Zonenkante und erhält `kind:"offen"`. Die synthetische `virtuell`-Erzeugung greift nur, wenn KEINE Hüllenwand die Zonenkante deckt (separat getestet) | grossraum-sample, zonen.py, test_zonen.py |
 | M6-A: GS↔Spüle-«maxDist»-Regel NICHT als `object-distance` umgesetzt | Der Regel-Interpreter kennt bei `object-distance` nur `minDist` (kein maxDist). «Geschirrspüler direkt neben Spüle» ist Baugruppen-/Slot-Logik → kommt in Phase B; Interpreter wird (Paritäts-Gesetz) nicht erweitert. Nähe bleibt v0 über `relationalRules:["near:spuele:0.9"]` am Katalog-Item | rules/kueche.json, catalog/kueche.json, STATUS |
 | M6-A: clearance je Küchen-Haupttyp (spuele/kochfeld/geschirrspueler/unterschrank) statt einer Sammelregel | `appliesTo` matcht auf `funktionsTyp`; eine Regel pro Typ ist die mit den bestehenden Regel-Typen ausdrückbare Form des «Gang vor Zeile ≥ 1.0 m». Echte Zeilen-/Gang-Geometrie (circulation) kommt mit Phase B | rules/kueche.json |
-| M6-B: Ecke bei L/U als Totraum (kein Eckschrank) | Schenkel werden nacheinander mit Rasterslots gefüllt; ein Eckschrank/Karussell ist eigene Geometrie. v0-Vereinfachung – die normkonforme Zeile entsteht trotzdem, nur die Eckfläche bleibt ungenutzt | kueche.py (`_zuege_der_form`/Slot-Füllung), Docstring |
+| M6-B: Ecke bei L/U → **Eckschrank** (Politur 2026-06-14, behebt den früheren Totraum) | grid×grid-Eckquadrat am Wand-Stoss wird aus den Schenkel-Slots reserviert, ein Eckschrank (Karussell, ch55/eu60) gesetzt – VOR den Füllstücken, damit sie ihm ausweichen. Additiv (nur wenn zulässig), Invariante bleibt 0 ❌. L = 1 Ecke, U = 2 | kueche.py (`_eck_zonen`/`_platziere_eckschraenke`), catalog/kueche.json, test_kueche.py |
 | M6-B: Fenster blockieren Unterschränke NICHT, nur die Hängeschrank-Ebene meidet Fenster | Brüstungsfenster (sill ≥ 0.9 m) erlauben darunter eine Arbeitsfläche/Unterschrank; nur Hängeschränke dürfen nicht vor ein Fenster. Türen blockieren dagegen die ganze Zeile (Nutzlänge = türfreies Teilstück) | kueche.py (`_fuelle_haengeschraenke`, `_freies_teilstueck_intervall`) |
 | M6-B: Hängeschrank-Heuristik = Ebene über allen Unterschränken ausser Kochfeld | Über dem Kochfeld hängt der Dunstabzug; sonst wird jede freie Wandposition mit Hängeschrank belegt (vertikal getrennt von den Korpussen → keine Kollision dank Höhenintervall-Prüfung des Interpreters). Einfach + deckt den Stauraum-Score | kueche.py (`_fuelle_haengeschraenke`) |
 | M6-B: GS-«direkt neben Spüle» als Slot-Nachbarschaft (nicht als Regel) | Der Interpreter kennt kein `maxDist` bei object-distance (M6-A-Entscheid); die Baugruppe setzt den GS deterministisch in den Nachbarslot der Spüle. Damit ist die Forderung konstruktiv erfüllt, ohne den Interpreter zu ändern | kueche.py (`_platziere_geschirrspueler`) |
