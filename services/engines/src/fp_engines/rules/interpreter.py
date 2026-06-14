@@ -360,9 +360,11 @@ def _eval_circulation(
     nicht unter BODENstehenden Objekten; Wandobjekte blockieren nicht, man läuft
     darunter durch) → Manhattan-Distanztransform als Engstellen-Mass → Bottleneck
     (breitester Korridor, der die Anker verbindet) via Union-Find über fallende
-    Clearance-Schwellen. Anker = alle Türmünder; bei genau EINER Tür zusätzlich
-    der offenste Punkt («kommt man von der Tür in den Raum?»). 0/1 Anker ⇒ keine
-    Durchgangs-Anforderung (None → trivial erfüllt).
+    Clearance-Schwellen. Anker = ein Punkt ~minWidth/2 HINTER jeder Tür (im
+    Korridor-Inneren, nicht am Türmund – sonst wäre die fixe Türbreite der
+    Engpass statt des durch Möbel beeinflussbaren Korridors); bei genau EINER Tür
+    zusätzlich der offenste Punkt. 0/1 Anker ⇒ keine Durchgangs-Anforderung
+    (None → trivial erfüllt).
 
     Marge = 2·Bottleneck − minWidth (grob ±Raster). v0: keine Verursacher-
     Zuordnung (`offenders` bleibt leer); bodenstehende Objekte werden als
@@ -468,12 +470,13 @@ def _eval_circulation(
         ux, uz = (ex - sx) / wl, (ez - sz) / wl
         mid = d["offset"] + d["width"] / 2
         mx, mz = sx + ux * mid, sz + uz * mid
-        # 1.5 Zellen ins Rauminnere schieben (Seite via Polygon-Test bestimmen).
+        # Anker ins KORRIDOR-INNERE schieben (~minWidth/2), vorbei am Türpfosten:
+        # so misst der Bottleneck den Innenraum-Korridor, nicht die Türbreite
+        # selbst (die Tür ist fixe Architektur, kein durch Möbel lösbarer Engpass).
         for sgn in (1, -1):
-            tx = mx + (-uz * sgn) * cell * 1.5
-            tz = mz + (ux * sgn) * cell * 1.5
-            if point_in_polygon((tx, tz), floor):
-                a = nearest_free(tx, tz)
+            innen_x, innen_z = -uz * sgn, ux * sgn
+            if point_in_polygon((mx + innen_x * 0.1, mz + innen_z * 0.1), floor):
+                a = nearest_free(mx + innen_x * (min_width / 2), mz + innen_z * (min_width / 2))
                 if a is not None:
                     anchors.append(a)
                 break

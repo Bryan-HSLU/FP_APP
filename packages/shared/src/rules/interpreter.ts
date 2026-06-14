@@ -493,11 +493,13 @@ const evaluators: Record<string, Evaluator | null> = {
       const mid = d.offset + d.width / 2;
       const mx = sx + ux * mid;
       const mz = sz + uz * mid;
+      // Anker ins KORRIDOR-INNERE schieben (~minWidth/2), vorbei am Türpfosten:
+      // misst den Innenraum-Korridor, nicht die fixe Türbreite (1:1 zu Python).
       for (const sgn of [1, -1]) {
-        const tx = mx + -uz * sgn * cell * 1.5;
-        const tz = mz + ux * sgn * cell * 1.5;
-        if (pointInPolygon([tx, tz], floor)) {
-          const a = nearestFree(tx, tz);
+        const innenX = -uz * sgn;
+        const innenZ = ux * sgn;
+        if (pointInPolygon([mx + innenX * 0.1, mz + innenZ * 0.1], floor)) {
+          const a = nearestFree(mx + innenX * (minWidth / 2), mz + innenZ * (minWidth / 2));
           if (a !== null) anchors.push(a);
           break;
         }
