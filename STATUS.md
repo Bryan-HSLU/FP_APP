@@ -53,6 +53,16 @@
   `packages/shared/fixtures/artefakte/raummodell.r1-wc.json` (6 Wände,
   erster nicht-rechteckiger Grundriss). Offen: Raumhöhe, Türbreite,
   Objektmasse, Neuaufnahme nach Guideline.
+- **M2 (2026-06-14, getesteter Metrik-Kern):** `notebooks/scan-spike/`
+  `eval_metrics.py` – **GPU-freier, abhängigkeitsfreier** Mess-Kern
+  (Wandlängen-Fehler Median/Max, Fläche %, Rechtwinkligkeit, Objekt-Recall) +
+  `gate()` (Go/Anpassen/Pivot aus den Spike-Schwellen). **`test_eval_metrics.py`
+  grün** (5 Tests gegen R1-Ground-Truth: perfekte Schätzung = 0 Fehler, 1.56 m²/
+  5.6 m reproduziert, 5-cm-Störung erkannt, Eckenzahl-Mismatch gemeldet, Recall).
+  Notebook nutzt jetzt diesen Kern und kennt die **Ecken-Antippen-Variante**
+  (`corners/<raum>.json`, Wandgenauigkeit GPU-frei). Die schweren ML-Schritte
+  (Depth Anything V2, Grounding DINO, SAM2) brauchen GPU+Modell-Download →
+  laufen auf **Colab (T4)**, nicht in dieser Umgebung (kein GPU, HF 403).
 
 - **M3 (2026-06-11):** kompletter End-to-End-Klickpfad: Raum wählen
   (Sample-Bad ODER echtes R1-WC) → «Plan vorschlagen» (Baseline-Kurator +
@@ -275,10 +285,12 @@
    abstimmen, ob/wann). Küchen-Politur: **Eckschrank + Arbeitsdreieck-Score
    erledigt (2026-06-14)**; offen: mehr Slot-Breiten (30/45/90) post-POC,
    optional triangle-aware Slot-Optimierung (Solver gegen den Score optimieren).
-2. **M2 Scan-Spike weiterführen:** Restmasse R1 (Raumhöhe, Türbreite,
-   Objektmasse) + Neuaufnahme nach Guideline (Bryan); danach
-   `spike_eval.ipynb` in Colab (T4) auf altem+neuem Material laufen lassen,
-   Wandlängen-/Flächen-Fehler gegen die Ground Truth rechnen, P1/P4 ausbauen.
+2. **M2 Scan-Spike weiterführen:** Metrik-Kern + Ecken-Antippen-Pfad stehen &
+   sind getestet (2026-06-14). **Offen – Bryan:** R1-Restmasse (Raumhöhe,
+   Türbreite, Objektmasse) + Neuaufnahme nach Guideline + R2/R3; dann
+   `spike_eval.ipynb` einmal auf **Colab (T4)** laufen lassen (GPU-Schritte gehen
+   hier nicht). **Offen – Code:** P1 automatischer Layout-Fit (GPU) + P4
+   Spiegel/Glas-Maskierung; danach Gate-Entscheid → Learning ins Brain.
 3. Goldens bewusst aktualisieren: `uv run python scripts/update_goldens.py`
    (aus `services/engines/`), nur zusammen mit Interpreter-Änderung committen.
 

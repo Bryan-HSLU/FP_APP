@@ -7,11 +7,23 @@ Gates) und `Scan-Eval-Notebook-Spezifikation.md`.
 
 ```text
 spike_eval.ipynb     # Colab-Notebook (T4-GPU): P0–P5 → Metrik-Tabelle
+eval_metrics.py      # getesteter Metrik-Kern (GPU-frei): Geometrie/Objekte vs. GT
+test_eval_metrics.py # Beweis des Kerns:  python3 test_eval_metrics.py
 capture_check.py     # lokaler Vorabcheck (Schärfe/Belichtung) VOR GPU-Einsatz
 testdata/r1/         # Walkthrough-Videos R1 = Bad (harter Fall)
 ground-truth/r1.json # Laser-/Massband-Referenz (Bryan ausfüllen)
+corners/<raum>.json  # optional: getippte Raumecken in m → {"polygon_m": [[x,z], …]}
 reports/             # Mess-Reports je Raum/Lauf
 ```
+
+## Was läuft wo (GPU vs. lokal)
+
+Die schweren ML-Schritte (Depth Anything V2, Grounding DINO, SAM2) brauchen
+**GPU + Modell-Download** → sie laufen auf **Google Colab (Gratis-T4)**, nicht in
+einer CPU-/Offline-Umgebung. **GPU-frei und lokal beweisbar** sind dagegen:
+`capture_check.py` (Vorabcheck), `eval_metrics.py` (Metrik gegen Ground Truth)
+und die **Ecken-Antippen-Variante** (getippte Raumecken statt GPU-Layout). So
+ist der Mess-Kern getestet, bevor überhaupt eine GPU läuft.
 
 ## Ablauf je Testraum
 
