@@ -87,6 +87,10 @@ def test_solve_kueche_smoke() -> None:
     assert plan["assemblies"][0]["type"] == "kuechenzeile"
     assert plan["meta"]["normProfile"] == "eu"
     assert body["room"]["id"] == room["id"]
+    # Arbeitsdreieck-Detail fürs Viewer-Panel + Score im Plan (M6-Politur).
+    assert 0.0 < body["arbeitsdreieck"]["score"] <= 1.0
+    assert body["arbeitsdreieck"]["score"] == plan["constraintReport"]["softScore"]["ergonomie"]
+    assert len(body["arbeitsdreieck"]["seiten_m"]) == 3
 
 
 def test_solve_grossraum_zone_room_zurueck() -> None:

@@ -87,6 +87,17 @@ export interface KuratorAntwort {
   begruendung?: string;
 }
 
+/** Gemessenes AMK-Arbeitsdreieck eines Küchenplans (server-berechnet, M6-Politur). */
+export interface Arbeitsdreieck {
+  /** Die drei Seitenlängen Spüle–Kochfeld–Kühlschrank (m). */
+  seiten_m: number[];
+  /** Summe der drei Seiten (m); AMK-effizient bei ~4–8 m. */
+  summe_m: number;
+  /** Ergonomie-Score in [0,1] (= constraintReport.softScore.ergonomie). */
+  score: number;
+  bewertung: "effizient" | "akzeptabel" | "beengt" | "weitläufig";
+}
+
 /** Eine Küchenform-Empfehlung (Formwahl, M6). */
 export interface KuechenForm {
   form: "i" | "l" | "u" | "galley" | "insel";
@@ -119,7 +130,7 @@ export const api = {
       body: JSON.stringify({ room, styleProfile: stilprofil ?? undefined, normProfile, zoneId }),
     }),
   solve: (room: Room, seed: number, opts: SolveOpts = {}) =>
-    call<{ plan: Plan; room: Room; hinweis?: string }>("/solve", {
+    call<{ plan: Plan; room: Room; hinweis?: string; arbeitsdreieck?: Arbeitsdreieck }>("/solve", {
       method: "POST",
       body: JSON.stringify({
         room,

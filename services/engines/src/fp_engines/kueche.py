@@ -460,6 +460,77 @@ def _stil_bestes(
     return max(items, key=lambda it: (_cos(sv, it.get("achsenTags", {})), rnd.random()))
 
 
+# AMK-Arbeitsdreieck (Küchen-Detailkonzept Teil 1b/2c): die drei Arbeitszentren
+# Spüle–Kochfeld–Kühlschrank spannen ein Dreieck auf. Richtwerte (AMK-Merkblatt):
+# jede Seite 1.2–2.7 m, Summe 4–8 m = effizient; darunter beengt, darüber zu
+# weitläufig. Wir messen das ECHTE Dreieck NACH der Platzierung (formwahl läuft
+# davor und kennt es noch nicht) und füllen damit softScore.ergonomie.
+# Bounds je (lo, hi, lo0, hi0): Score 1.0 in [lo,hi], linear auf 0 bei lo0/hi0.
+# Werte v0 «zu-verifizieren» (Quelle AMK-Planungsgrundsätze).
+_DREIECK_SEITE = (1.2, 2.7, 0.4, 4.7)
+_DREIECK_SUMME = (4.0, 8.0, 2.0, 12.0)
+
+
+def _trapez(x: float, bounds: tuple[float, float, float, float]) -> float:
+    """Trapez-Zugehörigkeit in [0,1]: 1.0 in [lo,hi], linear auf 0 bei lo0/hi0."""
+    lo, hi, lo0, hi0 = bounds
+    if lo <= x <= hi:
+        return 1.0
+    if x < lo:
+        return max(0.0, (x - lo0) / (lo - lo0))
+    return max(0.0, (hi0 - x) / (hi0 - hi))
+
+
+def arbeitsdreieck(
+    placements: list[dict[str, Any]], by_id: dict[str, dict[str, Any]]
+) -> dict[str, Any] | None:
+    """Gemessene Qualität des AMK-Arbeitsdreiecks aus den platzierten Geräten.
+
+    Nimmt die Zentren von Spüle, Kochfeld und Kühlschrank, misst die drei
+    Dreiecksseiten + ihre Summe und bildet daraus einen Ergonomie-Score in [0,1]
+    (1.0 = AMK-ideal). Rückgabe-Detail (Seiten, Summe, Score, Bewertung) für
+    Plan-softScore und Viewer-Panel. None, wenn ein Gerät fehlt – bei gelieferten
+    Plänen unmöglich, da P1 (Spüle/Kochfeld/Kühlschrank) Pflicht ist.
+    """
+    zentrum: dict[str, tuple[float, float]] = {}
+    for p in placements:
+        item = by_id.get(p["catalogItemId"])
+        if item is None:
+            continue
+        typ = item["funktionsTyp"]
+        if typ in ("spuele", "kochfeld", "kuehlschrank") and typ not in zentrum:
+            pos = p["pose"]["pos"]
+            zentrum[typ] = (pos[0], pos[1])
+    if len(zentrum) < 3:
+        return None
+    sp, kf, ks = zentrum["spuele"], zentrum["kochfeld"], zentrum["kuehlschrank"]
+
+    def d(a: tuple[float, float], b: tuple[float, float]) -> float:
+        return math.hypot(a[0] - b[0], a[1] - b[1])
+
+    seiten = [d(sp, kf), d(kf, ks), d(ks, sp)]
+    summe = sum(seiten)
+    seiten_score = sum(_trapez(s, _DREIECK_SEITE) for s in seiten) / 3
+    summe_score = _trapez(summe, _DREIECK_SUMME)
+    score = round(0.5 * seiten_score + 0.5 * summe_score, 3)
+
+    if score >= 0.75:
+        bewertung = "effizient"
+    elif score >= 0.45:
+        bewertung = "akzeptabel"
+    elif summe < _DREIECK_SUMME[0]:
+        bewertung = "beengt"
+    else:
+        bewertung = "weitläufig"
+
+    return {
+        "seiten_m": [round(s, 2) for s in seiten],
+        "summe_m": round(summe, 2),
+        "score": score,
+        "bewertung": bewertung,
+    }
+
+
 def solve_kueche(
     room: dict[str, Any],
     catalog: list[dict[str, Any]],
@@ -590,6 +661,12 @@ def solve_kueche(
 
     report = _zulaessig(room, placements, catalog, rules, norm_profile)
     assert report is not None  # Solver-Invariante: per Konstruktion 0 ❌.
+    # softScore.ergonomie = gemessenes AMK-Arbeitsdreieck (echter Wert NACH der
+    # Platzierung). Befüllt das bisher leere Feld OHNE den Interpreter zu ändern
+    # (Paritäts-Gesetz unberührt: Goldens sind reine Interpreter-Ausgaben).
+    dreieck = arbeitsdreieck(placements, by_id)
+    if dreieck is not None:
+        report["softScore"]["ergonomie"] = dreieck["score"]
 
     return {
         "id": str(uuid.UUID(int=rnd.getrandbits(128), version=4)),

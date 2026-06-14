@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   api,
   ApiFehler,
+  type Arbeitsdreieck,
   type KatalogItem,
   type KuechenForm,
   type KV,
@@ -30,6 +31,13 @@ const AMPEL: Record<RuleResult["status"], string> = {
   knapp: "⚠️",
   verletzt: "❌",
   "nicht-geprueft": "➖",
+};
+
+const DREIECK_SYMBOL: Record<Arbeitsdreieck["bewertung"], string> = {
+  effizient: "✅",
+  akzeptabel: "⚠️",
+  beengt: "🔻",
+  weitläufig: "🔺",
 };
 
 const stil = {
@@ -81,6 +89,8 @@ export function App() {
   const [normProfile, setNormProfile] = useState<"ch" | "eu">("ch");
   const [formen, setFormen] = useState<KuechenForm[] | null>(null);
   const [form, setForm] = useState<string | null>(null);
+  // Gemessenes Arbeitsdreieck des aktuellen Küchenplans (server-berechnet).
+  const [dreieck, setDreieck] = useState<Arbeitsdreieck | null>(null);
   // Effektiv geplanter Raum (Viewer/Ampel): bei Grossraum die Küchen-Zone.
   const [planRoom, setPlanRoom] = useState<Room | null>(null);
   // Ansicht: 2D-Grundriss (normgerecht beurteilbar) oder 3D-Box-Platzhalter.
@@ -114,6 +124,7 @@ export function App() {
       setFormen(null);
       setForm(null);
       setPlanRoom(null);
+      setDreieck(null);
       // Für Küchen den Katalog/Regeln des effektiven Raumtyps laden.
       const istKueche =
         r.roomType === "kueche" ||
@@ -143,7 +154,7 @@ export function App() {
       setMeldung("");
       setKv(null);
       try {
-        let res: { plan: Plan; room: Room; hinweis?: string };
+        let res: { plan: Plan; room: Room; hinweis?: string; arbeitsdreieck?: Arbeitsdreieck };
         if (kuecheInfo.istKueche) {
           // Küche: lineare Baugruppe – Form + Normprofil (+ Zone) an den Solver.
           let f = form;
@@ -172,6 +183,7 @@ export function App() {
         }
         setPlan(res.plan);
         setPlanRoom(res.room);
+        setDreieck(res.arbeitsdreieck ?? null);
         setSeed(s);
         if (res.hinweis)
           setMeldung("Hinweis: Geometrie unbestätigt – Ampel rechnet mit Messunsicherheit.");
@@ -561,6 +573,25 @@ export function App() {
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        {dreieck && (
+          <section>
+            <h3 style={{ marginBottom: 4 }}>
+              {DREIECK_SYMBOL[dreieck.bewertung]} Arbeitsdreieck · {dreieck.bewertung}
+            </h3>
+            <p style={{ fontSize: 13, margin: "2px 0" }}>
+              Ergonomie {Math.round(dreieck.score * 100)} % · Summe{" "}
+              {dreieck.summe_m.toLocaleString("de-CH")} m
+            </p>
+            <p style={{ fontSize: 12, color: "#555", margin: "2px 0" }}>
+              Seiten {dreieck.seiten_m.map((s) => s.toLocaleString("de-CH")).join(" · ")} m
+              (Spüle–Kochfeld–Kühlschrank)
+            </p>
+            <p style={{ fontSize: 11, color: "#999", margin: "2px 0" }}>
+              AMK-Richtwert: jede Seite 1.2–2.7 m, Summe 4–8 m = effizient.
+            </p>
           </section>
         )}
 

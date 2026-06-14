@@ -18,7 +18,7 @@ from fp_engines import __version__
 from fp_engines.auswertung import evaluate_plan
 from fp_engines.bauzeit import erzeuge_bauzeitenplan
 from fp_engines.dxf import grundriss_dxf
-from fp_engines.kueche import formwahl, solve_kueche
+from fp_engines.kueche import arbeitsdreieck, formwahl, solve_kueche
 from fp_engines.lv import erzeuge_lv
 from fp_engines.pdf import bauzeit_pdf, kv_pdf, lv_pdf, offertanfrage_pdf
 from fp_engines.rules import build_scene, evaluate_rules
@@ -256,7 +256,14 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
             },
         )
     hinweis = {} if raum["meta"]["geometryConfirmed"] else {"hinweis": "GEOMETRY_UNCONFIRMED"}
-    return JSONResponse(content={"plan": plan, "room": raum, **hinweis})
+    extra: dict[str, Any] = {}
+    if raum["roomType"] == "kueche":
+        # Arbeitsdreieck-Detail (Seiten/Summe/Bewertung) fürs Viewer-Panel; der
+        # Score steckt zusätzlich im Plan (constraintReport.softScore.ergonomie).
+        dreieck = arbeitsdreieck(plan["placements"], {c["id"]: c for c in katalog})
+        if dreieck is not None:
+            extra["arbeitsdreieck"] = dreieck
+    return JSONResponse(content={"plan": plan, "room": raum, **hinweis, **extra})
 
 
 class EvaluateRequest(BaseModel):

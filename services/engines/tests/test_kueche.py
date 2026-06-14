@@ -15,7 +15,7 @@ from typing import Any
 import pytest
 from jsonschema import Draft202012Validator, FormatChecker
 
-from fp_engines.kueche import formwahl, solve_kueche
+from fp_engines.kueche import arbeitsdreieck, formwahl, solve_kueche
 from fp_engines.zonen import zone_room
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -197,6 +197,58 @@ def test_seed_variation() -> None:
         for s in range(6)
     }
     assert len(posen) > 1
+
+
+# --- Arbeitsdreieck (Ergonomie-Score) --------------------------------------- #
+
+
+@pytest.mark.parametrize(("name", "raum_fn"), RAEUME)
+@pytest.mark.parametrize("norm", ["ch", "eu"])
+def test_arbeitsdreieck_befuellt_softscore_ergonomie(
+    name: str, raum_fn: Any, norm: str
+) -> None:
+    """Jeder gelieferte Küchenplan hat einen gemessenen Ergonomie-Score in (0,1]
+    in softScore.ergonomie (vorher fix 0.0) – Spüle/Kochfeld/Kühlschrank sind P1."""
+    plan = solve_kueche(raum_fn(), CATALOG, RULES, form="i", norm_profile=norm, seed=2)
+    ergo = plan["constraintReport"]["softScore"]["ergonomie"]
+    assert 0.0 < ergo <= 1.0
+    # stil/relation bleiben unberührt (vom Interpreter) – kein Seiteneffekt.
+    assert plan["constraintReport"]["softScore"]["relation"] == 0.0
+
+
+def test_arbeitsdreieck_detail_und_amk_bereich() -> None:
+    """Detail: drei Seiten, plausible Summe, Score in [0,1], bekannte Bewertung."""
+    plan = solve_kueche(_kueche(), CATALOG, RULES, form="i", norm_profile="ch", seed=2)
+    d = arbeitsdreieck(plan["placements"], BY_ID)
+    assert d is not None
+    assert len(d["seiten_m"]) == 3
+    assert all(s > 0 for s in d["seiten_m"])
+    assert d["summe_m"] == pytest.approx(sum(d["seiten_m"]), abs=0.02)
+    assert 0.0 <= d["score"] <= 1.0
+    assert d["bewertung"] in {"effizient", "akzeptabel", "beengt", "weitläufig"}
+    # Score = Plan-Wert (eine Quelle der Wahrheit).
+    assert d["score"] == plan["constraintReport"]["softScore"]["ergonomie"]
+
+
+def test_arbeitsdreieck_none_bei_fehlendem_geraet() -> None:
+    """Fehlt ein Arbeitszentrum, ist kein Dreieck definiert → None (kein Crash)."""
+    plan = solve_kueche(_kueche(), CATALOG, RULES, form="i", norm_profile="ch", seed=2)
+    ohne_kuehl = [p for p in plan["placements"] if _typ(p) != "kuehlschrank"]
+    assert arbeitsdreieck(ohne_kuehl, BY_ID) is None
+
+
+def test_arbeitsdreieck_ideal_layout_ist_effizient() -> None:
+    """Synthetisches AMK-ideales Dreieck (Seiten ~1.8 m, Summe ~5.4 m) → effizient.
+
+    Beweist die Score-Logik unabhängig vom Solver-Layout des kleinen Sample-Raums.
+    """
+    sp = {"catalogItemId": "cccccccc-0001-4000-8000-000000000001", "pose": {"pos": [0.0, 0.0]}}
+    kf = {"catalogItemId": "cccccccc-0005-4000-8000-000000000005", "pose": {"pos": [1.8, 0.0]}}
+    ks = {"catalogItemId": "cccccccc-0009-4000-8000-000000000009", "pose": {"pos": [0.9, 1.56]}}
+    d = arbeitsdreieck([sp, kf, ks], BY_ID)
+    assert d is not None
+    assert d["bewertung"] == "effizient"
+    assert d["score"] >= 0.9
 
 
 @pytest.mark.parametrize(("name", "raum_fn"), RAEUME)

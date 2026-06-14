@@ -6,7 +6,7 @@
 > Abweichungen gibt es. Meilenstein-Definitionen: Brain →
 > `vault/50_Umsetzung/Bauplan-Meilensteine.md`.
 
-**Stand: 2026-06-13**
+**Stand: 2026-06-14**
 
 ## Meilensteine
 
@@ -247,6 +247,22 @@
     Tür-Korridor-Filter (Schritt 1) verhindert die häufigsten Verletzungen schon
     ohne Grid – ein finaler Hard-Check + Keep-out könnte reichen. Mit Bryan
     abstimmen, ob/wann hard. Details: Brain `Learning-Circulation-Metrik-Fragilitaet`.
+- **Küchen-Politur (2026-06-14, Arbeitsdreieck als echter Score):** Der bisher
+  fix auf 0.0 gesetzte `softScore.ergonomie` wird für Küchenpläne mit dem
+  **gemessenen AMK-Arbeitsdreieck** (Spüle–Kochfeld–Kühlschrank) befüllt: drei
+  Seitenlängen + Summe → Trapez-Score [0,1] (Seite ideal 1.2–2.7 m, Summe
+  4–8 m = effizient). Berechnet **nach** der Platzierung (`arbeitsdreieck()` in
+  `kueche.py`) – **ohne Regel-Interpreter, Schema oder Goldens zu berühren**: das
+  Feld existierte bereits im Plan-Schema, der Solver post-prozessiert nur den
+  fertigen `constraintReport` (Paritäts-Gesetz unberührt, Invariante bleibt 0 ❌).
+  `/solve` liefert für Küchen zusätzlich ein `arbeitsdreieck`-Detail (Seiten/
+  Summe/Bewertung); der Viewer zeigt es als Panel (effizient/akzeptabel/beengt/
+  weitläufig). Ehrliche Werte (echter Evaluator): Sample-Küche 3.2×2.6 m =
+  **beengt** (0.26, Summe 2.2 m), Grossraum-Zone = **akzeptabel** (0.67, Summe
+  3.3 m) – differenziert nach Raumgrösse. `formwahl` (Pre-Placement-Ranking)
+  bleibt bewusst beim Proxy (das echte Dreieck ist vor der Platzierung unbekannt).
+  Suite: 187 pytest + 23 vitest + 8 apps/web-vitest grün, mypy/ruff/Prettier/
+  Schema sauber. Brain: Learning-Arbeitsdreieck-Ergonomie-Score.
 
 ## Nächste Schritte (für die nächste Session)
 
@@ -256,8 +272,9 @@
    M3-Editor-Polituren sind komplett, die circulation-Metrik urteilt jetzt
    sinnvoll. Verbleibender circulation-Folgeschritt: **circulation auf `hard`
    hochstufen** – Hürde ist nur noch die Hot-Path-Performance (mit Bryan
-   abstimmen, ob/wann). Küchen-Politur: **Eckschrank erledigt (2026-06-14)**;
-   offen: Arbeitsdreieck als echter Score, mehr Slot-Breiten (30/45/90) post-POC.
+   abstimmen, ob/wann). Küchen-Politur: **Eckschrank + Arbeitsdreieck-Score
+   erledigt (2026-06-14)**; offen: mehr Slot-Breiten (30/45/90) post-POC,
+   optional triangle-aware Slot-Optimierung (Solver gegen den Score optimieren).
 2. **M2 Scan-Spike weiterführen:** Restmasse R1 (Raumhöhe, Türbreite,
    Objektmasse) + Neuaufnahme nach Guideline (Bryan); danach
    `spike_eval.ipynb` in Colab (T4) auf altem+neuem Material laufen lassen,
@@ -288,7 +305,7 @@
 | M6-B: GS-«direkt neben Spüle» als Slot-Nachbarschaft (nicht als Regel) | Der Interpreter kennt kein `maxDist` bei object-distance (M6-A-Entscheid); die Baugruppe setzt den GS deterministisch in den Nachbarslot der Spüle. Damit ist die Forderung konstruktiv erfüllt, ohne den Interpreter zu ändern | kueche.py (`_platziere_geschirrspueler`) |
 | M6-B (Review-Fix): P1-Geräte sind Pflicht – fehlt Spüle/GS/Kochfeld/Kühlschrank → 422 NO_FEASIBLE_PLACEMENT (nur Dunstabzug best-effort, lueftung-connection ist soft) | Vorher entstand still ein Rumpf-Plan ohne Kühlschrank (constraintReport 0 ❌, aber fachlich unvollständig) – ehrliches Scheitern statt stiller Degradation | kueche.py (solve_kueche) |
 | M6-B (Review-Fix): Solver-Vorfilter toleriert Berührung (Überlappung ≤ 0.05 cm = halbe Rundungsquante) | Exakt anliegende Korpusse (Küchenzeile!) erzeugen Float-Krümel-Überlappungen ~1e-16; der Vorfilter war strenger als das Interpreter-Urteil (0.1-cm-Rundung) und verwarf gültige Slots – deshalb fehlte der Kühlschrank | solver.py (_schnell_unzulaessig, _BERUEHRUNGS_EPS) |
-| M6-B: Ergonomie/Arbeitsdreieck nur als einfacher Proxy im Formwahl-Score | v0: kompaktere I-Zeile besser, L/U/Galley pauschaler Bonus. Ein echtes Arbeitsdreieck-Mass (Spüle-Kochfeld-Kühl-Summe 3.5–6.5 m) ist post-POC; die harten Slot-Regeln (Abstände, Anschlüsse) sichern die Funktionalität bereits | kueche.py (`formwahl`) |
+| M6-B: `formwahl`-Score nutzt für Ergonomie weiterhin einen Proxy (echtes Dreieck erst NACH der Platzierung) | Formwahl läuft VOR der Platzierung → das echte Arbeitsdreieck ist dort unbekannt; der Proxy (kompakte I-Zeile, L/U-Bonus) ist richtungsrichtig. Das **gemessene** Dreieck füllt seit 2026-06-14 `softScore.ergonomie` des fertigen Plans (AMK-Trapez-Score, server-berechnet) – kein Eingriff in Interpreter/Schema/Goldens | kueche.py (`formwahl` Proxy · `arbeitsdreieck` Messung) |
 | M6-B: /solve-Response um `room` (effektiver Raum) erweitert | Response ist kein Schema-Vertrag (Plan-Schema bleibt unberührt). Der Grossraum-Fall braucht den abgeleiteten Teilraum für Viewer + Live-Ampel; additiv am pydantic-Response-Modell | api.py (`/solve`), App.tsx (`planRoom`) |
 
 ## Offene Fragen an Bryan
