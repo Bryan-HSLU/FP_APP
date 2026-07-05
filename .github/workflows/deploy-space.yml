@@ -1,0 +1,61 @@
+name: Deploy Space
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-space
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Deploy-Baum bauen
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/space
+          mkdir -p /tmp/space
+          rsync -a \
+            --exclude='.git' \
+            --exclude='notebooks' \
+            --exclude='node_modules' \
+            --exclude='.github' \
+            ./ /tmp/space/
+
+          # HF-Space-Frontmatter voranstellen; ursprüngliches README bleibt
+          # als Inhalt darunter erhalten (kein Wissensverlust).
+          {
+            cat <<'FRONTMATTER'
+          ---
+          title: Future Planning POC
+          emoji: 🏠
+          colorFrom: blue
+          colorTo: green
+          sdk: docker
+          app_port: 7860
+          pinned: false
+          ---
+
+          FRONTMATTER
+            cat README.md
+          } > /tmp/space/README.md
+
+      - name: Push
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd /tmp/space
+          git init -b main
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Space-Deploy aus GitHub main"
+          git push --force "https://Bryan-HSLU:${HF_TOKEN}@huggingface.co/spaces/Bryan-HSLU/FP_POC" main:main

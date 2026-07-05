@@ -296,9 +296,19 @@
 ## Nächste Schritte (für die nächste Session)
 
 1. **Scan-Code-Fahrplan (Brain: `M2-M7-Scan-Pipeline-Fahrplan`, von Bryan
-   freigegeben 2026-07):** ✅ Schritt 1 Adapter fertig (s.o.). **Als Nächstes:
-   Schritt 2 – Space-Deploy-Gerüst** (FastAPI serviert `apps/web/dist`,
-   `deploy-space.yml` → HF Space; braucht HF-Token von Bryan) · Schritt 3
+   freigegeben 2026-07):** ✅ Schritt 1 Adapter fertig (s.o.) · ✅ **Schritt 2
+   Space-Deploy-Gerüst (2026-07-05):** `fp_engines/space.py` (EIN Origin:
+   `/api` → Engines, `/` → gebautes Frontend – exakt die Dev-Proxy-Semantik,
+   kein CORS) + `Dockerfile` (multi-stage Node-Build → Python/uv, Port 7860,
+   User 1000) + `.dockerignore` + `deploy-space.yml` (pusht bei jedem
+   main-Push einen frischen Einzel-Commit OHNE notebooks/.git – die 50 MB
+   R1-Videos überschreiten HFs 10-MB-Grenze – mit HF-Frontmatter-README in
+   den Space `Bryan-HSLU/FP_POC`; Secret `HF_TOKEN` liegt in GitHub).
+   2 neue Tests (test_space.py), Suite 200 grün, Smoke lokal ok (API +
+   index.html). **Erster echter Space-Build läuft mit diesem Push** –
+   Ergebnis auf huggingface.co/spaces/Bryan-HSLU/FP_POC prüfen; Groq-Secrets
+   (`FP_KURATOR_URL/_MODEL/_API_KEY`) später in den Space-Settings setzen.
+   **Als Nächstes:** Schritt 3
    `services/scan-worker` + Colab-Notebook (known-pose Fusion → SpatialLM,
    Zeiger-Mechanik; braucht GitHub-PAT für Colab) · Schritt 4 Upload-UI +
    `/scan` · Schritt 5 E2E gegen R1 auf Colab (braucht Bryans AR-App-Aufnahmen)
