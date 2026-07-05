@@ -402,7 +402,7 @@ export function App() {
           <option value="bad">Scan → Bad</option>
           <option value="wohnen">Scan → Wohnen</option>
           <option value="kueche">Scan → Küche</option>
-          <option value="sonstig">Scan → sonstig</option>
+          {/* «sonstig» bewusst nicht anbieten: ohne Katalog kein Klickpfad. */}
         </select>
         <button
           style={stil.knopf}
