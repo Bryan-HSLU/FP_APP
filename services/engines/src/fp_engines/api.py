@@ -4,12 +4,15 @@ Endpunkte kommen meilensteinweise dazu (M1: /validate, M3: /solve, /evaluate …
 Fehler-Envelope einheitlich: {code, message, details}.
 """
 
+import io
 import json
+import os
+import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -22,6 +25,14 @@ from fp_engines.kueche import arbeitsdreieck, formwahl, solve_kueche
 from fp_engines.lv import erzeuge_lv
 from fp_engines.pdf import bauzeit_pdf, kv_pdf, lv_pdf, offertanfrage_pdf
 from fp_engines.rules import build_scene, evaluate_rules
+from fp_engines.scan import (
+    AdapterFehler,
+    LayoutParseFehler,
+    PosenFehler,
+    layout_to_raummodell,
+    parse_layout,
+    parse_posen,
+)
 from fp_engines.solver import NoFeasiblePlacement, solve
 from fp_engines.zonen import zone_room
 
@@ -93,6 +104,104 @@ def _catalog(room_type: str) -> list[dict[str, Any]]:
     if not path.is_file():
         raise FileNotFoundError(room_type)
     return json.loads(path.read_text(encoding="utf-8"))  # type: ignore[no-any-return]
+
+
+_ROOM_TYPES = {"bad", "kueche", "wohnen", "schlafen", "essen", "flur", "sonstig"}
+_VIDEO_SUFFIXE = (".mp4", ".mov", ".m4v", ".avi", ".mkv")
+
+
+def _bundle_dateien(rohdaten: bytes, dateiname: str) -> dict[str, bytes]:
+    """Zerlegt ein hochgeladenes Scan-Bundle in seine benannten Teile.
+
+    Akzeptiert ein **.zip** (Colab-Scan-Bundle: `layout.txt` [+ `poses.json`,
+    `scene.ply`]) ODER eine **einzelne Datei** (rohe `layout.txt` bzw.
+    `poses.json`). Rückgabe: Basisname → Bytes.
+    """
+    if zipfile.is_zipfile(io.BytesIO(rohdaten)):
+        dateien: dict[str, bytes] = {}
+        with zipfile.ZipFile(io.BytesIO(rohdaten)) as z:
+            for info in z.infolist():
+                if not info.is_dir():
+                    dateien[Path(info.filename).name] = z.read(info)
+        return dateien
+    name = Path(dateiname).name
+    low = name.lower()
+    if low.endswith(".json"):
+        return {"poses.json": rohdaten}
+    if low.endswith(_VIDEO_SUFFIXE):
+        return {name: rohdaten}  # Video bleibt Video → kein Layout (nur Live-Weg)
+    return {"layout.txt": rohdaten}
+
+
+@app.post("/scan")
+async def scan(
+    bundle: Annotated[UploadFile, File()],
+    roomType: Annotated[str, Form()] = "sonstig",
+    name: Annotated[str, Form()] = "Scan",
+) -> JSONResponse:
+    """Scan-Bundle (auf Colab vorberechnet) → schema-valides Raummodell.
+
+    v0 = **Vorberechnen** (Brain: Demo-Regel in Scan-Laufzeit-Budget): das Bundle
+    enthält bereits SpatialLMs `layout.txt`; die Engines laufen nur den Adapter
+    (GPU-frei, deterministisch) → Raummodell für den bestehenden Klickpfad. Die
+    Live-Weiterleitung an den Colab-Worker (`FP_SCAN_WORKER_URL`) folgt mit dem
+    ersten echten Colab-Lauf (Fahrplan Schritt 5). Fixpunkte (Anschlüsse) bleiben
+    leer – der Scan erkennt sie nicht; sie kommen aus Bestand/Korrektur-Modus.
+    """
+    if roomType not in _ROOM_TYPES:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "code": "SCAN_INVALID",
+                "message": f"Unbekannter roomType «{roomType}».",
+                "details": {"erlaubt": sorted(_ROOM_TYPES)},
+            },
+        )
+    dateien = _bundle_dateien(await bundle.read(), bundle.filename or "layout.txt")
+
+    layout_bytes = next((b for n, b in dateien.items() if n.endswith("layout.txt")), None)
+    if layout_bytes is None:
+        hat_video = any(n.lower().endswith(_VIDEO_SUFFIXE) for n in dateien)
+        worker = os.environ.get("FP_SCAN_WORKER_URL")
+        message = (
+            "Kein layout.txt im Bundle – den Scan zuerst auf Colab vorberechnen und "
+            "layout.txt exportieren. Live-Weiterleitung an den Worker folgt in "
+            "Fahrplan Schritt 5."
+            if hat_video or not worker
+            else "Bundle enthält weder layout.txt noch ein Video."
+        )
+        return JSONResponse(
+            status_code=400,
+            content={
+                "code": "SCAN_NO_LAYOUT",
+                "message": message,
+                "details": {"dateien": sorted(dateien), "workerKonfiguriert": bool(worker)},
+            },
+        )
+
+    warnungen: list[str] = []
+    poses_bytes = next((b for n, b in dateien.items() if n.endswith("poses.json")), None)
+    if poses_bytes is not None:
+        try:
+            parse_posen(poses_bytes.decode("utf-8"))
+        except (PosenFehler, UnicodeDecodeError, ValueError) as e:
+            warnungen.append(f"poses.json ignoriert (ungültig): {e}")
+
+    try:
+        layout = parse_layout(layout_bytes.decode("utf-8"))
+        room = layout_to_raummodell(layout, name=name, room_type=roomType, source="video")
+    except (LayoutParseFehler, AdapterFehler, UnicodeDecodeError) as e:
+        return JSONResponse(
+            status_code=400,
+            content={"code": "SCAN_INVALID", "message": str(e), "details": {}},
+        )
+
+    n_review = sum(1 for o in room["objects"] if o.get("needsReview"))
+    if n_review:
+        warnungen.append(f"{n_review} erkannte Objekt(e) brauchen Bestätigung (needsReview).")
+    if not room["fixpoints"]:
+        warnungen.append("Keine Anschlüsse erkannt – im Korrektur-Modus/Bestand ergänzen.")
+    return JSONResponse(content={"room": room, "warnungen": warnungen})
 
 
 @app.get("/samples/rooms")

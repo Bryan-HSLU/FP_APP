@@ -326,13 +326,27 @@
    **Offen für ersten Colab-Lauf (Schritt 5):** exakter SpatialLM-Inferenz-
    Aufruf in `_lauf_spatiallm`, TorchSparse-Pins/Wheel-Cache, Intrinsics aus
    AR-Metadaten statt Schätzung.
-   **Als Nächstes:** Schritt 4 Upload-UI + `/scan` (Engines-Proxy zur
-   Worker-URL) · Schritt 5 E2E gegen R1 auf Colab (braucht Bryans
-   AR-App-Aufnahmen) · Schritt 6 M7 Korrektur-Modus · **Bryan-Wunsch
-   (2026-07-05): provisorische 3D-Objekte statt Box-Platzhalter im Viewer**
-   (Primitiv-Kompositionen je funktionsTyp, deckungsgleich mit `footprint()`
-   – sonst lügt die Norm-Ampel; Brain: Asset-Content-Pipeline) – nach
-   Schritt 4 einplanen. Alt-Punkte unverändert offen: circulation
+   · ✅ **Schritt 4 Upload-UI + `/scan` (2026-07-05):** `POST /scan`
+   (multipart) nimmt ein **vorberechnetes Scan-Bundle** (`layout.txt` einzeln
+   ODER `.zip` mit `layout.txt`/`poses.json`) → `_bundle_dateien` entpackt →
+   `parse_layout` + `layout_to_raummodell` → schema-valides Raummodell +
+   `warnungen` (needsReview-Objekte, fehlende Anschlüsse). `poses.json` wird,
+   falls vorhanden, validiert (Warnung statt Abbruch). Fehler-Envelope:
+   SCAN_INVALID (roomType/Layout kaputt) · SCAN_NO_LAYOUT (nur Video → Live-Weg
+   folgt Schritt 5). Frontend: Header-Bedienung «📷 Scan laden» + Raumtyp-Select
+   → `api.scan` (FormData) → Raum wird in die Liste gehängt und über
+   `raumWaehlen` in den bestehenden Klickpfad eingespeist. **v0 = Vorberechnen**
+   (Demo-Regel); Live-Weiterleitung an `FP_SCAN_WORKER_URL` bleibt Schritt-5-
+   TODO. 6 neue Endpoint-Tests + Live-Smoke (R1-Layout → 1.56 m², 6 Wände,
+   2 Öffnungen). Suite: **206 engines + 22 scan-worker grün**, Frontend
+   lint/typecheck/build sauber.
+   **Als Nächstes:** Schritt 5 E2E gegen R1 auf Colab (braucht Bryans
+   AR-App-Aufnahmen + echten SpatialLM-Lauf) · Schritt 6 M7 Korrektur-Modus
+   (Anschlüsse/Ecken antippen – der Scan liefert bewusst keine Fixpunkte) ·
+   **Bryan-Wunsch (2026-07-05): provisorische 3D-Objekte statt Box-Platzhalter
+   im Viewer** (Primitiv-Kompositionen je funktionsTyp, deckungsgleich mit
+   `footprint()` – sonst lügt die Norm-Ampel; Brain: Asset-Content-Pipeline) –
+   als Nächstes gut machbar, unabhängig von Colab. Alt-Punkte unverändert offen: circulation
    auf `hard` hochstufen (Hot-Path-Performance, mit Bryan abstimmen); Küche
    post-POC: mehr Slot-Breiten (30/45/90), triangle-aware Slot-Optimierung.
 2. **M2 Scan-Spike weiterführen:** Metrik-Kern + Ecken-Antippen-Pfad stehen &

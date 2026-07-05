@@ -95,6 +95,8 @@ export function App() {
   const [planRoom, setPlanRoom] = useState<Room | null>(null);
   // Ansicht: 2D-Grundriss (normgerecht beurteilbar) oder 3D-Box-Platzhalter.
   const [ansicht, setAnsicht] = useState<"2d" | "3d">("2d");
+  // Scan-Upload (M7 Schritt 4): Raumtyp des hochgeladenen Scan-Bundles.
+  const [scanRoomType, setScanRoomType] = useState("bad");
 
   useEffect(() => {
     api
@@ -138,6 +140,24 @@ export function App() {
       if (achsen.length === 0) setAchsen((await api.taxonomy()).achsen);
     },
     [achsen.length],
+  );
+
+  // Scan-Bundle hochladen → Raummodell → in den bestehenden Klickpfad einhängen.
+  const scanLaden = useCallback(
+    async (datei: File) => {
+      setMeldung("Scan wird verarbeitet…");
+      try {
+        const { room: neu, warnungen } = await api.scan(datei, scanRoomType, datei.name);
+        setRooms((prev) => [neu, ...prev.filter((r) => r.id !== neu.id)]);
+        await raumWaehlen(neu);
+        setMeldung(warnungen.length ? `Scan geladen. ${warnungen.join(" ")}` : "Scan geladen.");
+      } catch (e) {
+        setMeldung(
+          e instanceof ApiFehler ? `Scan fehlgeschlagen: ${e.message}` : "Scan fehlgeschlagen.",
+        );
+      }
+    },
+    [scanRoomType, raumWaehlen],
   );
 
   // Küche: vor dem ersten Solve die Top-3 Formen holen.
@@ -357,6 +377,32 @@ export function App() {
               {r.name}
             </option>
           ))}
+        </select>
+        <label
+          style={{ ...stil.knopf, display: "inline-flex", gap: 4 }}
+          title="Scan-Bundle (layout.txt oder .zip vom Colab-Worker) laden"
+        >
+          📷 Scan laden
+          <input
+            type="file"
+            accept=".zip,.txt"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void scanLaden(f);
+              e.target.value = "";
+            }}
+          />
+        </label>
+        <select
+          value={scanRoomType}
+          onChange={(e) => setScanRoomType(e.target.value)}
+          title="Raumtyp des Scans (SpatialLM kennt ihn nicht)"
+        >
+          <option value="bad">Scan → Bad</option>
+          <option value="wohnen">Scan → Wohnen</option>
+          <option value="kueche">Scan → Küche</option>
+          <option value="sonstig">Scan → sonstig</option>
         </select>
         <button
           style={stil.knopf}

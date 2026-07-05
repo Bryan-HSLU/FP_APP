@@ -109,6 +109,24 @@ export interface KuechenForm {
 
 export const api = {
   rooms: () => call<Room[]>("/samples/rooms"),
+  /** Scan-Bundle (vorberechnetes layout.txt, optional .zip mit poses.json) → Raummodell.
+   *  FormData statt JSON – daher eigener fetch (nicht der json-`call`-Helfer). */
+  async scan(
+    bundle: File,
+    roomType: string,
+    name: string,
+  ): Promise<{ room: Room; warnungen: string[] }> {
+    const fd = new FormData();
+    fd.append("bundle", bundle);
+    fd.append("roomType", roomType);
+    fd.append("name", name);
+    const res = await fetch("/api/scan", { method: "POST", body: fd });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { code?: string; message?: string };
+      throw new ApiFehler(body.code ?? "SCAN", body.message ?? res.statusText);
+    }
+    return (await res.json()) as { room: Room; warnungen: string[] };
+  },
   images: (roomType: string) => call<import("./Stil").BildItem[]>(`/images/${roomType}`),
   taxonomy: () => call<{ achsen: import("./Stil").Achse[] }>("/taxonomy"),
   styleProfile: (roomType: string, likes: string[], dislikes: string[], presetId: string | null) =>
