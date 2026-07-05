@@ -19,6 +19,14 @@ Kanonisches Format (JSON):
 Einheiten: Meter, Sekunden; Quaternion xyzw (ARKit/ARCore-üblich). Die Posen
 sind metrisch (VIO) – genau deshalb entfällt der teure SLAM-Pose-Solve
 (Brain: Scan-Laufzeit-Budget-und-Beschleunigung).
+
+Kamera-Achsen-Konvention (fix, gilt für Posen + scan-worker):
+    Kamerakoordinaten = OpenCV-Pinhole – +X rechts, +Y runter, +Z Blickrichtung.
+    Die Pose ist ``T_wc`` (Kamera→Welt): ``X_welt = R(q) @ X_kamera + position``.
+Der ARKit-Konverter (folgt mit dem scan-worker) muss ``R @ diag(1, -1, -1)``
+anwenden, weil die ARKit-Kamera +Y nach oben und -Z als Blickrichtung nutzt –
+diese Kippe überführt sie in die OpenCV-Konvention, auf die die known-pose
+Tiefen-Fusion (``fp_scan_worker.kamera.unproject``) baut.
 """
 
 from __future__ import annotations

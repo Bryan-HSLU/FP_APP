@@ -308,11 +308,31 @@
    index.html). **Erster echter Space-Build läuft mit diesem Push** –
    Ergebnis auf huggingface.co/spaces/Bryan-HSLU/FP_POC prüfen; Groq-Secrets
    (`FP_KURATOR_URL/_MODEL/_API_KEY`) später in den Space-Settings setzen.
-   **Als Nächstes:** Schritt 3
-   `services/scan-worker` + Colab-Notebook (known-pose Fusion → SpatialLM,
-   Zeiger-Mechanik; braucht GitHub-PAT für Colab) · Schritt 4 Upload-UI +
-   `/scan` · Schritt 5 E2E gegen R1 auf Colab (braucht Bryans AR-App-Aufnahmen)
-   · Schritt 6 M7 Korrektur-Modus. Alt-Punkte unverändert offen: circulation
+   · ✅ **Schritt 3 scan-worker (2026-07-05):** neues Paket
+   `services/scan-worker` (eigenes uv-Projekt, Base-Dep nur numpy; gradio als
+   Extra `worker`; torch/spatiallm/open3d NIE als Deps – nur Colab, NC!).
+   **CPU-getesteter Geometrie-Kern:** `kamera.py` (OpenCV-Pinhole-unproject,
+   Quaternion→Pose) · `fusion.py` (Voxel-Zentroid-Downsampling, deterministisch)
+   · `ausrichtung.py` (z-up aus gravity via Rodrigues + `boden_ransac`-Fallback,
+   Boden→z=0) · `skalierung.py` (Wandhöhen-Fallback; Posen metrisch ⇒ Skala 1)
+   · `ply.py` (binary PLY XYZ+RGB = SpatialLM-Contract) · `pipeline.py`
+   (Keyframe-Sampling = Laufzeit-Hebel, TiefenProvider injizierbar) ·
+   `worker.py` (Gradio-App, GPU-Teile guarded) · `notebooks/colab_worker.ipynb`
+   (Starter: PAT-Clone, EINE Setup-Zelle mit Drive-Wheel-Cache-TODO, share-URL
+   → manuell als `FP_SCAN_WORKER_URL` in den Space = Zeiger v0).
+   **Kamera-Konvention festgezurrt** (poses.py-Docstring: OpenCV-Pinhole,
+   T_wc; ARKit-Konverter = R·diag(1,−1,−1)). CI erweitert (lint/typecheck/
+   test + sync). **Suite: 200 engines + 22 scan-worker = 222 grün.**
+   **Offen für ersten Colab-Lauf (Schritt 5):** exakter SpatialLM-Inferenz-
+   Aufruf in `_lauf_spatiallm`, TorchSparse-Pins/Wheel-Cache, Intrinsics aus
+   AR-Metadaten statt Schätzung.
+   **Als Nächstes:** Schritt 4 Upload-UI + `/scan` (Engines-Proxy zur
+   Worker-URL) · Schritt 5 E2E gegen R1 auf Colab (braucht Bryans
+   AR-App-Aufnahmen) · Schritt 6 M7 Korrektur-Modus · **Bryan-Wunsch
+   (2026-07-05): provisorische 3D-Objekte statt Box-Platzhalter im Viewer**
+   (Primitiv-Kompositionen je funktionsTyp, deckungsgleich mit `footprint()`
+   – sonst lügt die Norm-Ampel; Brain: Asset-Content-Pipeline) – nach
+   Schritt 4 einplanen. Alt-Punkte unverändert offen: circulation
    auf `hard` hochstufen (Hot-Path-Performance, mit Bryan abstimmen); Küche
    post-POC: mehr Slot-Breiten (30/45/90), triangle-aware Slot-Optimierung.
 2. **M2 Scan-Spike weiterführen:** Metrik-Kern + Ecken-Antippen-Pfad stehen &

@@ -26,6 +26,7 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           uv --project services/engines sync
+          uv --project services/scan-worker sync
 
       - name: Lint
         run: pnpm lint
