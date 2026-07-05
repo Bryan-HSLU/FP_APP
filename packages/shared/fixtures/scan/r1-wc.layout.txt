@@ -1,0 +1,14 @@
+# Handgebautes SpatialLM-Layout des R1-WC (L-förmig, 1.56 m², Ground Truth
+# Bryan 2026-06-11) in SpatialLM-Koordinaten (z-up, Grundriss x/y, Meter).
+# Nach Adapter-Abbildung (x, −y) + Normierung muss exakt die Geometrie von
+# fixtures/artefakte/raummodell.r1-wc.json entstehen (slm_y = 1.8 − fixture_z).
+# Tür + Fenster + WC-Box üben openings[]/objects[] aus (im GT-Fixture leer).
+wall_0=Wall(0.0,1.8,0.0,1.0,1.8,0.0,2.4,0.1)
+wall_1=Wall(1.0,1.8,0.0,1.0,0.8,0.0,2.4,0.1)
+wall_2=Wall(1.0,0.8,0.0,0.7,0.8,0.0,2.4,0.1)
+wall_3=Wall(0.7,0.8,0.0,0.7,0.0,0.0,2.4,0.1)
+wall_4=Wall(0.7,0.0,0.0,0.0,0.0,0.0,2.4,0.1)
+wall_5=Wall(0.0,0.0,0.0,0.0,1.8,0.0,2.4,0.1)
+door_0=Door(wall_5,0.0,0.9,1.0,0.7,2.0)
+window_0=Window(wall_1,1.0,1.3,1.5,0.5,0.8)
+bbox_0=Bbox(toilet,0.35,0.3,0.2,0.0,0.37,0.6,0.4)

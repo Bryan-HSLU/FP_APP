@@ -6,7 +6,7 @@
 > Abweichungen gibt es. Meilenstein-Definitionen: Brain →
 > `vault/50_Umsetzung/Bauplan-Meilensteine.md`.
 
-**Stand: 2026-06-14**
+**Stand: 2026-07-05**
 
 ## Meilensteine
 
@@ -274,17 +274,37 @@
   Suite: 187 pytest + 23 vitest + 8 apps/web-vitest grün, mypy/ruff/Prettier/
   Schema sauber. Brain: Learning-Arbeitsdreieck-Ergonomie-Score.
 
+- **M7 Schritt 1 (2026-07-05, Scan-Vertrags-Naht):** Neues Paket
+  `fp_engines/scan/` – **SpatialLM-Layout-Parser** (`spatiallm.py`, z-up-
+  Textformat Wall/Door/Window/Bbox) + **Adapter** (`adapter.py`: z-up→y-up
+  **ohne Spiegelung** (x,y,z)→(x,z,−y), Normierung auf min=0, mm-Rundung,
+  Wand-Ketten→Boden-Polygon mit 2-cm-Toleranz, Öffnungen mit hostWall/offset/
+  sill, Objekt-Boxen mit needsReview, **deterministische uuid5-IDs**, ehrlicher
+  `AdapterFehler` bei offener Hülle) + **Scan-Bundle-Posen v0** (`poses.py`:
+  kanonisches `poses.json` – Meter/Sekunden/Quaternion xyzw + gravity; App-
+  Exporte werden am Rand dorthin konvertiert). **Kernbeweis:** handgebautes
+  R1-WC-Layout (`fixtures/scan/r1-wc.layout.txt`) ergibt nach dem Adapter
+  **exakt** das Ground-Truth-Polygon von `raummodell.r1-wc.json` (1.56 m²,
+  6 Wände). 11 neue Tests (Schema+pydantic-valide, Determinismus, Segment-
+  Reihenfolge egal, Posen-Validierung). **Suite 198 grün**, mypy/ruff/Schema ok.
+  Kontext: Brain ADR-0012 (Scan-Kette fix: AR-App-Aufnahme → known-pose Fusion
+  → SpatialLM), Code-Fahrplan in `M2-M7-Scan-Pipeline-Fahrplan`.
+  **Offen im Adapter-Umfeld:** Yaw-Vorzeichen + Winkel/Scale-Konvention gegen
+  echte SpatialLM-Ausgabe verifizieren (R1-Lauf, Schritt 5); Konverter
+  App-Export→poses.json, sobald Voxelio-/ARCore-Exportformat fixiert ist.
+
 ## Nächste Schritte (für die nächste Session)
 
-1. **M7 Scan-Integration (+AR):** Raumerfassung an den Klickpfad anbinden
-   (Scan → Raummodell → Solver). M3-Polituren: **2D-Grundriss + circulation
-   + Drag&Drop + «austauschen» + Tür-Korridor + Metrik-Fix erledigt** – die
-   M3-Editor-Polituren sind komplett, die circulation-Metrik urteilt jetzt
-   sinnvoll. Verbleibender circulation-Folgeschritt: **circulation auf `hard`
-   hochstufen** – Hürde ist nur noch die Hot-Path-Performance (mit Bryan
-   abstimmen, ob/wann). Küchen-Politur: **Eckschrank + Arbeitsdreieck-Score
-   erledigt (2026-06-14)**; offen: mehr Slot-Breiten (30/45/90) post-POC,
-   optional triangle-aware Slot-Optimierung (Solver gegen den Score optimieren).
+1. **Scan-Code-Fahrplan (Brain: `M2-M7-Scan-Pipeline-Fahrplan`, von Bryan
+   freigegeben 2026-07):** ✅ Schritt 1 Adapter fertig (s.o.). **Als Nächstes:
+   Schritt 2 – Space-Deploy-Gerüst** (FastAPI serviert `apps/web/dist`,
+   `deploy-space.yml` → HF Space; braucht HF-Token von Bryan) · Schritt 3
+   `services/scan-worker` + Colab-Notebook (known-pose Fusion → SpatialLM,
+   Zeiger-Mechanik; braucht GitHub-PAT für Colab) · Schritt 4 Upload-UI +
+   `/scan` · Schritt 5 E2E gegen R1 auf Colab (braucht Bryans AR-App-Aufnahmen)
+   · Schritt 6 M7 Korrektur-Modus. Alt-Punkte unverändert offen: circulation
+   auf `hard` hochstufen (Hot-Path-Performance, mit Bryan abstimmen); Küche
+   post-POC: mehr Slot-Breiten (30/45/90), triangle-aware Slot-Optimierung.
 2. **M2 Scan-Spike weiterführen:** Metrik-Kern + Ecken-Antippen-Pfad stehen &
    sind getestet (2026-06-14). **Offen – Bryan:** R1-Restmasse (Raumhöhe,
    Türbreite, Objektmasse) + Neuaufnahme nach Guideline + R2/R3; dann
