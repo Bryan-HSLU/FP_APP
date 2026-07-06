@@ -385,19 +385,18 @@
    apps/web 32 Tests grün, alle Gates sauber. CI-Fonts weiter bewusst nicht
    eingebettet (Lizenz offen). Bryan liefert eigene Piktogramme nach →
    gleicher Stil (inner glow + harter Schatten).
-   · ✅ **Bild-Katalog aus Bryans Metadaten (2026-07-06):** `data/images/
-   {bad,wohnen,kueche}.json` von je 8 SVG-Platzhaltern auf **je 30 real
-   getaggte Bilder** erweitert (aus Bryans ZIP-Metadaten generiert; alle
-   8 Achsen + reiche `attributTags` + 4–5er-Palette + Lizenz). Schema-sauber
-   (einziger Fix: ungültigen `roomType:`-Tag gestrippt). **Die PNG-Dateien
-   selbst fehlen noch** (ZIPs enthielten nur Metadaten) → Frontend zeigt als
-   Fallback die **Farbpalette** («Foto folgt», `BildKachel` mit onError) statt
-   kaputter Bilder; Swipe schon jetzt nutzbar. Tests angepasst: Bildzahl-Assert
-   dynamisch, Preset-Test skippt (Bryans Bilder alle istPreset=false). 90
-   Katalog-Einträge, Schema-Check + Suite grün.
-   **Als Nächstes:** **echte Bild-PNGs von Bryan** in `data/images/{roomType}/`
-   (Dateinamen exakt wie `bildRef`, z. B. `bad/Bild Nasszelle (1).png`) –
-   Achtung Repo-/Space-Grösse bei 90 Bildern · Presets optional kuratieren ·
+   · ✅ **Bild-Katalog aus Bryans Metadaten + echte Fotos (2026-07-06):**
+   `data/images/{bad,wohnen,kueche}.json` von je 8 Platzhaltern auf **je 30 real
+   getaggte Bilder** (aus Bryans ZIP-Metadaten generiert; alle 8 Achsen + reiche
+   `attributTags` + Palette + Lizenz; schema-sauber, ungültiger `roomType:`-Tag
+   entfernt). **Die echten PNG-Fotos hat Bryan direkt auf `main` hochgeladen**
+   (`data/images/{roomType}/…png`, 90 Dateien ~2 MB) – bildRef ↔ Datei matcht
+   1:1 (0 fehlend). `BildKachel` zeigt als Fallback die Farbpalette, falls ein
+   Foto mal fehlt. Tests robust: Bildzahl-Assert dynamisch, Preset-Test skippt
+   (Bryans Bilder alle istPreset=false). Bryans neue detailliertere `moebel3d`-
+   Objekte via `clampTeil`-Sicherheitsnetz bbox-treu gehalten (Norm-Ampel).
+   **Als Nächstes:** Presets optional kuratieren · ⚠️ 90 PNG (~180 MB) blähen
+   Repo + Space-Deploy – ggf. Bildgrösse reduzieren/auslagern ·
    Schritt 5 E2E gegen R1 auf Colab (braucht AR-App-Aufnahmen) · Schritt 6
    M7 Korrektur-Modus · Bryans Piktogramme. Alt-Punkte unverändert offen: circulation
    auf `hard` hochstufen (Hot-Path-Performance, mit Bryan abstimmen); Küche
