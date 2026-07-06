@@ -182,10 +182,10 @@ const lavabo: Bauer = (w, d, h) => {
     box([w * 0.96, h * 0.22, d * 0.96], [0, h / 2 - h * 0.15, 0], "hell"),
     // Beckenvertiefung (dunkel)
     box([w * 0.72, h * 0.12, d * 0.72], [0, h / 2 - h * 0.08, 0], "dunkel"),
-    // Armatur-Körper
-    box([w * 0.07, h * 0.18, d * 0.07], [0, h / 2 - h * 0.02, -d * 0.1], "dunkel"),
+    // Armatur-Körper (bleibt unter der bbox-Oberkante h/2 – Norm-Ampel-Treue)
+    box([w * 0.07, h * 0.12, d * 0.07], [0, h / 2 - h * 0.06, -d * 0.1], "dunkel"),
     // Armatur-Auslauf (waagerecht)
-    box([w * 0.04, h * 0.04, d * 0.2], [0, h / 2 - h * 0.01, d * 0.04], "dunkel"),
+    box([w * 0.04, h * 0.04, d * 0.2], [0, h / 2 - h * 0.03, d * 0.04], "dunkel"),
     // Abfluss
     zyl(r * 0.04, r * 0.04, h * 0.04, [0, h / 2 - h * 0.12, 0], "dunkel"),
   ];
@@ -268,13 +268,7 @@ const handtuchheizung: Bauer = (w, d, h) => [
   box([w, h, d * 0.45], [0, 0, -d * 0.28], "koerper"),
   // 6 horizontale Heizrohre
   ...Array.from({ length: 6 }, (_, i) =>
-    zyl(
-      w * 0.03,
-      w * 0.03,
-      w * 0.88,
-      [0, -h * 0.38 + i * (h * 0.76) * 0.2, d * 0.04],
-      "hell",
-    ),
+    zyl(w * 0.03, w * 0.03, w * 0.88, [0, -h * 0.38 + i * (h * 0.76) * 0.2, d * 0.04], "hell"),
   ),
   // Vertikale Verbindungsrohre links/rechts
   box([w * 0.04, h * 0.96, d * 0.06], [-w * 0.44, 0, d * 0.02], "dunkel"),
@@ -560,11 +554,19 @@ const kinderbett: Bauer = (w, d, h) => [
   box([w, h * 0.4, d * 0.08], [0, -h / 2 + h * 0.38, d / 2 - d * 0.04], "koerper"),
   // Gitterstäbe links (4 Stäbe als vertikale Boxen)
   ...Array.from({ length: 4 }, (_, i) =>
-    box([w * 0.04, h * 0.38, d * 0.07], [-w * 0.4 + i * w * 0.27, -h / 2 + h * 0.36, -d * 0.45], "dunkel"),
+    box(
+      [w * 0.04, h * 0.38, d * 0.07],
+      [-w * 0.4 + i * w * 0.27, -h / 2 + h * 0.36, -d * 0.45],
+      "dunkel",
+    ),
   ),
   // Gitterstäbe rechts
   ...Array.from({ length: 4 }, (_, i) =>
-    box([w * 0.04, h * 0.38, d * 0.07], [-w * 0.4 + i * w * 0.27, -h / 2 + h * 0.36, d * 0.45], "dunkel"),
+    box(
+      [w * 0.04, h * 0.38, d * 0.07],
+      [-w * 0.4 + i * w * 0.27, -h / 2 + h * 0.36, d * 0.45],
+      "dunkel",
+    ),
   ),
 ];
 
@@ -1004,9 +1006,52 @@ const BAUSAETZE: Record<string, Bauer> = {
  * auf die bisherige einfache Box (volle bbox, Hauptkörperfarbe) zurück – damit
  * bleibt das Verhalten für nicht abgedeckte Items unverändert.
  */
+/**
+ * Zwängt ein Bauteil garantiert in die bbox w×d×h (Ursprung = Mitte).
+ * Sicherheitsnetz für die Norm-Ampel-Invariante: hält JEDE Komposition –
+ * egal wie detailliert oder bei welchem Seitenverhältnis – innerhalb des
+ * Footprints. Bei realen Katalog-Massen ein No-Op; greift nur, wenn ein
+ * Detail (z.B. eine Armatur) sonst überstehen würde.
+ */
+function clampTeil(t: Teil, w: number, d: number, h: number): Teil {
+  const fit = (c: number, halb: number, limit: number): [number, number] => {
+    const lo = Math.max(c - halb, -limit);
+    const hi = Math.min(c + halb, limit);
+    return hi <= lo ? [Math.max(-limit, Math.min(limit, c)), 0] : [(lo + hi) / 2, (hi - lo) / 2];
+  };
+  const klemm = (c: number, spiel: number) => Math.max(-spiel, Math.min(spiel, c));
+  if (t.form === "box") {
+    const [cx, hx] = fit(t.pos[0], t.groesse[0] / 2, w / 2);
+    const [cy, hy] = fit(t.pos[1], t.groesse[1] / 2, h / 2);
+    const [cz, hz] = fit(t.pos[2], t.groesse[2] / 2, d / 2);
+    return { ...t, groesse: [hx * 2, hy * 2, hz * 2], pos: [cx, cy, cz] };
+  }
+  if (t.form === "zylinder") {
+    const rMax = Math.max(t.rTop, t.rBottom);
+    const r = Math.min(rMax, w / 2, d / 2);
+    const skala = rMax > 0 ? r / rMax : 1;
+    const [cy, hy] = fit(t.pos[1], t.hoehe / 2, h / 2);
+    return {
+      ...t,
+      rTop: t.rTop * skala,
+      rBottom: t.rBottom * skala,
+      hoehe: hy * 2,
+      pos: [klemm(t.pos[0], w / 2 - r), cy, klemm(t.pos[2], d / 2 - r)],
+    };
+  }
+  const rad = Math.min(t.radius, w / 2, d / 2, h / 2);
+  return {
+    ...t,
+    radius: rad,
+    pos: [klemm(t.pos[0], w / 2 - rad), klemm(t.pos[1], h / 2 - rad), klemm(t.pos[2], d / 2 - rad)],
+  };
+}
+
 export function bauteile(funktionsTyp: string, w: number, d: number, h: number): Teil[] {
   const bauer = BAUSAETZE[funktionsTyp];
-  return bauer ? bauer(w, d, h) : [box([w, h, d], [0, 0, 0], "koerper")];
+  const roh = bauer ? bauer(w, d, h) : [box([w, h, d], [0, 0, 0], "koerper")];
+  // Sicherheitsnetz: jedes Bauteil bleibt garantiert in der bbox (Norm-Ampel).
+  return roh.map((t) => clampTeil(t, w, d, h));
 }
 
 /**
