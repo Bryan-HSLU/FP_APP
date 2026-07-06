@@ -24,6 +24,7 @@ import {
 } from "./api";
 import { RaumEditor } from "./RaumEditor";
 import { SmartSpider, StilSwipe, type Achse, type BildItem, type Stilprofil } from "./Stil";
+import { THEME } from "./theme";
 import { Viewer2D } from "./Viewer2D";
 import { Viewer3D } from "./Viewer3D";
 
@@ -41,6 +42,9 @@ const DREIECK_SYMBOL: Record<Arbeitsdreieck["bewertung"], string> = {
   weitläufig: "🔺",
 };
 
+// Schriften (Accidental Presidency/Gleasonslight lt. CI) werden bewusst NICHT
+// eingebettet – Lizenz laut Brain (Corporate-Identity.md, "Offene Punkte")
+// noch ungeklärt. Bis zur Klärung bleibt system-ui als sichere Wahl.
 const stil = {
   seite: {
     display: "grid",
@@ -48,7 +52,7 @@ const stil = {
     gridTemplateRows: "auto minmax(0,1fr)",
     height: "100vh",
     fontFamily: "system-ui, sans-serif",
-    background: "#faf7f0",
+    background: THEME.offwhite,
   },
   kopf: {
     gridColumn: "1 / 3",
@@ -56,19 +60,19 @@ const stil = {
     gap: 12,
     alignItems: "center",
     padding: "10px 16px",
-    background: "#1f4d3a",
+    background: THEME.gruen,
     color: "white",
     flexWrap: "wrap" as const,
   },
   knopf: {
-    background: "#c96f2e",
+    background: THEME.orange,
     color: "white",
     border: "none",
     borderRadius: 6,
     padding: "6px 12px",
     cursor: "pointer",
   },
-  panel: { padding: 12, overflowY: "auto" as const, borderLeft: "1px solid #ddd" },
+  panel: { padding: 12, overflowY: "auto" as const, borderLeft: `1px solid ${THEME.salbei}` },
 } as const;
 
 export function App() {
@@ -364,7 +368,17 @@ export function App() {
   return (
     <div style={stil.seite}>
       <header style={stil.kopf}>
-        <strong>Future Planning</strong>
+        {/* Wortmarke lt. CI: FUTURE hell auf Dunkelgrün, PLANNING gesperrt in
+            Orange; Claim klein/dezent daneben (CI-Vorgabe, kein eigener Font). */}
+        <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}>
+          <span style={{ fontSize: 20, fontWeight: 700 }}>
+            <span style={{ color: "#ffffff" }}>FUTURE</span>{" "}
+            <span style={{ color: THEME.orange, letterSpacing: "0.08em" }}>PLANNING</span>
+          </span>
+          <span style={{ fontSize: 10, letterSpacing: "0.03em", color: "rgba(255,255,255,0.72)" }}>
+            Meet. Match. Build.
+          </span>
+        </div>
         <select
           value={room?.id ?? ""}
           onChange={(e) => {
@@ -488,13 +502,13 @@ export function App() {
       </main>
 
       <aside style={stil.panel}>
-        {meldung && <p style={{ color: "#c96f2e" }}>{meldung}</p>}
+        {meldung && <p style={{ color: THEME.orange }}>{meldung}</p>}
 
         {kuecheInfo.istKueche && (
           <section>
             <h3 style={{ marginTop: 0 }}>Küche planen</h3>
             {kuecheInfo.zoneId && (
-              <p style={{ fontSize: 12, color: "#1f4d3a" }}>
+              <p style={{ fontSize: 12, color: THEME.gruen }}>
                 Grossraum – geplant wird die Zone «Küche».
               </p>
             )}
@@ -509,7 +523,7 @@ export function App() {
                   }}
                   style={{
                     ...stil.knopf,
-                    background: normProfile === np ? "#1f4d3a" : "#a3b9aa",
+                    background: normProfile === np ? THEME.gruen : "#a3b9aa",
                   }}
                 >
                   {np === "ch" ? "CH (55er)" : "EU (60er)"}
@@ -526,7 +540,7 @@ export function App() {
                     key={f.form}
                     onClick={() => setForm(f.form)}
                     style={{
-                      border: `2px solid ${form === f.form ? "#c96f2e" : "#ddd"}`,
+                      border: `2px solid ${form === f.form ? THEME.orange : THEME.salbei}`,
                       borderRadius: 6,
                       padding: 8,
                       marginBottom: 6,
@@ -570,7 +584,7 @@ export function App() {
               ))}
             </p>
             {!stilprofil.meta.sampleSufficient && (
-              <p style={{ fontSize: 12, color: "#c96f2e" }}>
+              <p style={{ fontSize: 12, color: THEME.orange }}>
                 Wenige Bewertungen – Profil noch unsicher.
               </p>
             )}
@@ -660,13 +674,13 @@ export function App() {
                     </td>
                   </tr>
                 ))}
-                <tr style={{ fontWeight: "bold", borderTop: "1px solid #1f4d3a" }}>
+                <tr style={{ fontWeight: "bold", borderTop: `1px solid ${THEME.gruen}` }}>
                   <td>Summe (±{kv.bandbreitePct}%)</td>
                   <td style={{ textAlign: "right" }}>CHF {kv.summe_chf.toLocaleString("de-CH")}</td>
                 </tr>
               </tbody>
             </table>
-            <p style={{ fontSize: 11, color: "#c96f2e" }}>⚠ {kv.hinweis}</p>
+            <p style={{ fontSize: 11, color: THEME.orange }}>⚠ {kv.hinweis}</p>
             {kv.nextSteps.length > 0 && (
               <>
                 <h4>Next Steps</h4>

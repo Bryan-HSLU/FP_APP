@@ -9,15 +9,19 @@ import { useRef, useState } from "react";
 import type { Vec2 } from "@fp/shared/rules";
 import type { KatalogItem, Placement, Room } from "./api";
 import { computeTransform, footprintPoints, innwardNormal, toScreen, toWorld } from "./plan2d.ts";
+import { THEME } from "./theme";
 
 const SIZE = 1000;
 const PAD = 48;
 
-const FARBEN: Record<string, string> = { P1: "#1f4d3a", P2: "#5b8a72", P3: "#a3b9aa" };
+// Priorityclass-Farben (P1/P2/P3) – NICHT die Norm-Ampel: P1 nutzt bewusst
+// das CI-Dunkelgrün, P2/P3 sind Abstufungen davon. Ampel-Statusfarben
+// (verletzt/knapp/gesperrt) bleiben unverändert und schlagen diese Farben.
+const FARBEN: Record<string, string> = { P1: THEME.gruen, P2: "#5b8a72", P3: "#a3b9aa" };
 const FARBE_VERLETZT = "#c0392b";
 const FARBE_KNAPP = "#e67e22";
 const FARBE_GESPERRT = "#7a7a7a";
-const FARBE_GEWAEHLT = "#c96f2e";
+const FARBE_GEWAEHLT = THEME.orange;
 
 type Status = "verletzt" | "knapp";
 
@@ -75,7 +79,7 @@ function Oeffnung({
     const n = innwardNormal(wall.start, wall.end, room.shell.floor.polygon);
     return (
       <g>
-        <line x1={ax} y1={ay} x2={bx} y2={by} stroke="#faf7f0" strokeWidth={6} />
+        <line x1={ax} y1={ay} x2={bx} y2={by} stroke={THEME.offwhite} strokeWidth={6} />
         <polyline
           points={schwenkPunkte(a, opening.width, n, u, t)}
           fill="none"
@@ -90,7 +94,7 @@ function Oeffnung({
   const off = 4;
   return (
     <g>
-      <line x1={ax} y1={ay} x2={bx} y2={by} stroke="#faf7f0" strokeWidth={6} />
+      <line x1={ax} y1={ay} x2={bx} y2={by} stroke={THEME.offwhite} strokeWidth={6} />
       <line
         x1={ax + n[0] * off}
         y1={ay + n[1] * off}
@@ -145,7 +149,7 @@ export function Viewer2D({
       viewBox={`0 0 ${SIZE} ${SIZE}`}
       width="100%"
       height="100%"
-      style={{ background: "#faf7f0", display: "block", touchAction: "none" }}
+      style={{ background: THEME.offwhite, display: "block", touchAction: "none" }}
       onClick={() => onSelect(null)}
       onPointerMove={(e) => {
         if (!dragId || !onMove) return;
@@ -239,7 +243,7 @@ export function Viewer2D({
 
 function Legende() {
   const rows: [string, string][] = [
-    ["#1f4d3a", "P1 / ok"],
+    [THEME.gruen, "P1 / ok"],
     ["#e67e22", "knapp"],
     ["#c0392b", "verletzt"],
     ["#7a7a7a", "gesperrt"],

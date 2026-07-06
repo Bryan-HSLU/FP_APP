@@ -4,6 +4,7 @@
  *  und kommen aus data/images/ (SVG-Platzhalter, bis Bryan echte Fotos taggt).
  */
 import { useEffect, useState } from "react";
+import { THEME } from "./theme";
 
 export interface BildItem {
   id: string;
@@ -51,8 +52,8 @@ export function SmartSpider({
       ))}
       <polygon
         points={achsen.map((a, i) => punkt(i, vektor[a.id] ?? 0)).join(" ")}
-        fill="#1f4d3a55"
-        stroke="#1f4d3a"
+        fill={`${THEME.gruen}55`}
+        stroke={THEME.gruen}
         strokeWidth={2}
       />
       {achsen.map((a, i) => {
@@ -141,7 +142,7 @@ export function StilSwipe({
   return (
     <div style={stil.overlay} onClick={onAbbruch}>
       <div style={stil.karte} onClick={(e) => e.stopPropagation()}>
-        <h3 style={{ marginTop: 0, color: "#1f4d3a" }}>
+        <h3 style={{ marginTop: 0, color: THEME.gruen }}>
           Was gefällt dir? ({index + 1}/{bilder.length})
         </h3>
         <img
@@ -153,7 +154,7 @@ export function StilSwipe({
           <button style={{ ...stil.knopf, background: "#8a8a8a" }} onClick={() => bewerte(false)}>
             👎 eher nicht
           </button>
-          <button style={{ ...stil.knopf, background: "#1f4d3a" }} onClick={() => bewerte(true)}>
+          <button style={{ ...stil.knopf, background: THEME.gruen }} onClick={() => bewerte(true)}>
             👍 gefällt mir
           </button>
         </div>
@@ -165,7 +166,7 @@ export function StilSwipe({
                 key={p.id}
                 style={{
                   ...stil.knopf,
-                  background: "#c96f2e",
+                  background: THEME.orange,
                   fontSize: 12,
                   padding: "4px 10px",
                   margin: 2,

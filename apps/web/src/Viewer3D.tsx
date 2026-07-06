@@ -9,13 +9,15 @@ import { Canvas } from "@react-three/fiber";
 import { Shape } from "three";
 import type { KatalogItem, Placement, Room } from "./api";
 import { Moebel3D } from "./moebel3d.tsx";
+import { THEME } from "./theme";
 
+// Priorityclass-Farben (P1/P2/P3) – NICHT die Norm-Ampel, siehe Viewer2D.tsx.
 const FARBEN: Record<string, string> = {
-  P1: "#1f4d3a", // CI-Dunkelgrün
+  P1: THEME.gruen, // CI-Dunkelgrün
   P2: "#5b8a72",
   P3: "#a3b9aa",
 };
-const FARBE_GEWAEHLT = "#c96f2e"; // CI-Orange
+const FARBE_GEWAEHLT = THEME.orange; // CI-Orange
 const FARBE_GESPERRT = "#7a7a7a";
 
 function Boden({ room }: { room: Room }) {

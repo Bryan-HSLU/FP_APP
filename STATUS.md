@@ -356,11 +356,19 @@
    (source manuell, `geometryConfirmed true` → keine Unsicherheits-Marge),
    geht wie Scan/Sample durch `raumWaehlen` in den Klickpfad.
    apps/web: 30 Tests grün, tsc/eslint/prettier/build sauber.
-   **Als Nächstes:** Corporate-Identity-Theme im Frontend (Brain:
-   Corporate-Identity – Farben/Wortmarke; Fonts NICHT einbetten, Lizenz offen)
-   · Schritt 5 E2E gegen R1 auf Colab (braucht Bryans AR-App-Aufnahmen +
-   echten SpatialLM-Lauf) · Schritt 6 M7 Korrektur-Modus (Anschlüsse/Ecken
-   antippen; der Raum-Editor liefert die Eingabebausteine dafür). Alt-Punkte unverändert offen: circulation
+   · ✅ **Corporate-Identity-Theme (2026-07-05, Brain: Corporate-Identity):**
+   `theme.ts` mit den 5 CI-Tokens (Dunkelgrün #243D35 primär, Orange #D6914F
+   CTA, Off-White #F0F7F2 Grund, Dunkelblau, Salbeigrau) · Header-Wortmarke
+   FUTURE (weiss) / PLANNING (orange, gesperrt) + Claim «Meet. Match. Build.»
+   · alle alten Marken-Hexwerte in App/Stil/RaumEditor/Viewer2D/Viewer3D auf
+   Tokens · **Ampel-/Statusfarben bewusst unangetastet** (verletzt/knapp/
+   gesperrt + P2/P3; P1 war schon CI-Grün, jetzt via Token + Klarstellungs-
+   Kommentar) · CI-Fonts NICHT eingebettet (Lizenz offen lt. Brain, Kommentar
+   im Code) · index.html-Titel mit Claim.
+   **Als Nächstes:** Schritt 5 E2E gegen R1 auf Colab (braucht Bryans
+   AR-App-Aufnahmen + echten SpatialLM-Lauf) · Schritt 6 M7 Korrektur-Modus
+   (Anschlüsse/Ecken antippen; der Raum-Editor liefert die Eingabebausteine
+   dafür). Alt-Punkte unverändert offen: circulation
    auf `hard` hochstufen (Hot-Path-Performance, mit Bryan abstimmen); Küche
    post-POC: mehr Slot-Breiten (30/45/90), triangle-aware Slot-Optimierung.
 2. **M2 Scan-Spike weiterführen:** Metrik-Kern + Ecken-Antippen-Pfad stehen &

@@ -10,6 +10,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { Vec2 } from "@fp/shared/rules";
 import { computeTransform, toScreen, toWorld } from "./plan2d.ts";
+import { THEME } from "./theme";
 import {
   anschlussKuerzel,
   baueRaummodell,
@@ -31,9 +32,9 @@ import {
 const SIZE = 460;
 const PAD = 56;
 
-const FARBE_TUER = "#c96f2e";
-const FARBE_FENSTER = "#2e6fc9";
-const FARBE_WAND = "#1f4d3a";
+const FARBE_TUER = THEME.orange;
+const FARBE_FENSTER = THEME.blau;
+const FARBE_WAND = THEME.gruen;
 const FARBE_FIX = "#8a2ec9";
 
 const ANSCHLUSS_TYPEN: Anschlusstyp[] = ["wasser", "abwasser", "elektro", "starkstrom", "lueftung"];
@@ -62,7 +63,7 @@ const stil = {
     fontFamily: "system-ui, sans-serif",
   },
   knopf: {
-    background: "#c96f2e",
+    background: THEME.orange,
     color: "white",
     border: "none",
     borderRadius: 6,
@@ -248,7 +249,7 @@ export function RaumEditor({
             viewBox={`0 0 ${SIZE} ${SIZE}`}
             onClick={svgKlick}
             style={{
-              background: "#faf7f0",
+              background: THEME.offwhite,
               borderRadius: 8,
               border: "1px solid #ddd",
               cursor: werkzeug.art === "keins" ? "default" : "crosshair",
@@ -479,7 +480,7 @@ export function RaumEditor({
           </div>
 
           {fehlt.length > 0 && (
-            <p style={{ fontSize: 12, color: "#c96f2e", margin: "4px 0" }}>
+            <p style={{ fontSize: 12, color: THEME.orange, margin: "4px 0" }}>
               ⚠ Solver braucht {fehlt.join(" + ")} – bitte als Anschluss setzen.
             </p>
           )}
@@ -581,7 +582,7 @@ export function RaumEditor({
               disabled={!!formFehler || oeffnungsFehler}
               style={{
                 ...stil.knopf,
-                background: formFehler || oeffnungsFehler ? "#c9b8a8" : "#1f4d3a",
+                background: formFehler || oeffnungsFehler ? "#c9b8a8" : THEME.gruen,
               }}
             >
               ✓ Raum erstellen
