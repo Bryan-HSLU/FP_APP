@@ -340,13 +340,27 @@
    TODO. 6 neue Endpoint-Tests + Live-Smoke (R1-Layout → 1.56 m², 6 Wände,
    2 Öffnungen). Suite: **206 engines + 22 scan-worker grün**, Frontend
    lint/typecheck/build sauber.
-   **Als Nächstes:** Schritt 5 E2E gegen R1 auf Colab (braucht Bryans
-   AR-App-Aufnahmen + echten SpatialLM-Lauf) · Schritt 6 M7 Korrektur-Modus
-   (Anschlüsse/Ecken antippen – der Scan liefert bewusst keine Fixpunkte) ·
-   **Bryan-Wunsch (2026-07-05): provisorische 3D-Objekte statt Box-Platzhalter
-   im Viewer** (Primitiv-Kompositionen je funktionsTyp, deckungsgleich mit
-   `footprint()` – sonst lügt die Norm-Ampel; Brain: Asset-Content-Pipeline) –
-   als Nächstes gut machbar, unabhängig von Colab. Alt-Punkte unverändert offen: circulation
+   · ✅ **3D-Objekte statt Box-Platzhalter (2026-07-05, Bryan-Wunsch):**
+   `moebel3d.tsx` – alle 31 Katalog-funktionsTypen als Primitiv-Kompositionen
+   (2–7 Teile; WC/Lavabo/Dusche mit Glaswänden/Sofa/Kochfeld …), Fallback =
+   alte Box. **bbox-Treue als Test-Invariante** (`passtInBbox` über 5 Grössen):
+   kein Primitiv verlässt w×d×h, Gruppen-Transform + Klick 1:1 wie vorher →
+   Norm-Ampel-Farben/Logik unangetastet. Hinweis: glTF-Export bleibt bewusst
+   Boxen (Viewer detaillierter als Export – POC-ok).
+   · ✅ **Manueller Raum-Editor (2026-07-05, Bryan-Wunsch, Brain:
+   Raum-Editor-Manuell):** dritte Erstellungsvariante «✏️ Raum erstellen» –
+   `raumbau.ts` (pure, getestet: Rechteck/L-Form-Polygone, Shoelace, Öffnungs-
+   Validierung, R1-L-Form = 6 Wände/1.56 m²) + `RaumEditor.tsx` (SVG-Draufsicht,
+   Werkzeuge Tür/Fenster/Anschluss per Wand-Klick, Pflicht-Anschluss-Hinweis je
+   Raumtyp, nutzt `plan2d`-Transform) → schema-konformes Raummodell
+   (source manuell, `geometryConfirmed true` → keine Unsicherheits-Marge),
+   geht wie Scan/Sample durch `raumWaehlen` in den Klickpfad.
+   apps/web: 30 Tests grün, tsc/eslint/prettier/build sauber.
+   **Als Nächstes:** Corporate-Identity-Theme im Frontend (Brain:
+   Corporate-Identity – Farben/Wortmarke; Fonts NICHT einbetten, Lizenz offen)
+   · Schritt 5 E2E gegen R1 auf Colab (braucht Bryans AR-App-Aufnahmen +
+   echten SpatialLM-Lauf) · Schritt 6 M7 Korrektur-Modus (Anschlüsse/Ecken
+   antippen; der Raum-Editor liefert die Eingabebausteine dafür). Alt-Punkte unverändert offen: circulation
    auf `hard` hochstufen (Hot-Path-Performance, mit Bryan abstimmen); Küche
    post-POC: mehr Slot-Breiten (30/45/90), triangle-aware Slot-Optimierung.
 2. **M2 Scan-Spike weiterführen:** Metrik-Kern + Ecken-Antippen-Pfad stehen &

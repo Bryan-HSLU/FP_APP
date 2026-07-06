@@ -22,6 +22,7 @@ import {
   type Plan,
   type Room,
 } from "./api";
+import { RaumEditor } from "./RaumEditor";
 import { SmartSpider, StilSwipe, type Achse, type BildItem, type Stilprofil } from "./Stil";
 import { Viewer2D } from "./Viewer2D";
 import { Viewer3D } from "./Viewer3D";
@@ -84,6 +85,8 @@ export function App() {
   const [achsen, setAchsen] = useState<Achse[]>([]);
   const [stilprofil, setStilprofil] = useState<Stilprofil | null>(null);
   const [swipeOffen, setSwipeOffen] = useState(false);
+  // Manueller Raum-Editor (dritte Erstellungsvariante neben Sample/Scan).
+  const [editorOffen, setEditorOffen] = useState(false);
   const [begruendung, setBegruendung] = useState<string>("");
   // Küche (M6): Normprofil-Toggle, Formwahl-Karten, gewählte Form.
   const [normProfile, setNormProfile] = useState<"ch" | "eu">("ch");
@@ -394,6 +397,9 @@ export function App() {
             }}
           />
         </label>
+        <button style={stil.knopf} onClick={() => setEditorOffen(true)}>
+          ✏️ Raum erstellen
+        </button>
         <select
           value={scanRoomType}
           onChange={(e) => setScanRoomType(e.target.value)}
@@ -685,6 +691,19 @@ export function App() {
             void api
               .styleProfile(room.roomType, likes, dislikes, presetId)
               .then((p) => setStilprofil(p));
+          }}
+        />
+      )}
+
+      {editorOffen && (
+        <RaumEditor
+          onAbbruch={() => setEditorOffen(false)}
+          onFertig={(neu) => {
+            // Gleicher Klickpfad wie scanLaden: Raum in die Liste, dann wählen.
+            setRooms((prev) => [neu, ...prev.filter((r) => r.id !== neu.id)]);
+            void raumWaehlen(neu);
+            setEditorOffen(false);
+            setMeldung("Raum erstellt.");
           }}
         />
       )}
