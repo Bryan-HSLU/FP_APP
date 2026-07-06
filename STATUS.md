@@ -6,7 +6,7 @@
 > Abweichungen gibt es. Meilenstein-Definitionen: Brain →
 > `vault/50_Umsetzung/Bauplan-Meilensteine.md`.
 
-**Stand: 2026-07-05**
+**Stand: 2026-07-06**
 
 ## Meilensteine
 
@@ -19,7 +19,7 @@
 | **M4** Auswertung voll + Kurator | LV, Bauzeitenplan, Offert-Paket, DXF · Kurator + Mini-Eval · Stil-UI | 🟢 DoD erfüllt |
 | **M5** Durchstich WOHNEN | Sample-Wohnzimmer → Regelsatz/Katalog/Bilder wohnen → Solver mit freier Boden-Platzierung → LV/Bauzeit/Dokumente | 🟢 fertig |
 | **M6** Durchstich KÜCHE | Formwahl + lineare Baugruppe + API + Frontend; Grossraum über Zone geplant | 🟢 DoD erfüllt |
-| **M7** Scan-Integration (+AR) | | ⚪ offen |
+| **M7** Scan-Integration (+AR) | Adapter · Space-Deploy · scan-worker · Upload/`/scan` · Korrektur-Modus fertig; offen: R1-Gate auf Colab (Schritt 5) | 🟡 gestartet |
 
 ## Was konkret existiert
 
@@ -396,6 +396,30 @@
    apps/web 32 Tests grün, alle Gates sauber. CI-Fonts weiter bewusst nicht
    eingebettet (Lizenz offen). Bryan liefert eigene Piktogramme nach →
    gleicher Stil (inner glow + harter Schatten).
+   · ✅ **Schritt 6 Scan-Korrektur-Modus (2026-07-06, Brain: ADR-0003 /
+   M2-M7-Scan-Pipeline-Fahrplan):** nutzergeführte Korrektur gescannter Räume
+   (~8.5 cm Unsicherheit, kein LiDAR). Reine Geometrie `korrektur.ts` (getestet,
+   DOM-frei): `ecken` (eindeutige Ecken via Endpunkt-Matching mit Epsilon –
+   Wand-Array NICHT umlauf-sortiert), `verschiebeEcke` (angrenzende Wände
+   wandern mit), `snappe` (Achsen-Snap auf Nachbar-x/z < 7 cm → rechtwinklig =
+   das Anti-8.5-cm-Werkzeug, dann 5-cm-Raster), `kettePolygon` (Umlauf schliessen
+   analog `_kette` in adapter.py, offene Hülle = Fehler-Objekt statt Wurf →
+   UI blockt «Übernehmen»), `wendeAn` (Öffnungs-offset-Clamp, Fixpunkt behält
+   relatives t auf der Wandachse, Fläche/Polygon neu, Objekte
+   bestätigt→needsReview:false / entfernt raus, geometryConfirmed→true, IDs
+   stabil, 2-Dezimal-Rundung). UI `ScanKorrektur.tsx` (Muster RaumEditor):
+   SVG-Draufsicht, Ecken als ziehbare Griffe (Pointer = Maus **und** Touch/
+   Antippen, live-Snap + Längen), Werkzeuge Tür/Fenster/Anschluss per Wand-Klick,
+   Scan-Objekte als gestrichelte rotierte bbox (needsReview orange), rechte
+   Spalte mit Scan-Warnungen + fehlenden Pflicht-Anschlüssen + Öffnungs-/
+   Anschluss-/Objekt-Listen, «Übernehmen» gesperrt bei Öffnungs-Fehler oder
+   offener Hülle. App.tsx: `scanLaden` öffnet jetzt das Korrektur-Modal (State
+   `korrektur`) statt direkt zu wählen; «Übernehmen» → korrigierter Raum in den
+   Klickpfad, «Abbrechen» → Scan unkorrigiert (geometryConfirmed bleibt false);
+   «📐 Korrigieren»-Knopf im Schritt «Projekt» für gescannte Räume
+   (`meta.captureMethod === "ar"`, defensiv). 16 neue Tests (korrektur.test.ts,
+   inkl. Schema-Validierung des korrigierten Raums). apps/web **52 Tests grün**,
+   tsc/eslint/prettier/build sauber.
    · ✅ **Bild-Katalog aus Bryans Metadaten + echte Fotos (2026-07-06):**
    `data/images/{bad,wohnen,kueche}.json` von je 8 Platzhaltern auf **je 30 real
    getaggte Bilder** (aus Bryans ZIP-Metadaten generiert; alle 8 Achsen + reiche
@@ -419,8 +443,8 @@
    engines 205/1 skip + scan-worker 22 grün.
    **Als Nächstes:** Presets optional kuratieren · ⚠️ 90 PNG (~180 MB) blähen
    Repo + Space-Deploy – ggf. Bildgrösse reduzieren/auslagern ·
-   Schritt 5 E2E gegen R1 auf Colab (braucht AR-App-Aufnahmen) · Schritt 6
-   M7 Korrektur-Modus · Bryans Piktogramme. Alt-Punkte unverändert offen: circulation
+   Schritt 5 E2E gegen R1 auf Colab (braucht AR-App-Aufnahmen) ·
+   Bryans Piktogramme. Alt-Punkte unverändert offen: circulation
    auf `hard` hochstufen (Hot-Path-Performance, mit Bryan abstimmen); Küche
    post-POC: mehr Slot-Breiten (30/45/90), triangle-aware Slot-Optimierung.
 2. **M2 Scan-Spike weiterführen:** Metrik-Kern + Ecken-Antippen-Pfad stehen &

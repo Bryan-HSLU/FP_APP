@@ -25,6 +25,7 @@ import {
   type Room,
 } from "./api";
 import { RaumEditor } from "./RaumEditor";
+import { ScanKorrektur } from "./ScanKorrektur";
 import { SmartSpider, StilSwipe, type Achse, type BildItem, type Stilprofil } from "./Stil";
 import { karte, pill, schlagschatten, THEME, titel } from "./theme";
 import { Viewer2D } from "./Viewer2D";
@@ -119,6 +120,8 @@ export function App() {
   const [ansicht, setAnsicht] = useState<"2d" | "3d">("2d");
   // Scan-Upload (M7 Schritt 4): Raumtyp des hochgeladenen Scan-Bundles.
   const [scanRoomType, setScanRoomType] = useState("bad");
+  // Scan-Korrektur-Modus (M7 Schritt 6): geladener Scan wartet auf Korrektur.
+  const [korrektur, setKorrektur] = useState<{ room: Room; warnungen: string[] } | null>(null);
   // Wizard: aktueller Schritt (1..5). Schritt-für-Schritt statt alles auf einmal.
   const [schritt, setSchritt] = useState(1);
 
@@ -168,22 +171,24 @@ export function App() {
     [achsen.length],
   );
 
-  // Scan-Bundle hochladen → Raummodell → in den bestehenden Klickpfad einhängen.
+  // Scan-Bundle hochladen → Raummodell → Korrektur-Modus (M7 Schritt 6).
+  // Gescannte Geometrie ist ~8.5 cm unsicher (kein LiDAR) und trägt weder
+  // Anschlüsse noch bestätigte Objekte – erst nach der Nutzer-Korrektur geht der
+  // Raum (geometryConfirmed) in den bestehenden Klickpfad.
   const scanLaden = useCallback(
     async (datei: File) => {
       setMeldung("Scan wird verarbeitet…");
       try {
         const { room: neu, warnungen } = await api.scan(datei, scanRoomType, datei.name);
-        setRooms((prev) => [neu, ...prev.filter((r) => r.id !== neu.id)]);
-        await raumWaehlen(neu);
-        setMeldung(warnungen.length ? `Scan geladen. ${warnungen.join(" ")}` : "Scan geladen.");
+        setKorrektur({ room: neu, warnungen });
+        setMeldung("Scan geladen – bitte korrigieren.");
       } catch (e) {
         setMeldung(
           e instanceof ApiFehler ? `Scan fehlgeschlagen: ${e.message}` : "Scan fehlgeschlagen.",
         );
       }
     },
-    [scanRoomType, raumWaehlen],
+    [scanRoomType],
   );
 
   // Küche: vor dem ersten Solve die Top-3 Formen holen.
@@ -551,6 +556,18 @@ export function App() {
                   <button style={pill} onClick={() => setEditorOffen(true)}>
                     ✏️ Raum erstellen
                   </button>
+                  {/* Korrektur erneut öffnen – nur für gescannte Räume (captureMethod
+                      "ar"); defensiv geprüft, da Samples evtl. kein meta tragen. */}
+                  {room &&
+                    (room.meta as { captureMethod?: string } | undefined)?.captureMethod ===
+                      "ar" && (
+                      <button
+                        style={{ ...pill, background: THEME.blau }}
+                        onClick={() => setKorrektur({ room, warnungen: [] })}
+                      >
+                        📐 Korrigieren
+                      </button>
+                    )}
                 </div>
               </section>
             )}
@@ -993,6 +1010,29 @@ export function App() {
             void raumWaehlen(neu);
             setEditorOffen(false);
             setMeldung("Raum erstellt.");
+          }}
+        />
+      )}
+
+      {korrektur && (
+        <ScanKorrektur
+          room={korrektur.room}
+          warnungen={korrektur.warnungen}
+          onAbbruch={() => {
+            // Abbrechen: Scan trotzdem UNKORRIGIERT laden (geometryConfirmed bleibt
+            // false → Konfidenz-Ampel rechnet weiter mit Messunsicherheit).
+            const neu = korrektur.room;
+            setRooms((prev) => [neu, ...prev.filter((r) => r.id !== neu.id)]);
+            void raumWaehlen(neu);
+            setKorrektur(null);
+            setMeldung("Scan unkorrigiert übernommen.");
+          }}
+          onFertig={(neu) => {
+            // Korrigierten Raum in die Liste (gleiche id ersetzt) und wählen.
+            setRooms((prev) => [neu, ...prev.filter((r) => r.id !== neu.id)]);
+            void raumWaehlen(neu);
+            setKorrektur(null);
+            setMeldung("Scan korrigiert übernommen.");
           }}
         />
       )}
