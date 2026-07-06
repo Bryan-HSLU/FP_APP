@@ -104,7 +104,14 @@ function PlacementBox({
         onClick();
       }}
     >
-      <Moebel3D funktionsTyp={item.funktionsTyp} w={w} d={d} h={h} farbe={farbe} />
+      <Moebel3D
+        funktionsTyp={item.funktionsTyp}
+        modell3d={item.modell3d}
+        w={w}
+        d={d}
+        h={h}
+        farbe={farbe}
+      />
     </group>
   );
 }

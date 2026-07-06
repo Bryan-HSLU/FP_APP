@@ -24,6 +24,8 @@ export interface Plan {
 export interface KatalogItem extends CatalogItemInput {
   name: string;
   priorityClass: "P1" | "P2" | "P3";
+  /** Optionale 3D-Bausatz-Variante für den Viewer (Katalog-Feld modell3d). */
+  modell3d?: string;
 }
 
 export interface Room extends RoomInput {

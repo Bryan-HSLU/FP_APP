@@ -395,6 +395,17 @@
    Foto mal fehlt. Tests robust: Bildzahl-Assert dynamisch, Preset-Test skippt
    (Bryans Bilder alle istPreset=false). Bryans neue detailliertere `moebel3d`-
    Objekte via `clampTeil`-Sicherheitsnetz bbox-treu gehalten (Norm-Ampel).
+   · ✅ **Möbel-3D-Varianten-Bibliothek (2026-07-06, Brain:
+   Moebel-3D-Varianten-Bibliothek):** neues optionales Katalog-Feld
+   `modell3d` (Schema additiv + Codegen TS/pydantic) → Viewer-Lookup
+   `modell3d → funktionsTyp-Standard → Box` via `bausatzSchluessel()`.
+   5 erste Varianten-Bausätze (wc-wandhaengend, lavabo-aufsatz, lavabo-doppel,
+   sofa-l, dusche-eck) + 7 Katalog-Items zugeordnet. **Stil entscheidet die
+   Variante** (Kurator-Score über achsenTags – Beleg: Profil warm/natürlich →
+   Wc Klassik + Naturstein-Aufsatzbecken; Profil kühl/modern → wandhängendes
+   Design-WC + Eckdusche). Erweitern = Katalog-Item mit achsenTags (+ optional
+   neuer Bausatz), 3-Schritte-Anleitung im moebel3d-Docstring. Suite: Web 36 +
+   engines 205/1 skip + scan-worker 22 grün.
    **Als Nächstes:** Presets optional kuratieren · ⚠️ 90 PNG (~180 MB) blähen
    Repo + Space-Deploy – ggf. Bildgrösse reduzieren/auslagern ·
    Schritt 5 E2E gegen R1 auf Colab (braucht AR-App-Aufnahmen) · Schritt 6

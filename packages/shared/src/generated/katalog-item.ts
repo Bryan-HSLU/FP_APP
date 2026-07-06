@@ -41,6 +41,10 @@ export interface KatalogItem {
   };
   gltfRef?: string;
   /**
+   * 3D-Bausatz-Variante für den Viewer (z.B. wc-wandhaengend, lavabo-aufsatz). Fehlt es, greift der Standard-Bausatz des funktionsTyp; für spätere echte Assets bleibt gltfRef zuständig.
+   */
+  modell3d?: string;
+  /**
    * AR-Einzelobjekt-Vorschau (Quick Look), Stretch.
    */
   usdzRef?: string;

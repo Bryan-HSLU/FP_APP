@@ -77,6 +77,7 @@
     "id": "aaaaaaaa-0003-4000-8000-000000000003",
     "schemaVersion": "0.1.0",
     "name": "Wc Design Schwarz matt",
+    "modell3d": "wc-wandhaengend",
     "kategorie": "sanitaer-wc",
     "funktionsTyp": "wc",
     "roomTypes": [
@@ -114,6 +115,7 @@
     "id": "aaaaaaaa-0004-4000-8000-000000000004",
     "schemaVersion": "0.1.0",
     "name": "Wc Spülrandlos Soft",
+    "modell3d": "wc-wandhaengend",
     "kategorie": "sanitaer-wc",
     "funktionsTyp": "wc",
     "roomTypes": [
@@ -233,6 +235,7 @@
     "id": "aaaaaaaa-0007-4000-8000-000000000007",
     "schemaVersion": "0.1.0",
     "name": "Lavabo 80 Doppelnutzbar",
+    "modell3d": "lavabo-doppel",
     "kategorie": "sanitaer-lavabo",
     "funktionsTyp": "lavabo",
     "roomTypes": [
@@ -274,6 +277,7 @@
     "id": "aaaaaaaa-0008-4000-8000-000000000008",
     "schemaVersion": "0.1.0",
     "name": "Lavabo Naturstein rund",
+    "modell3d": "lavabo-aufsatz",
     "kategorie": "sanitaer-lavabo",
     "funktionsTyp": "lavabo",
     "roomTypes": [
@@ -315,6 +319,7 @@
     "id": "aaaaaaaa-0009-4000-8000-000000000009",
     "schemaVersion": "0.1.0",
     "name": "Dusche 90×90 Glas",
+    "modell3d": "dusche-eck",
     "kategorie": "sanitaer-dusche",
     "funktionsTyp": "dusche",
     "roomTypes": [
@@ -352,6 +357,7 @@
     "id": "aaaaaaaa-0010-4000-8000-000000000010",
     "schemaVersion": "0.1.0",
     "name": "Dusche 80×80 Kompakt",
+    "modell3d": "dusche-eck",
     "kategorie": "sanitaer-dusche",
     "funktionsTyp": "dusche",
     "roomTypes": [

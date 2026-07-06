@@ -1,4 +1,4 @@
-# AUTOGENERIERT aus packages/shared/schemas – nicht von Hand ändern (pnpm codegen).
+# AUTOGENERIERT aus packages/shared/schemas – nicht von Hand ändern.
 
 from __future__ import annotations
 
@@ -140,6 +140,10 @@ class KatalogItem(BaseModel):
     gewerk: Gewerk
     masse: Masse
     gltfRef: str | None = None
+    modell3d: constr(pattern=r"^[a-z0-9-]+$") | None = Field(
+        None,
+        description="3D-Bausatz-Variante für den Viewer (z.B. wc-wandhaengend, lavabo-aufsatz). Fehlt es, greift der Standard-Bausatz des funktionsTyp; für spätere echte Assets bleibt gltfRef zuständig.",
+    )
     usdzRef: str | None = Field(
         None, description="AR-Einzelobjekt-Vorschau (Quick Look), Stretch."
     )

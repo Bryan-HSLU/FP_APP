@@ -11,6 +11,11 @@
  * Farben: Der Hauptkörper nutzt exakt die übergebene Ampel-/Basisfarbe. Akzente
  * werden nur daraus abgeleitet (heller/dunkler) – keine eigene Farblogik, die
  * die Ampel übersteuern würde.
+ *
+ * Varianten: Ein funktionsTyp kann mehrere 3D-Bausätze tragen (z.B. mehrere
+ * WCs). Das Katalog-Item wählt per Feld `modell3d` eine registrierte Variante;
+ * die Auflösung Variante→Bausatz macht {@link bausatzSchluessel}. Anleitung
+ * «Neue Variante hinzufügen in 3 Schritten» steht dort im Docstring.
  */
 
 /** Material-/Basisfarbe je funktionsTyp für den 3D-Viewer (Bryans Möbel-
@@ -940,6 +945,113 @@ const fuellstueck: Bauer = (w, d, h) => [
   box([w * 0.3, h, d * 0.05], [0, 0, d / 2 - d * 0.025], "dunkel"),
 ];
 
+// ═══════════════════════════════════════════════════════════════════
+// VARIANTEN – mehrere 3D-Bausätze je funktionsTyp
+// ───────────────────────────────────────────────────────────────────
+// Ein funktionsTyp (z.B. wc) kann optisch verschiedene Möbel meinen. Das
+// Katalog-Item wählt per Feld `modell3d` (Schema) eine registrierte Variante;
+// fehlt sie, greift der Standard-Bausatz des funktionsTyp (siehe
+// bausatzSchluessel + bauteile). Konvention wie bei den Basis-Bausätzen:
+// gleiche Bauer-Signatur, alle Masse als Bruchteile von w/d/h, bbox-treu.
+// Wandseite = Rückwand bei -z (wie in den Basis-Bausätzen).
+
+// WC wandhängend: schwebender Keramikkörper OHNE Spülkasten/Säule, Luft darunter.
+const wcWandhaengend: Bauer = (w, d, h) => [
+  // Vorwand-/Wandanschluss-Platte (Andeutung), dünn an der Rückwand
+  box([w * 0.62, h * 0.92, d * 0.08], [0, h * 0.04, -d / 2 + d * 0.04], "dunkel"),
+  // Schwebender Keramikkörper – untere Kante deutlich über dem Boden (Luft)
+  box([w * 0.86, h * 0.42, d * 0.72], [0, h * 0.06, d * 0.06], "koerper"),
+  // Sitzfläche (heller Ring)
+  box([w * 0.84, h * 0.06, d * 0.68], [0, h * 0.3, d * 0.06], "hell"),
+  // Sitzdeckel
+  box([w * 0.82, h * 0.04, d * 0.66], [0, h * 0.37, d * 0.06], "dunkel"),
+  // Spülknopf an der Wandplatte
+  box([w * 0.12, h * 0.05, d * 0.03], [0, h * 0.4, -d / 2 + d * 0.06], "hell"),
+];
+
+// Lavabo Aufsatz: flacher Zylinder (Aufsatzbecken) auf Waschtischplatte mit
+// Unterbau-Box – KEINE Säule.
+const lavaboAufsatz: Bauer = (w, d, h) => {
+  const r = Math.min(w, d);
+  return [
+    // Unterbau (Waschtisch-Möbel), reicht bis zur unteren bbox-Kante
+    box([w * 0.96, h * 0.72, d * 0.9], [0, -h / 2 + h * 0.36, 0], "koerper"),
+    // Waschtischplatte
+    box([w, h * 0.16, d], [0, h * 0.02, 0], "hell"),
+    // Aufsatzbecken (flacher Zylinder) auf der Platte
+    zyl(r * 0.34, r * 0.34, h * 0.34, [0, h / 2 - h * 0.17, 0], "koerper"),
+    // Beckenvertiefung (dunkler Innenraum)
+    zyl(r * 0.26, r * 0.26, h * 0.14, [0, h / 2 - h * 0.09, 0], "dunkel"),
+    // Armatur hinten an der Wandseite
+    box([w * 0.06, h * 0.3, d * 0.06], [0, h / 2 - h * 0.15, -d * 0.34], "dunkel"),
+  ];
+};
+
+// Lavabo Doppel: zwei Becken-Vertiefungen nebeneinander auf durchgehender Platte.
+const lavaboDoppel: Bauer = (w, d, h) => [
+  // Unterbau, reicht bis Plattenunterkante
+  box([w * 0.98, h * 0.7, d * 0.9], [0, -h / 2 + h * 0.35, 0], "koerper"),
+  // Durchgehende Platte
+  box([w, h * 0.3, d], [0, h / 2 - h * 0.15, 0], "hell"),
+  // Linke Beckenvertiefung
+  box([w * 0.4, h * 0.12, d * 0.66], [-w * 0.24, h / 2 - h * 0.06, 0], "dunkel"),
+  // Rechte Beckenvertiefung
+  box([w * 0.4, h * 0.12, d * 0.66], [w * 0.24, h / 2 - h * 0.06, 0], "dunkel"),
+  // Armatur links
+  box([w * 0.05, h * 0.16, d * 0.05], [-w * 0.24, h / 2 - h * 0.08, -d * 0.34], "dunkel"),
+  // Armatur rechts
+  box([w * 0.05, h * 0.16, d * 0.05], [w * 0.24, h / 2 - h * 0.08, -d * 0.34], "dunkel"),
+];
+
+// Sofa L-Form: Haupt-Sitzbank + Longchair-Ecke (zweite Sitzbox) + Lehnen.
+const sofaL: Bauer = (w, d, h) => [
+  // Haupt-Sitzfläche (hintere Tiefe, volle Breite)
+  box([w, h * 0.34, d * 0.62], [0, -h / 2 + h * 0.17, -d / 2 + d * 0.31], "koerper"),
+  // Longchair-Ecke (zweite Sitzbox) – ragt in die volle Tiefe, rechte Hälfte
+  box([w * 0.46, h * 0.34, d], [w / 2 - w * 0.23, -h / 2 + h * 0.17, 0], "koerper"),
+  // Rückenlehne (hinten, volle Breite)
+  box([w, h * 0.5, d * 0.16], [0, h / 2 - h * 0.25, -d / 2 + d * 0.08], "koerper"),
+  // Seitenlehne links
+  box(
+    [w * 0.1, h * 0.52, d * 0.62],
+    [-w / 2 + w * 0.05, -h / 2 + h * 0.26, -d / 2 + d * 0.31],
+    "koerper",
+  ),
+  // Sitzkissen Hauptteil
+  box([w * 0.6, h * 0.14, d * 0.5], [-w * 0.16, -h / 2 + h * 0.41, -d / 2 + d * 0.3], "hell"),
+  // Sitzkissen Longchair
+  box([w * 0.4, h * 0.14, d * 0.84], [w / 2 - w * 0.22, -h / 2 + h * 0.41, d * 0.02], "hell"),
+  // 4 Füsse
+  box([w * 0.06, h * 0.08, d * 0.06], [-w * 0.44, -h / 2 + h * 0.04, -d * 0.42], "dunkel"),
+  box([w * 0.06, h * 0.08, d * 0.06], [w * 0.44, -h / 2 + h * 0.04, -d * 0.42], "dunkel"),
+  box([w * 0.06, h * 0.08, d * 0.06], [-w * 0.44, -h / 2 + h * 0.04, d * 0.42], "dunkel"),
+  box([w * 0.06, h * 0.08, d * 0.06], [w * 0.44, -h / 2 + h * 0.04, d * 0.42], "dunkel"),
+];
+
+// Dusche Eck: Viertelkreis angenähert – zwei Glaswände über Eck (vorne + rechts)
+// mit Eckpfosten, dazu eine gerundete Eck-Wanne.
+const duscheEck: Bauer = (w, d, h) => {
+  const r = Math.min(w, d);
+  return [
+    // Wannenboden (flach)
+    box([w * 0.98, h * 0.04, d * 0.98], [0, -h / 2 + h * 0.02, 0], "koerper"),
+    // Gerundete Ecke vorne-rechts (flacher Zylinder – Viertelkreis-Andeutung)
+    zyl(r * 0.5, r * 0.5, h * 0.05, [w / 2 - r * 0.5, -h / 2 + h * 0.025, d / 2 - r * 0.5], "hell"),
+    // Wannenrand
+    box([w, h * 0.07, d], [0, -h / 2 + h * 0.055, 0], "hell"),
+    // Glaswand rechts (+x)
+    box([w * 0.04, h * 0.86, d * 0.96], [w / 2 - w * 0.02, h * 0.02, 0], "glas"),
+    // Glaswand vorne (+z)
+    box([w * 0.96, h * 0.86, d * 0.04], [0, h * 0.02, d / 2 - d * 0.02], "glas"),
+    // Eckpfosten vorne-rechts (verbindet die zwei Glaswände über Eck)
+    box([w * 0.05, h * 0.9, d * 0.05], [w / 2 - w * 0.025, 0, d / 2 - d * 0.025], "dunkel"),
+    // Armatur-Stange an der Rückwand-Ecke
+    zyl(w * 0.02, w * 0.02, h * 0.4, [-w * 0.4, h * 0.1, -d * 0.42], "dunkel"),
+    // Duschkopf
+    zyl(w * 0.07, w * 0.07, h * 0.03, [-w * 0.4, h / 2 - h * 0.08, -d * 0.42], "dunkel"),
+  ];
+};
+
 /** funktionsTyp → Bauteil-Bausatz. Fehlt ein Typ, greift der Box-Fallback. */
 const BAUSAETZE: Record<string, Bauer> = {
   // ── Bad ───────────────────────────────────────────────────────────
@@ -999,13 +1111,30 @@ const BAUSAETZE: Record<string, Bauer> = {
   tumbler,
   eckschrank,
   fuellstueck,
+  // ── Varianten (per modell3d im Katalog-Item wählbar) ──────────────
+  "wc-wandhaengend": wcWandhaengend,
+  "lavabo-aufsatz": lavaboAufsatz,
+  "lavabo-doppel": lavaboDoppel,
+  "sofa-l": sofaL,
+  "dusche-eck": duscheEck,
 };
 
 /**
- * Liefert die Primitiv-Bauteile für einen funktionsTyp. Unbekannte Typen fallen
- * auf die bisherige einfache Box (volle bbox, Hauptkörperfarbe) zurück – damit
- * bleibt das Verhalten für nicht abgedeckte Items unverändert.
+ * Wählt den Bausatz-Schlüssel für ein Katalog-Item: die Variante `modell3d`,
+ * sofern sie registriert ist – sonst der funktionsTyp (Standard-Bausatz).
+ * Dadurch bleibt {@link bauteile} schlicht (ein Lookup + Box-Fallback): der
+ * gesamte Variantenentscheid steckt hier.
+ *
+ * ── Neue Variante hinzufügen in 3 Schritten ──────────────────────────
+ * 1. Bauer schreiben (parametrisch auf w/d/h, bbox-treu wie die Basis-Bausätze).
+ * 2. Oben in BAUSAETZE unter einem `kebab-case`-Schlüssel registrieren.
+ * 3. Im Katalog-Item das Feld `modell3d` auf genau diesen Schlüssel setzen.
+ * Später kommen echte Assets über gltfRef – modell3d bleibt der Primitiv-Weg.
  */
+export function bausatzSchluessel(funktionsTyp: string, modell3d?: string): string {
+  return modell3d && modell3d in BAUSAETZE ? modell3d : funktionsTyp;
+}
+
 /**
  * Zwängt ein Bauteil garantiert in die bbox w×d×h (Ursprung = Mitte).
  * Sicherheitsnetz für die Norm-Ampel-Invariante: hält JEDE Komposition –
@@ -1047,8 +1176,15 @@ function clampTeil(t: Teil, w: number, d: number, h: number): Teil {
   };
 }
 
-export function bauteile(funktionsTyp: string, w: number, d: number, h: number): Teil[] {
-  const bauer = BAUSAETZE[funktionsTyp];
+/**
+ * Liefert die Primitiv-Bauteile für einen Bausatz-Schlüssel (funktionsTyp ODER
+ * registrierte Variante, siehe {@link bausatzSchluessel}). Unbekannte Schlüssel
+ * fallen auf die bisherige einfache Box (volle bbox, Hauptkörperfarbe) zurück –
+ * damit bleibt das Verhalten für nicht abgedeckte Items unverändert. Bleibt
+ * bewusst schlicht: der Variantenentscheid passiert in bausatzSchluessel.
+ */
+export function bauteile(schluessel: string, w: number, d: number, h: number): Teil[] {
+  const bauer = BAUSAETZE[schluessel];
   const roh = bauer ? bauer(w, d, h) : [box([w, h, d], [0, 0, 0], "koerper")];
   // Sicherheitsnetz: jedes Bauteil bleibt garantiert in der bbox (Norm-Ampel).
   return roh.map((t) => clampTeil(t, w, d, h));
@@ -1123,18 +1259,21 @@ function TeilMesh({ teil, farbe }: { teil: Teil; farbe: string }) {
  */
 export function Moebel3D({
   funktionsTyp,
+  modell3d,
   w,
   d,
   h,
   farbe,
 }: {
   funktionsTyp: string;
+  /** Optionale 3D-Bausatz-Variante (Katalog-Feld modell3d); wählt den Bausatz. */
+  modell3d?: string;
   w: number;
   d: number;
   h: number;
   farbe: string;
 }) {
-  const teile = bauteile(funktionsTyp, w, d, h);
+  const teile = bauteile(bausatzSchluessel(funktionsTyp, modell3d), w, d, h);
   return (
     <>
       {teile.map((teil, i) => (

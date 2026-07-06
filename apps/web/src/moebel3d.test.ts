@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bausatzSchluessel,
   bauteile,
   MATERIAL_FALLBACK,
   MATERIAL_FARBE,
@@ -8,6 +9,9 @@ import {
   passtInBbox,
   rolleFarbe,
 } from "./moebel3d.tsx";
+
+// Registrierte 3D-Varianten (funktionsTyp trägt mehrere Bausätze).
+const VARIANTEN = ["wc-wandhaengend", "lavabo-aufsatz", "lavabo-doppel", "sofa-l", "dusche-eck"];
 
 // Alle im Katalog vorkommenden funktionsTypen (data/catalog/*.json).
 const KATALOG_TYPEN = [
@@ -79,6 +83,41 @@ describe("bauteile – Fallback", () => {
     expect(teile).toEqual([
       { form: "box", groesse: [0.8, 1.2, 0.6], pos: [0, 0, 0], rolle: "koerper" },
     ]);
+  });
+});
+
+describe("bausatzSchluessel – Varianten-Fallback-Kette", () => {
+  it("wählt eine registrierte Variante vor dem funktionsTyp", () => {
+    expect(bausatzSchluessel("wc", "wc-wandhaengend")).toBe("wc-wandhaengend");
+    expect(bausatzSchluessel("lavabo", "lavabo-doppel")).toBe("lavabo-doppel");
+  });
+
+  it("fällt bei unregistrierter oder fehlender Variante auf den funktionsTyp zurück", () => {
+    expect(bausatzSchluessel("wc", "gibtsnicht")).toBe("wc");
+    expect(bausatzSchluessel("wc", undefined)).toBe("wc");
+    expect(bausatzSchluessel("wc")).toBe("wc");
+  });
+});
+
+describe("Varianten-Bausätze – mehrteilig & bbox-treu", () => {
+  it("liefert für jede Variante mehrteilige, bbox-treue Bausätze", () => {
+    for (const variante of VARIANTEN) {
+      for (const [w, d, h] of MASSE) {
+        const teile = bauteile(variante, w, d, h);
+        expect(teile.length, `${variante} ist mehrteilig`).toBeGreaterThan(1);
+        expect(passtInBbox(teile, w, d, h), `${variante} bleibt in bbox`).toBe(true);
+      }
+    }
+  });
+
+  it("lässt den Standard-Bausatz unverändert, wenn kein modell3d gesetzt ist", () => {
+    // wc ohne Variante = bisheriger wc-Bausatz (Schlüssel bleibt funktionsTyp).
+    expect(bausatzSchluessel("wc")).toBe("wc");
+    const standard = bauteile("wc", 0.4, 0.6, 0.42);
+    const ueberVariante = bauteile(bausatzSchluessel("wc", undefined), 0.4, 0.6, 0.42);
+    expect(ueberVariante).toEqual(standard);
+    // Die Variante unterscheidet sich sichtbar vom Standard.
+    expect(bauteile("wc-wandhaengend", 0.4, 0.6, 0.42)).not.toEqual(standard);
   });
 });
 
