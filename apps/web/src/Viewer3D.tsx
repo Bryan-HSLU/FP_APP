@@ -8,6 +8,7 @@ import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Shape } from "three";
 import type { KatalogItem, Placement, Room } from "./api";
+import { Moebel3D } from "./moebel3d.tsx";
 
 const FARBEN: Record<string, string> = {
   P1: "#1f4d3a", // CI-Dunkelgrün
@@ -80,8 +81,10 @@ function PlacementBox({
     : placement.locked
       ? FARBE_GESPERRT
       : (FARBEN[item.priorityClass] ?? "#888888");
+  // Gruppe trägt Pose + Auswahl/Klick 1:1 wie zuvor die Box; die Primitives von
+  // Moebel3D sitzen im lokalen bbox-Raum (Ursprung = Box-Mitte) innerhalb der Gruppe.
   return (
-    <mesh
+    <group
       position={[placement.pose.pos[0], y, placement.pose.pos[1]]}
       rotation={[0, (-placement.pose.yawDeg * Math.PI) / 180, 0]}
       onClick={(e) => {
@@ -89,9 +92,8 @@ function PlacementBox({
         onClick();
       }}
     >
-      <boxGeometry args={[w, h, d]} />
-      <meshStandardMaterial color={farbe} />
-    </mesh>
+      <Moebel3D funktionsTyp={item.funktionsTyp} w={w} d={d} h={h} farbe={farbe} />
+    </group>
   );
 }
 
