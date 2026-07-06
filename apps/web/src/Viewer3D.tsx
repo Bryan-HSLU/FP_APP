@@ -8,17 +8,17 @@ import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Shape } from "three";
 import type { KatalogItem, Placement, Room } from "./api";
-import { Moebel3D } from "./moebel3d.tsx";
+import { materialFarbe, Moebel3D } from "./moebel3d.tsx";
 import { THEME } from "./theme";
 
-// Priorityclass-Farben (P1/P2/P3) – NICHT die Norm-Ampel, siehe Viewer2D.tsx.
-const FARBEN: Record<string, string> = {
-  P1: THEME.gruen, // CI-Dunkelgrün
-  P2: "#5b8a72",
-  P3: "#a3b9aa",
-};
+// Norm-Ampel-Statusfarben (identisch zu Viewer2D) – die Ampel dominiert die
+// Materialfarbe: nur bei Status «ok» wird die Möbel-Materialfarbe genutzt.
+const FARBE_VERLETZT = "#c0392b";
+const FARBE_KNAPP = "#e67e22";
 const FARBE_GEWAEHLT = THEME.orange; // CI-Orange
 const FARBE_GESPERRT = "#7a7a7a";
+
+type Status = "verletzt" | "knapp";
 
 function Boden({ room }: { room: Room }) {
   const shape = new Shape();
@@ -69,20 +69,30 @@ function PlacementBox({
   placement,
   item,
   gewaehlt,
+  status,
   onClick,
 }: {
   placement: Placement;
   item: KatalogItem;
   gewaehlt: boolean;
+  status: Status | undefined;
   onClick: () => void;
 }) {
   const { w, d, h } = item.masse;
   const y = (placement.mountHeight ?? 0) + h / 2;
+  // Ampel MUSS dominieren: Auswahl-Orange und die Norm-Statusfarben
+  // (verletzt/knapp/gesperrt) schlagen die Materialfarbe. NUR bei Status «ok»
+  // (kein verletzt/knapp, nicht gesperrt) zeigt das Möbel seine Materialfarbe
+  // statt der bisherigen P-Klassen-Farbe.
   const farbe = gewaehlt
     ? FARBE_GEWAEHLT
-    : placement.locked
-      ? FARBE_GESPERRT
-      : (FARBEN[item.priorityClass] ?? "#888888");
+    : status === "verletzt"
+      ? FARBE_VERLETZT
+      : status === "knapp"
+        ? FARBE_KNAPP
+        : placement.locked
+          ? FARBE_GESPERRT
+          : materialFarbe(item.funktionsTyp);
   // Gruppe trägt Pose + Auswahl/Klick 1:1 wie zuvor die Box; die Primitives von
   // Moebel3D sitzen im lokalen bbox-Raum (Ursprung = Box-Mitte) innerhalb der Gruppe.
   return (
@@ -104,12 +114,15 @@ export function Viewer3D({
   placements,
   catalog,
   gewaehltId,
+  statusById,
   onSelect,
 }: {
   room: Room;
   placements: Placement[];
   catalog: KatalogItem[];
   gewaehltId: string | null;
+  /** Pro-Placement-Norm-Ampel (verletzt/knapp) – wie in Viewer2D. */
+  statusById: Map<string, Status>;
   onSelect: (id: string | null) => void;
 }) {
   const byId = new Map(catalog.map((c) => [c.id, c]));
@@ -134,6 +147,7 @@ export function Viewer3D({
             placement={p}
             item={item}
             gewaehlt={p.id === gewaehltId}
+            status={statusById.get(p.id)}
             onClick={() => onSelect(p.id)}
           />
         );

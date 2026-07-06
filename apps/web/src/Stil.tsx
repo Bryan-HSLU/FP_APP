@@ -4,7 +4,7 @@
  *  und kommen aus data/images/ (SVG-Platzhalter, bis Bryan echte Fotos taggt).
  */
 import { useEffect, useState } from "react";
-import { THEME } from "./theme";
+import { karte as ciKarte, pill, THEME, titel } from "./theme";
 
 export interface BildItem {
   id: string;
@@ -80,22 +80,16 @@ const stil = {
     justifyContent: "center",
     zIndex: 10,
   },
+  // CI-Kartenstil (innerer Schein + harter Schlagschatten) für das Overlay.
   karte: {
-    background: "white",
-    borderRadius: 12,
+    ...ciKarte,
     padding: 20,
     width: 460,
     maxWidth: "92vw",
     textAlign: "center" as const,
   },
-  knopf: {
-    border: "none",
-    borderRadius: 8,
-    padding: "10px 22px",
-    fontSize: 18,
-    cursor: "pointer",
-    color: "white",
-  },
+  // Grosse Swipe-Buttons als Pills; die Hintergrundfarbe setzt jeder Button selbst.
+  knopf: { ...pill, padding: "10px 22px", fontSize: 18 },
 };
 
 /** Swipe-Dialog: Bild für Bild liken/ablehnen; Presets als Abkürzung. */
@@ -142,7 +136,7 @@ export function StilSwipe({
   return (
     <div style={stil.overlay} onClick={onAbbruch}>
       <div style={stil.karte} onClick={(e) => e.stopPropagation()}>
-        <h3 style={{ marginTop: 0, color: THEME.gruen }}>
+        <h3 style={{ ...titel, marginTop: 0, fontSize: 16 }}>
           Was gefällt dir? ({index + 1}/{bilder.length})
         </h3>
         <img

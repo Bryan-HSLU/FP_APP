@@ -365,10 +365,30 @@
    gesperrt + P2/P3; P1 war schon CI-Grün, jetzt via Token + Klarstellungs-
    Kommentar) · CI-Fonts NICHT eingebettet (Lizenz offen lt. Brain, Kommentar
    im Code) · index.html-Titel mit Claim.
+   · ✅ **Wizard-UI + Pitch-Grafikstil + Logos + Möbel-Materialfarben
+   (2026-07-06, Bryan-Vorgaben aus CD-Sheet/Flyer/App-Mockups – Brain:
+   Corporate-Identity §Layout- & Grafiksprache):**
+   - **Schritt-für-Schritt-Wizard** statt alles auf einem Screen: 1 Projekt
+     (Sample-Karten/Scan/Raum erstellen) → 2 Stil → 3 Vorschlag (Küche:
+     Formwahl) → 4 Anpassen (Viewer/Ampel/würfeln) → 5 Auswertung & Export.
+     Auto-Weiter nach Raumwahl und Plan; Badge-Navigation; keine Funktion
+     entfernt (Checkliste im Commit).
+   - **Pitch-Grafikstil als Tokens:** harter Schlagschatten OHNE Blur
+     (8px 8px 0) + weisser Innen-Schein auf allen Karten; orange Pill-Buttons;
+     dünne Versal-Titel; heller Verlauf-Grund (dunkler Flyer-Look = Marketing).
+   - **Echte Logos:** `public/FP-Logo-horizontal.png` im hellen Header +
+     Signet als Favicon (aus Brain-assets).
+   - **Möbel-Materialfarben:** MATERIAL_FARBE je funktionsTyp (Keramik/Holz/
+     Salbei/Edelstahl/Terracotta/Grün) – greift NUR bei Ampel-Status ok;
+     verletzt/knapp/gesperrt behalten Statusfarben (Ampel dominiert). Dafür
+     Viewer3D jetzt mit statusById → **Norm-Ampel auch in 3D sichtbar**.
+   apps/web 32 Tests grün, alle Gates sauber. CI-Fonts weiter bewusst nicht
+   eingebettet (Lizenz offen). Bryan liefert eigene Piktogramme nach →
+   gleicher Stil (inner glow + harter Schatten).
    **Als Nächstes:** Schritt 5 E2E gegen R1 auf Colab (braucht Bryans
    AR-App-Aufnahmen + echten SpatialLM-Lauf) · Schritt 6 M7 Korrektur-Modus
    (Anschlüsse/Ecken antippen; der Raum-Editor liefert die Eingabebausteine
-   dafür). Alt-Punkte unverändert offen: circulation
+   dafür) · Bryans Piktogramme einbauen, sobald geliefert. Alt-Punkte unverändert offen: circulation
    auf `hard` hochstufen (Hot-Path-Performance, mit Bryan abstimmen); Küche
    post-POC: mehr Slot-Breiten (30/45/90), triangle-aware Slot-Optimierung.
 2. **M2 Scan-Spike weiterführen:** Metrik-Kern + Ecken-Antippen-Pfad stehen &

@@ -13,6 +13,53 @@
  * die Ampel übersteuern würde.
  */
 
+/** Material-/Basisfarbe je funktionsTyp für den 3D-Viewer (Bryans Möbel-
+ *  Materialwunsch). WICHTIG: Nur wirksam, wenn die Norm-Ampel «ok» ist –
+ *  knapp/verletzt/gesperrt behalten im Viewer3D ihre Statusfarben, die Ampel
+ *  MUSS dominieren. Nicht kartierte Typen fallen auf Salbei zurück. */
+export const MATERIAL_FARBE: Record<string, string> = {
+  // Sanitär – Keramik-Hellton
+  wc: "#EDEDE6",
+  lavabo: "#EDEDE6",
+  dusche: "#EDEDE6",
+  badewanne: "#EDEDE6",
+  spuele: "#EDEDE6",
+  // Holz-Möbel – warmes gedämpftes Holz (CI-Orange-nah, entsättigt)
+  esstisch: "#B9906B",
+  couchtisch: "#B9906B",
+  beistelltisch: "#B9906B",
+  regal: "#B9906B",
+  sideboard: "#B9906B",
+  schrank: "#B9906B",
+  badmoebel: "#B9906B",
+  tvmoebel: "#B9906B",
+  unterschrank: "#B9906B",
+  hochschrank: "#B9906B",
+  haengeschrank: "#B9906B",
+  eckschrank: "#B9906B",
+  fuellstueck: "#B9906B",
+  // Polster – Salbei
+  sofa: "#9BA494",
+  // Geräte – Edelstahl
+  kuehlschrank: "#B9BEBE",
+  geschirrspueler: "#B9BEBE",
+  kochfeld: "#B9BEBE",
+  dunstabzug: "#B9BEBE",
+  // Textil – Terracotta gedämpft
+  teppich: "#C9A38A",
+  badteppich: "#C9A38A",
+  // Grün
+  pflanze: "#6F8F6A",
+};
+
+/** Salbei-Fallback für alle nicht kartierten Typen (Spiegel, Leuchten, Deko …). */
+export const MATERIAL_FALLBACK = "#9BA494";
+
+/** Materialfarbe eines funktionsTyps oder Salbei-Fallback. */
+export function materialFarbe(funktionsTyp: string): string {
+  return MATERIAL_FARBE[funktionsTyp] ?? MATERIAL_FALLBACK;
+}
+
 /** Rolle eines Bauteils – steuert nur die Farbableitung, nie die Ampel. */
 export type Rolle = "koerper" | "hell" | "dunkel" | "glas";
 

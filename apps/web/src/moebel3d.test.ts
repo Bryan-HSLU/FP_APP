@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { bauteile, mischen, passtInBbox, rolleFarbe } from "./moebel3d.tsx";
+import {
+  bauteile,
+  MATERIAL_FALLBACK,
+  MATERIAL_FARBE,
+  materialFarbe,
+  mischen,
+  passtInBbox,
+  rolleFarbe,
+} from "./moebel3d.tsx";
 
 // Alle im Katalog vorkommenden funktionsTypen (data/catalog/*.json).
 const KATALOG_TYPEN = [
@@ -71,6 +79,23 @@ describe("bauteile – Fallback", () => {
     expect(teile).toEqual([
       { form: "box", groesse: [0.8, 1.2, 0.6], pos: [0, 0, 0], rolle: "koerper" },
     ]);
+  });
+});
+
+describe("MATERIAL_FARBE – Möbel-Materialfarben", () => {
+  it("liefert für jeden Katalog-Typ eine gültige Farbe (Map oder Salbei-Fallback)", () => {
+    for (const typ of KATALOG_TYPEN) {
+      const f = materialFarbe(typ);
+      expect(f, `${typ} hat eine Farbe`).toMatch(/^#[0-9a-f]{6}$/i);
+      // Nicht kartierte Typen müssen exakt auf Salbei zurückfallen.
+      if (!(typ in MATERIAL_FARBE)) {
+        expect(f, `${typ} fällt auf Salbei zurück`).toBe(MATERIAL_FALLBACK);
+      }
+    }
+  });
+
+  it("gibt für unbekannte Typen den Salbei-Fallback zurück", () => {
+    expect(materialFarbe("gibtsnicht")).toBe(MATERIAL_FALLBACK);
   });
 });
 

@@ -10,7 +10,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { Vec2 } from "@fp/shared/rules";
 import { computeTransform, toScreen, toWorld } from "./plan2d.ts";
-import { THEME } from "./theme";
+import { karte as ciKarte, pill, THEME, titel } from "./theme";
 import {
   anschlussKuerzel,
   baueRaummodell,
@@ -49,9 +49,9 @@ const stil = {
     justifyContent: "center",
     zIndex: 10,
   },
+  // CI-Kartenstil (innerer Schein + harter Schlagschatten) mit Editor-Layout.
   karte: {
-    background: "white",
-    borderRadius: 12,
+    ...ciKarte,
     padding: 20,
     width: 980,
     maxWidth: "94vw",
@@ -62,14 +62,7 @@ const stil = {
     gap: 20,
     fontFamily: "system-ui, sans-serif",
   },
-  knopf: {
-    background: THEME.orange,
-    color: "white",
-    border: "none",
-    borderRadius: 6,
-    padding: "6px 12px",
-    cursor: "pointer",
-  },
+  knopf: pill,
   feld: { width: 70 },
   zeile: {
     display: "flex",
@@ -241,7 +234,7 @@ export function RaumEditor({
       <div style={stil.karte} onClick={(e) => e.stopPropagation()}>
         {/* Linke Spalte: SVG-Vorschau */}
         <div>
-          <h3 style={{ marginTop: 0, color: FARBE_WAND }}>Vorschau (Draufsicht)</h3>
+          <h3 style={{ ...titel, marginTop: 0, fontSize: 16 }}>Vorschau (Draufsicht)</h3>
           <svg
             ref={svgRef}
             width={SIZE}
@@ -341,7 +334,7 @@ export function RaumEditor({
 
         {/* Rechte Spalte: Eingaben */}
         <div>
-          <h3 style={{ marginTop: 0, color: FARBE_WAND }}>✏️ Raum selbst erstellen</h3>
+          <h3 style={{ ...titel, marginTop: 0, fontSize: 16 }}>✏️ Raum selbst erstellen</h3>
 
           <div style={stil.zeile}>
             <label>
