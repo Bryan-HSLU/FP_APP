@@ -9,6 +9,9 @@ sind im Brain beschrieben (POC-Demo-Architektur-HF).
 
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
 import tempfile
 import zipfile
 from pathlib import Path
@@ -105,24 +108,57 @@ def _depth_anything_provider(frames: dict[int, NDArray[np.uint8]]) -> TiefenProv
     return provider
 
 
+# Standard-Checkpoint: SpatialLM 1.1 mit Qwen-0.5B-Backbone (CC-BY-NC → nur
+# Colab). Über FP_SPATIALLM_MODELL überschreibbar (z. B. die Llama-1B-Variante).
+_SPATIALLM_MODELL_DEFAULT = "manycore-research/SpatialLM1.1-Qwen-0.5B"
+
+
 def _lauf_spatiallm(ply_pfad: Path) -> str:
-    """Führt SpatialLM auf der Punktwolke aus und liefert den ``layout.txt``-Text (guarded).
+    """Führt SpatialLM auf der Punktwolke aus und liefert den ``layout.txt``-Text.
 
-    SpatialLM ist CC-BY-NC – nur Colab, nie feste Dependency (CLAUDE.md §4).
+    Verdrahtet die SpatialLM-Vorverarbeitung **nicht** neu, sondern ruft das
+    offizielle ``inference.py`` aus dem geklonten SpatialLM-Repo als Subprozess
+    auf (``-p <ply> -o <layout.txt> -m <modell>``). Dessen Textausgabe
+    (``layout.to_language_string()``) *ist* der ``layout.txt``-Vertrag, den
+    ``fp_engines.scan.spatiallm`` parst – so bleibt der Aufruf robust gegen
+    interne API-Änderungen von SpatialLM statt sie nachzubauen.
+
+    SpatialLM ist CC-BY-NC – nur Colab, nie feste Dependency (CLAUDE.md §4). Das
+    Repo-Verzeichnis kommt aus ``FP_SPATIALLM_DIR`` (Default: ``SpatialLM``); die
+    Setup-Zelle des Colab-Notebooks klont es dorthin und setzt die Env-Variablen.
     """
-    try:
-        import torch  # noqa: F401
-    except ImportError as e:  # pragma: no cover - nur Colab
-        raise RuntimeError(f"SpatialLM (torch) {_NUR_COLAB}") from e
+    repo_dir = Path(os.environ.get("FP_SPATIALLM_DIR", "SpatialLM"))
+    inferenz = repo_dir / "inference.py"
+    if not inferenz.is_file():  # pragma: no cover - nur Colab
+        raise RuntimeError(
+            f"SpatialLM-Repo nicht gefunden ({inferenz}) – {_NUR_COLAB}. "
+            "Die Setup-Zelle klont es nach FP_SPATIALLM_DIR."
+        )
 
-    # TODO(Colab-Lauf, Fahrplan Schritt 5): exakten SpatialLM-Inferenz-Aufruf
-    # hier fixieren (Modell laden, ply_pfad füttern, Layout-Text zurückgeben).
-    # Der Textausgabe-Contract (Wall/Door/Window/Bbox-Zeilen, z-up) steht bereits
-    # in fp_engines.scan.spatiallm.
-    raise RuntimeError(
-        f"SpatialLM-Inferenz noch nicht verdrahtet ({ply_pfad.name}) – {_NUR_COLAB} "
-        "(TODO Fahrplan Schritt 5)."
+    modell = os.environ.get("FP_SPATIALLM_MODELL", _SPATIALLM_MODELL_DEFAULT)
+    layout_pfad = ply_pfad.with_suffix(".layout.txt")
+    ergebnis = subprocess.run(
+        [
+            sys.executable,
+            "inference.py",
+            "-p",
+            str(ply_pfad),
+            "-o",
+            str(layout_pfad),
+            "-m",
+            modell,
+        ],
+        cwd=str(repo_dir),
+        capture_output=True,
+        text=True,
     )
+    if ergebnis.returncode != 0 or not layout_pfad.is_file():  # pragma: no cover - nur Colab
+        schwanz = (ergebnis.stderr or ergebnis.stdout or "")[-2000:]
+        raise RuntimeError(
+            f"SpatialLM-Inferenz fehlgeschlagen (Code {ergebnis.returncode}, Modell "
+            f"{modell}):\n{schwanz}"
+        )
+    return layout_pfad.read_text(encoding="utf-8")
 
 
 def _scanne(

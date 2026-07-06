@@ -323,9 +323,20 @@
    **Kamera-Konvention festgezurrt** (poses.py-Docstring: OpenCV-Pinhole,
    T_wc; ARKit-Konverter = R·diag(1,−1,−1)). CI erweitert (lint/typecheck/
    test + sync). **Suite: 200 engines + 22 scan-worker = 222 grün.**
-   **Offen für ersten Colab-Lauf (Schritt 5):** exakter SpatialLM-Inferenz-
-   Aufruf in `_lauf_spatiallm`, TorchSparse-Pins/Wheel-Cache, Intrinsics aus
-   AR-Metadaten statt Schätzung.
+   · ✅ **Schritt 5 vorbereitet (2026-07-06):** `_lauf_spatiallm` **verdrahtet** –
+   ruft das offizielle SpatialLM-`inference.py` als Subprozess
+   (`-p scene.ply -o layout.txt -m manycore-research/SpatialLM1.1-Qwen-0.5B`),
+   dessen `to_language_string()`-Ausgabe = unser `layout.txt`-Vertrag (robust
+   gegen SpatialLM-API-Änderungen, kein Nachbau der Vorverarbeitung). Repo-Pfad
+   + Modell über `FP_SPATIALLM_DIR`/`FP_SPATIALLM_MODELL`. Notebook-Setup-Zelle
+   klont SpatialLM, installiert den 1.1-Stack (Poetry + `poe install-sonata`)
+   mit **flash-attn-Wheel-Cache auf Drive**. **Korrektur:** SpatialLM 1.1 nutzt
+   **Sonata + flash-attn** als Backbone, **nicht** TorchSparse (das war nur 1.0)
+   → Wheel-Cache zielt jetzt auf flash-attn.
+   **Offen (= der eigentliche R1-Gate, Schritt 5):** erster echter Colab-Lauf –
+   torch/CUDA-Pins an die Session anpassen (SpatialLM will 2.4.1/CUDA 12.4),
+   Genauigkeit gegen R1 messen, Intrinsics aus AR-Metadaten statt Schätzung.
+   Braucht Bryans AR-App-Aufnahmen (R1/R2/R3).
    · ✅ **Schritt 4 Upload-UI + `/scan` (2026-07-05):** `POST /scan`
    (multipart) nimmt ein **vorberechnetes Scan-Bundle** (`layout.txt` einzeln
    ODER `.zip` mit `layout.txt`/`poses.json`) → `_bundle_dateien` entpackt →
