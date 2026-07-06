@@ -14,6 +14,35 @@ export interface BildItem {
   istPreset: boolean;
 }
 
+/** Bild-Kachel mit Fallback: fehlt/lädt das Foto nicht (echte PNGs kommen von
+ *  Bryan separat), zeigen wir die getaggte Farbpalette als Vorschau statt eines
+ *  kaputten Bild-Icons – der Swipe bleibt so schon vor den Fotos benutzbar. */
+function BildKachel({ bild }: { bild: BildItem }) {
+  const [fehler, setFehler] = useState(false);
+  if (fehler || !bild.bildRef) {
+    return (
+      <div style={{ borderRadius: 8, overflow: "hidden", border: `1px solid ${THEME.salbei}` }}>
+        <div style={{ display: "flex", height: 200 }}>
+          {(bild.palette.length ? bild.palette : [THEME.salbei]).map((c, i) => (
+            <div key={i} style={{ flex: 1, background: c }} />
+          ))}
+        </div>
+        <div style={{ padding: 6, fontSize: 12, textAlign: "center", color: THEME.gruen }}>
+          Farbpalette · Foto folgt
+        </div>
+      </div>
+    );
+  }
+  return (
+    <img
+      src={`/api/bilder/${bild.bildRef}`}
+      alt="Stil-Beispiel"
+      onError={() => setFehler(true)}
+      style={{ width: "100%", borderRadius: 8 }}
+    />
+  );
+}
+
 export interface Achse {
   id: string;
   negativPol: string;
@@ -139,11 +168,7 @@ export function StilSwipe({
         <h3 style={{ ...titel, marginTop: 0, fontSize: 16 }}>
           Was gefällt dir? ({index + 1}/{bilder.length})
         </h3>
-        <img
-          src={`/api/bilder/${bild.bildRef}`}
-          alt="Stil-Beispiel"
-          style={{ width: "100%", borderRadius: 8 }}
-        />
+        <BildKachel bild={bild} key={bild.id} />
         <div style={{ display: "flex", gap: 16, justifyContent: "center", margin: "14px 0" }}>
           <button style={{ ...stil.knopf, background: "#8a8a8a" }} onClick={() => bewerte(false)}>
             👎 eher nicht
