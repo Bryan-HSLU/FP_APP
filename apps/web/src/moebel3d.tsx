@@ -24,6 +24,8 @@ export const MATERIAL_FARBE: Record<string, string> = {
   dusche: "#EDEDE6",
   badewanne: "#EDEDE6",
   spuele: "#EDEDE6",
+  urinal: "#EDEDE6",
+  bidet: "#EDEDE6",
   // Holz-Möbel – warmes gedämpftes Holz (CI-Orange-nah, entsättigt)
   esstisch: "#B9906B",
   couchtisch: "#B9906B",
@@ -31,6 +33,7 @@ export const MATERIAL_FARBE: Record<string, string> = {
   regal: "#B9906B",
   sideboard: "#B9906B",
   schrank: "#B9906B",
+  kleiderschrank: "#B9906B",
   badmoebel: "#B9906B",
   tvmoebel: "#B9906B",
   unterschrank: "#B9906B",
@@ -38,13 +41,29 @@ export const MATERIAL_FARBE: Record<string, string> = {
   haengeschrank: "#B9906B",
   eckschrank: "#B9906B",
   fuellstueck: "#B9906B",
+  bett: "#B9906B",
+  einzelbett: "#B9906B",
+  doppelbett: "#B9906B",
+  kinderbett: "#B9906B",
+  schreibtisch: "#B9906B",
+  stuhl: "#B9906B",
+  buerostuhl: "#B9906B",
+  esstischstuhl: "#B9906B",
+  hocker: "#B9906B",
+  nachttisch: "#B9906B",
+  kommode: "#B9906B",
   // Polster – Salbei
   sofa: "#9BA494",
+  sessel: "#9BA494",
   // Geräte – Edelstahl
   kuehlschrank: "#B9BEBE",
   geschirrspueler: "#B9BEBE",
   kochfeld: "#B9BEBE",
   dunstabzug: "#B9BEBE",
+  backofen: "#B9BEBE",
+  mikrowelle: "#B9BEBE",
+  waschmaschine: "#B9BEBE",
+  tumbler: "#B9BEBE",
   // Textil – Terracotta gedämpft
   teppich: "#C9A38A",
   badteppich: "#C9A38A",
@@ -135,64 +154,168 @@ export function rolleFarbe(rolle: Rolle, farbe: string): string {
 
 type Bauer = (w: number, d: number, h: number) => Teil[];
 
+// ═══════════════════════════════════════════════════════════════════
+// BAD
+// ═══════════════════════════════════════════════════════════════════
+
+// WC: Keramikkörper + Sitzfläche + Spülkasten mit Knopf
 const wc: Bauer = (w, d, h) => [
-  box([w, h * 0.5, d * 0.8], [0, -h / 2 + h * 0.25, d * 0.05], "koerper"),
-  box([w * 0.95, h * 0.08, d * 0.8], [0, -h / 2 + h * 0.54, d * 0.05], "hell"),
-  box([w * 0.9, h * 0.42, d * 0.25], [0, h / 2 - h * 0.21, -d / 2 + d * 0.125], "koerper"),
+  // Keramik-Sockel
+  box([w * 0.9, h * 0.48, d * 0.78], [0, -h / 2 + h * 0.24, d * 0.05], "koerper"),
+  // Sitzfläche (heller Ring)
+  box([w * 0.88, h * 0.06, d * 0.74], [0, -h / 2 + h * 0.5, d * 0.05], "hell"),
+  // Sitzdeckel
+  box([w * 0.86, h * 0.04, d * 0.72], [0, -h / 2 + h * 0.57, d * 0.05], "dunkel"),
+  // Spülkasten
+  box([w * 0.88, h * 0.38, d * 0.22], [0, h / 2 - h * 0.19, -d / 2 + d * 0.11], "koerper"),
+  // Spülknopf
+  box([w * 0.12, h * 0.04, d * 0.04], [0, h / 2 - h * 0.06, -d / 2 + d * 0.22], "dunkel"),
 ];
 
+// Lavabo: Schale + Säule + Armatur + Abfluss
 const lavabo: Bauer = (w, d, h) => {
   const r = Math.min(w, d);
   return [
-    zyl(r * 0.16, r * 0.2, h * 0.65, [0, -h / 2 + h * 0.325, 0], "koerper"),
-    box([w, h * 0.28, d], [0, h / 2 - h * 0.14, 0], "hell"),
-    box([w * 0.7, h * 0.06, d * 0.7], [0, h / 2 - h * 0.05, 0], "dunkel"),
+    // Säule (Zylinder)
+    zyl(r * 0.14, r * 0.18, h * 0.55, [0, -h / 2 + h * 0.275, 0], "koerper"),
+    // Beckenplatte
+    box([w * 0.96, h * 0.22, d * 0.96], [0, h / 2 - h * 0.15, 0], "hell"),
+    // Beckenvertiefung (dunkel)
+    box([w * 0.72, h * 0.12, d * 0.72], [0, h / 2 - h * 0.08, 0], "dunkel"),
+    // Armatur-Körper
+    box([w * 0.07, h * 0.18, d * 0.07], [0, h / 2 - h * 0.02, -d * 0.1], "dunkel"),
+    // Armatur-Auslauf (waagerecht)
+    box([w * 0.04, h * 0.04, d * 0.2], [0, h / 2 - h * 0.01, d * 0.04], "dunkel"),
+    // Abfluss
+    zyl(r * 0.04, r * 0.04, h * 0.04, [0, h / 2 - h * 0.12, 0], "dunkel"),
   ];
 };
 
+// Dusche: Wanne + 2 Glaswände + Duschkopf + Armatur
 const dusche: Bauer = (w, d, h) => [
-  box([w, h * 0.05, d], [0, -h / 2 + h * 0.025, 0], "koerper"),
-  box([w * 0.04, h * 0.9, d * 0.98], [w / 2 - w * 0.02, 0, 0], "glas"),
-  box([w * 0.98, h * 0.9, d * 0.04], [0, 0, d / 2 - d * 0.02], "glas"),
+  // Wannenboden
+  box([w * 0.98, h * 0.05, d * 0.98], [0, -h / 2 + h * 0.025, 0], "koerper"),
+  // Wannenrand
+  box([w, h * 0.08, d], [0, -h / 2 + h * 0.07, 0], "hell"),
+  // Glaswand links/rechts
+  box([w * 0.04, h * 0.88, d * 0.96], [w / 2 - w * 0.02, h * 0.02, 0], "glas"),
+  // Glaswand vorne
+  box([w * 0.96, h * 0.88, d * 0.04], [0, h * 0.02, d / 2 - d * 0.02], "glas"),
+  // Armatur-Stange
+  zyl(w * 0.02, w * 0.02, h * 0.45, [-w * 0.38, h * 0.18, -d * 0.44], "dunkel"),
+  // Duschkopf
+  zyl(w * 0.08, w * 0.08, h * 0.04, [-w * 0.38, h / 2 - h * 0.1, -d * 0.44], "dunkel"),
 ];
 
+// Badewanne: Wanne mit Rand, Armatur, Abfluss
 const badewanne: Bauer = (w, d, h) => [
-  box([w, h * 0.9, d], [0, -h / 2 + h * 0.45, 0], "koerper"),
-  box([w, h * 0.12, d], [0, h / 2 - h * 0.06, 0], "hell"),
-  box([w * 0.82, h * 0.05, d * 0.78], [0, h / 2 - h * 0.13, 0], "dunkel"),
+  // Aussenkörper
+  box([w, h * 0.88, d], [0, -h / 2 + h * 0.44, 0], "koerper"),
+  // Oberer Rand
+  box([w, h * 0.1, d], [0, h / 2 - h * 0.05, 0], "hell"),
+  // Innenwanne (dunkle Vertiefung)
+  box([w * 0.84, h * 0.06, d * 0.8], [0, h / 2 - h * 0.12, 0], "dunkel"),
+  // Füsse (4 Zylinder an den Ecken)
+  zyl(w * 0.03, w * 0.03, h * 0.1, [-w * 0.42, -h / 2 + h * 0.05, -d * 0.42], "dunkel"),
+  zyl(w * 0.03, w * 0.03, h * 0.1, [w * 0.42, -h / 2 + h * 0.05, -d * 0.42], "dunkel"),
+  zyl(w * 0.03, w * 0.03, h * 0.1, [-w * 0.42, -h / 2 + h * 0.05, d * 0.42], "dunkel"),
+  zyl(w * 0.03, w * 0.03, h * 0.1, [w * 0.42, -h / 2 + h * 0.05, d * 0.42], "dunkel"),
+  // Armatur
+  box([w * 0.07, h * 0.15, d * 0.06], [-w * 0.35, h / 2 - h * 0.08, -d / 2 + d * 0.08], "dunkel"),
 ];
 
+// Spiegel: Rahmen + Spiegelfläche + kleine Ablage unten
 const spiegel: Bauer = (w, d, h) => [
-  box([w, h, d * 0.5], [0, 0, -d * 0.25], "dunkel"),
-  box([w * 0.92, h * 0.92, d * 0.4], [0, 0, d * 0.05], "hell"),
+  // Rahmen
+  box([w, h, d * 0.55], [0, 0, -d * 0.23], "dunkel"),
+  // Spiegelfläche (hell/glas)
+  box([w * 0.9, h * 0.9, d * 0.35], [0, 0, d * 0.05], "glas"),
+  // Ablage unten
+  box([w, h * 0.08, d * 0.5], [0, -h / 2 + h * 0.04, d * 0.05], "hell"),
 ];
 
+// Badmöbel (Waschtisch-Unterschrank): 2 Schubladen, Griffe, Sockel
+const badmoebel: Bauer = (w, d, h) => [
+  // Korpus
+  box([w, h * 0.82, d], [0, -h / 2 + h * 0.41, 0], "koerper"),
+  // Oberer Abschluss
+  box([w, h * 0.08, d], [0, h / 2 - h * 0.04, 0], "dunkel"),
+  // Sockel zurückgesetzt
+  box([w * 0.9, h * 0.06, d * 0.6], [0, -h / 2 + h * 0.03, 0], "dunkel"),
+  // Trennlinie Mitte (2 Türen)
+  box([w * 0.014, h * 0.68, d * 0.02], [0, -h * 0.04, d / 2 - d * 0.01], "dunkel"),
+  // Griff links
+  box([w * 0.012, h * 0.06, d * 0.04], [-w * 0.18, -h * 0.04, d / 2 - d * 0.02], "hell"),
+  // Griff rechts
+  box([w * 0.012, h * 0.06, d * 0.04], [w * 0.18, -h * 0.04, d / 2 - d * 0.02], "hell"),
+];
+
+// Handtuchstange: Stange + 2 Wandhalter + aufgehängtes Tuch
+const handtuchstange: Bauer = (w, d, h) => [
+  // Stange
+  zyl(w * 0.025, w * 0.025, w * 0.92, [0, 0, d / 2 - d * 0.1], "hell"),
+  // Linker Halter
+  box([w * 0.04, h * 0.22, d * 0.38], [-w * 0.44, 0, d / 2 - d * 0.22], "dunkel"),
+  // Rechter Halter
+  box([w * 0.04, h * 0.22, d * 0.38], [w * 0.44, 0, d / 2 - d * 0.22], "dunkel"),
+  // Tuch (hängendes Textil, leicht über Stange hinaus – bleibt in bbox)
+  box([w * 0.82, h * 0.7, d * 0.04], [0, -h * 0.1, d / 2 - d * 0.08], "koerper"),
+];
+
+// Handtuchheizung: Wandplatte + Heizrohre
+const handtuchheizung: Bauer = (w, d, h) => [
+  // Wandplatte
+  box([w, h, d * 0.45], [0, 0, -d * 0.28], "koerper"),
+  // 6 horizontale Heizrohre
+  ...Array.from({ length: 6 }, (_, i) =>
+    zyl(
+      w * 0.03,
+      w * 0.03,
+      w * 0.88,
+      [0, -h * 0.38 + i * (h * 0.76) * 0.2, d * 0.04],
+      "hell",
+    ),
+  ),
+  // Vertikale Verbindungsrohre links/rechts
+  box([w * 0.04, h * 0.96, d * 0.06], [-w * 0.44, 0, d * 0.02], "dunkel"),
+  box([w * 0.04, h * 0.96, d * 0.06], [w * 0.44, 0, d * 0.02], "dunkel"),
+];
+
+// Urinal: Wandmontiert, Keramik-Schale + Wasserzulauf
+const urinal: Bauer = (w, d, h) => [
+  // Hauptkörper kegelförmig
+  box([w * 0.9, h * 0.65, d * 0.82], [0, -h / 2 + h * 0.38, 0], "koerper"),
+  // Obere Schale (Vertiefung)
+  box([w * 0.72, h * 0.06, d * 0.58], [0, h / 2 - h * 0.36, d * 0.08], "dunkel"),
+  // Zulaufrohr oben
+  box([w * 0.08, h * 0.22, d * 0.06], [0, h / 2 - h * 0.11, -d / 2 + d * 0.06], "dunkel"),
+  // Spülknopf
+  box([w * 0.1, h * 0.04, d * 0.04], [0, h / 2 - h * 0.12, -d / 2 + d * 0.12], "hell"),
+];
+
+// Bidet: Ähnlich WC aber schmaler, mit Armatur
+const bidet: Bauer = (w, d, h) => [
+  // Keramikschale
+  box([w * 0.92, h * 0.46, d * 0.82], [0, -h / 2 + h * 0.23, 0], "koerper"),
+  // Sitzfläche (offen in der Mitte)
+  box([w * 0.9, h * 0.05, d * 0.8], [0, -h / 2 + h * 0.5, 0], "hell"),
+  // Armatur vorne
+  box([w * 0.08, h * 0.25, d * 0.08], [0, h / 2 - h * 0.12, -d / 2 + d * 0.1], "dunkel"),
+  // Auslauf
+  box([w * 0.04, h * 0.04, d * 0.22], [0, h / 2 - h * 0.05, -d / 2 + d * 0.2], "dunkel"),
+];
+
+// Schrank (allgemein): Korpus, Mitteltrenner, 2 Griffe, Sockel
 const schrank: Bauer = (w, d, h) => [
   box([w, h, d], [0, 0, 0], "koerper"),
-  box([w * 0.015, h * 0.92, d * 0.02], [0, 0, d / 2 - d * 0.01], "dunkel"),
-  box([w * 0.03, h * 0.12, d * 0.04], [-w * 0.12, h * 0.25, d / 2 - d * 0.02], "dunkel"),
-  box([w * 0.03, h * 0.12, d * 0.04], [w * 0.12, h * 0.25, d / 2 - d * 0.02], "dunkel"),
-];
-
-const handtuchstange: Bauer = (w, d, h) => [
-  box([w * 0.96, h * 0.12, d * 0.25], [0, 0, d / 2 - d * 0.15], "hell"),
-  box([w * 0.04, h * 0.2, d * 0.4], [-w * 0.44, 0, d / 2 - d * 0.25], "dunkel"),
-  box([w * 0.04, h * 0.2, d * 0.4], [w * 0.44, 0, d / 2 - d * 0.25], "dunkel"),
-];
-
-const handtuchheizung: Bauer = (w, d, h) => [
-  box([w, h, d * 0.5], [0, 0, -d * 0.15], "koerper"),
-  ...Array.from({ length: 5 }, (_, i) =>
-    box([w * 0.9, h * 0.05, d * 0.6], [0, -h * 0.4 + i * (h * 0.8) * 0.25, d * 0.05], "hell"),
-  ),
-];
-
-// Waschtisch-Unterschrank / generisches Badmöbel.
-const badmoebel: Bauer = (w, d, h) => [
-  box([w, h * 0.82, d], [0, -h / 2 + h * 0.41, 0], "koerper"),
-  box([w, h * 0.08, d], [0, h / 2 - h * 0.04, 0], "dunkel"),
-  box([w * 0.012, h * 0.7, d * 0.02], [-w * 0.2, -h * 0.05, d / 2 - d * 0.01], "dunkel"),
-  box([w * 0.012, h * 0.7, d * 0.02], [w * 0.2, -h * 0.05, d / 2 - d * 0.01], "dunkel"),
+  // Vertikaler Mitteltrenner
+  box([w * 0.014, h * 0.96, d * 0.02], [0, 0, d / 2 - d * 0.01], "dunkel"),
+  // Griff links
+  box([w * 0.03, h * 0.1, d * 0.04], [-w * 0.16, h * 0.2, d / 2 - d * 0.02], "hell"),
+  // Griff rechts
+  box([w * 0.03, h * 0.1, d * 0.04], [w * 0.16, h * 0.2, d / 2 - d * 0.02], "hell"),
+  // Sockel zurückgesetzt
+  box([w * 0.92, h * 0.05, d * 0.7], [0, -h / 2 + h * 0.025, 0], "dunkel"),
 ];
 
 // Flache Matte (Teppich/Badteppich): sehr niedrig, mit dezenter Musterfläche.
@@ -201,22 +324,63 @@ const matte: Bauer = (w, d, h) => [
   box([w * 0.82, h * 0.55, d * 0.82], [0, h / 2 - h * 0.275, 0], "hell"),
 ];
 
+// ═══════════════════════════════════════════════════════════════════
+// WOHNEN / SCHLAFEN
+// ═══════════════════════════════════════════════════════════════════
+
+// Sofa: Sitz + Rückenlehne + 2 Armlehnen + 3 Kissen
 const sofa: Bauer = (w, d, h) => [
-  box([w, h * 0.4, d], [0, -h / 2 + h * 0.2, 0], "koerper"),
-  box([w * 0.78, h * 0.18, d * 0.8], [0, -h / 2 + h * 0.49, d * 0.06], "hell"),
-  box([w, h * 0.55, d * 0.22], [0, h / 2 - h * 0.275, -d / 2 + d * 0.11], "koerper"),
-  box([w * 0.12, h * 0.6, d], [-w / 2 + w * 0.06, -h / 2 + h * 0.3, 0], "koerper"),
-  box([w * 0.12, h * 0.6, d], [w / 2 - w * 0.06, -h / 2 + h * 0.3, 0], "koerper"),
+  // Sitzfläche
+  box([w, h * 0.38, d], [0, -h / 2 + h * 0.19, 0], "koerper"),
+  // Rückenlehne
+  box([w, h * 0.52, d * 0.22], [0, h / 2 - h * 0.26, -d / 2 + d * 0.11], "koerper"),
+  // Linke Armlehne
+  box([w * 0.12, h * 0.58, d], [-w / 2 + w * 0.06, -h / 2 + h * 0.29, 0], "koerper"),
+  // Rechte Armlehne
+  box([w * 0.12, h * 0.58, d], [w / 2 - w * 0.06, -h / 2 + h * 0.29, 0], "koerper"),
+  // Kissen links
+  box([w * 0.24, h * 0.16, d * 0.72], [-w * 0.24, -h / 2 + h * 0.48, d * 0.06], "hell"),
+  // Kissen mitte
+  box([w * 0.24, h * 0.16, d * 0.72], [0, -h / 2 + h * 0.48, d * 0.06], "hell"),
+  // Kissen rechts
+  box([w * 0.24, h * 0.16, d * 0.72], [w * 0.24, -h / 2 + h * 0.48, d * 0.06], "hell"),
+  // 4 Füsse
+  box([w * 0.06, h * 0.06, d * 0.06], [-w * 0.42, -h / 2 + h * 0.03, -d * 0.42], "dunkel"),
+  box([w * 0.06, h * 0.06, d * 0.06], [w * 0.42, -h / 2 + h * 0.03, -d * 0.42], "dunkel"),
+  box([w * 0.06, h * 0.06, d * 0.06], [-w * 0.42, -h / 2 + h * 0.03, d * 0.42], "dunkel"),
+  box([w * 0.06, h * 0.06, d * 0.06], [w * 0.42, -h / 2 + h * 0.03, d * 0.42], "dunkel"),
 ];
 
-// Tisch mit Platte + 4 Beinen (Ess-/Couch-/Beistelltisch teilen die Form).
+// Sessel: Sitz + Rückenlehne + 2 Armlehnen + Kissen + 4 Beine
+const sessel: Bauer = (w, d, h) => [
+  // Sitz
+  box([w, h * 0.4, d], [0, -h / 2 + h * 0.2, 0], "koerper"),
+  // Rückenlehne
+  box([w, h * 0.52, d * 0.2], [0, h / 2 - h * 0.26, -d / 2 + d * 0.1], "koerper"),
+  // Linke Armlehne
+  box([w * 0.14, h * 0.55, d], [-w / 2 + w * 0.07, -h / 2 + h * 0.275, 0], "koerper"),
+  // Rechte Armlehne
+  box([w * 0.14, h * 0.55, d], [w / 2 - w * 0.07, -h / 2 + h * 0.275, 0], "koerper"),
+  // Sitzkissen
+  box([w * 0.7, h * 0.14, d * 0.78], [0, -h / 2 + h * 0.47, d * 0.04], "hell"),
+  // 4 Beine
+  box([w * 0.07, h * 0.12, d * 0.07], [-w * 0.38, -h / 2 + h * 0.06, -d * 0.38], "dunkel"),
+  box([w * 0.07, h * 0.12, d * 0.07], [w * 0.38, -h / 2 + h * 0.06, -d * 0.38], "dunkel"),
+  box([w * 0.07, h * 0.12, d * 0.07], [-w * 0.38, -h / 2 + h * 0.06, d * 0.38], "dunkel"),
+  box([w * 0.07, h * 0.12, d * 0.07], [w * 0.38, -h / 2 + h * 0.06, d * 0.38], "dunkel"),
+];
+
+// Tisch: Platte + 4 Beine (Ess-/Couch-/Beistelltisch)
 const tisch: Bauer = (w, d, h) => {
   const bx = w / 2 - w * 0.06;
   const bz = d / 2 - d * 0.06;
   const bein = (x: number, z: number): Teil =>
-    box([w * 0.06, h * 0.9, d * 0.06], [x, -h / 2 + h * 0.45, z], "dunkel");
+    box([w * 0.06, h * 0.88, d * 0.06], [x, -h / 2 + h * 0.44, z], "dunkel");
   return [
+    // Tischplatte
     box([w, h * 0.09, d], [0, h / 2 - h * 0.045, 0], "koerper"),
+    // Unterseite der Platte leicht heller
+    box([w * 0.94, h * 0.03, d * 0.94], [0, h / 2 - h * 0.1, 0], "hell"),
     bein(-bx, -bz),
     bein(bx, -bz),
     bein(-bx, bz),
@@ -224,24 +388,39 @@ const tisch: Bauer = (w, d, h) => {
   ];
 };
 
+// Regal: 2 Seitenwände + Rückwand + 4 Böden
 const regal: Bauer = (w, d, h) => [
+  // Linke Wand
   box([w * 0.05, h, d], [-w / 2 + w * 0.025, 0, 0], "koerper"),
+  // Rechte Wand
   box([w * 0.05, h, d], [w / 2 - w * 0.025, 0, 0], "koerper"),
+  // Rückwand
   box([w, h, d * 0.05], [0, 0, -d / 2 + d * 0.025], "dunkel"),
+  // Deckplatte
+  box([w, h * 0.04, d], [0, h / 2 - h * 0.02, 0], "koerper"),
+  // 4 Einlegeböden
   ...Array.from({ length: 4 }, (_, i) =>
     box([w * 0.9, h * 0.04, d * 0.9], [0, -h / 2 + h * 0.03 + i * (h * 0.94) * (1 / 3), 0], "hell"),
   ),
 ];
 
+// Sideboard: Korpus + 4 Füsse + Griffe + Schattenfuge
 const sideboard: Bauer = (w, d, h) => {
   const fx = w / 2 - w * 0.05;
   const fz = d / 2 - d * 0.1;
   const fuss = (x: number, z: number): Teil =>
     box([w * 0.05, h * 0.15, d * 0.1], [x, -h / 2 + h * 0.075, z], "dunkel");
   return [
+    // Korpus
     box([w, h * 0.85, d], [0, -h / 2 + h * 0.15 + h * 0.425, 0], "koerper"),
-    box([w * 0.012, h * 0.7, d * 0.02], [-w / 6, h * 0.1, d / 2 - d * 0.01], "dunkel"),
-    box([w * 0.012, h * 0.7, d * 0.02], [w / 6, h * 0.1, d / 2 - d * 0.01], "dunkel"),
+    // Schattenfuge (Trennlinie)
+    box([w * 0.012, h * 0.7, d * 0.02], [-w / 3, h * 0.1, d / 2 - d * 0.01], "dunkel"),
+    box([w * 0.012, h * 0.7, d * 0.02], [0, h * 0.1, d / 2 - d * 0.01], "dunkel"),
+    box([w * 0.012, h * 0.7, d * 0.02], [w / 3, h * 0.1, d / 2 - d * 0.01], "dunkel"),
+    // Griff links
+    box([w * 0.1, h * 0.04, d * 0.04], [-w * 0.24, h * 0.1, d / 2 - d * 0.02], "hell"),
+    // Griff rechts
+    box([w * 0.1, h * 0.04, d * 0.04], [w * 0.24, h * 0.1, d / 2 - d * 0.02], "hell"),
     fuss(-fx, -fz),
     fuss(fx, -fz),
     fuss(-fx, fz),
@@ -249,111 +428,75 @@ const sideboard: Bauer = (w, d, h) => {
   ];
 };
 
+// Stehleuchte: Fussplatte + Stab + Schirm
 const stehleuchte: Bauer = (w, d, h) => {
   const r = Math.min(w, d);
   return [
-    zyl(r * 0.35, r * 0.4, h * 0.02, [0, -h / 2 + h * 0.01, 0], "dunkel"),
-    zyl(r * 0.05, r * 0.05, h * 0.7, [0, -h / 2 + h * 0.35, 0], "dunkel"),
-    zyl(r * 0.45, r * 0.28, h * 0.2, [0, h / 2 - h * 0.1, 0], "hell"),
+    // Fussplatte (flach)
+    zyl(r * 0.38, r * 0.42, h * 0.025, [0, -h / 2 + h * 0.013, 0], "dunkel"),
+    // Stab
+    zyl(r * 0.04, r * 0.05, h * 0.72, [0, -h / 2 + h * 0.36, 0], "dunkel"),
+    // Schirm aussen
+    zyl(r * 0.46, r * 0.28, h * 0.18, [0, h / 2 - h * 0.09, 0], "koerper"),
+    // Schirm-Innenfläche (leuchtet heller)
+    zyl(r * 0.38, r * 0.22, h * 0.15, [0, h / 2 - h * 0.08, 0], "hell"),
   ];
 };
 
+// Pflanze: Topf + Erde + Kugelbüsche
 const pflanze: Bauer = (w, d, h) => {
   const r = Math.min(w, d);
-  const rL = Math.min(r * 0.45, h * 0.28);
+  const rL = Math.min(r * 0.44, h * 0.28);
   return [
-    zyl(r * 0.32, r * 0.24, h * 0.32, [0, -h / 2 + h * 0.16, 0], "dunkel"),
+    // Topf aussen
+    zyl(r * 0.34, r * 0.26, h * 0.3, [0, -h / 2 + h * 0.15, 0], "dunkel"),
+    // Erde
+    zyl(r * 0.3, r * 0.3, h * 0.06, [0, -h / 2 + h * 0.32, 0], "dunkel"),
+    // Grosser Hauptbusch
     kugel(rL, [0, h / 2 - rL, 0], "koerper"),
-    kugel(rL * 0.6, [0, h / 2 - rL, 0], "hell"),
+    // Kleiner Nebenbusch leicht versetzt
+    kugel(rL * 0.62, [r * 0.14, h / 2 - rL * 1.1, r * 0.12], "hell"),
+    // Zweiter Nebenbusch
+    kugel(rL * 0.5, [-r * 0.12, h / 2 - rL * 1.2, -r * 0.1], "koerper"),
   ];
 };
 
+// Wandbild: Rahmen + Passepartout + Bildfläche
 const wandbild: Bauer = (w, d, h) => [
-  box([w, h, d], [0, 0, 0], "koerper"),
-  box([w * 0.86, h * 0.86, d * 0.6], [0, 0, d * 0.2], "hell"),
+  // Rahmen
+  box([w, h, d * 0.5], [0, 0, -d * 0.25], "dunkel"),
+  // Passepartout (heller Rand)
+  box([w * 0.9, h * 0.9, d * 0.38], [0, 0, d * 0.01], "hell"),
+  // Bildfläche (leicht abgestuft)
+  box([w * 0.78, h * 0.78, d * 0.32], [0, 0, d * 0.08], "koerper"),
 ];
 
+// Wandleuchte: Wandplatte + Arm + Schirm
 const wandleuchte: Bauer = (w, d, h) => [
-  box([w * 0.5, h * 0.5, d * 0.5], [0, 0, -d * 0.25], "koerper"),
-  box([w, h * 0.3, d * 0.5], [0, -h * 0.1, d * 0.1], "hell"),
+  // Wandplatte
+  box([w * 0.52, h * 0.52, d * 0.44], [0, 0, -d * 0.28], "dunkel"),
+  // Arm
+  box([w * 0.12, h * 0.08, d * 0.52], [0, h * 0.1, 0], "dunkel"),
+  // Schirm (zylindrisch, leuchtet nach unten)
+  zyl(Math.min(w, d) * 0.38, Math.min(w, d) * 0.22, h * 0.32, [0, -h * 0.06, d * 0.15], "hell"),
 ];
 
+// TV-Möbel: Unterschrank + TV-Panel + Fuss + Standfuss
 const tvmoebel: Bauer = (w, d, h) => [
-  box([w, h * 0.42, d], [0, -h / 2 + h * 0.21, 0], "koerper"),
-  box([w * 0.8, h * 0.5, d * 0.08], [0, -h / 2 + h * 0.67, -d / 2 + d * 0.12], "dunkel"),
-  box([w * 0.1, h * 0.06, d * 0.15], [0, -h / 2 + h * 0.45, -d / 2 + d * 0.12], "dunkel"),
+  // Unterschrank
+  box([w, h * 0.44, d], [0, -h / 2 + h * 0.22, 0], "koerper"),
+  // Schattenfuge (3 Türen)
+  box([w * 0.014, h * 0.38, d * 0.02], [-w * 0.33, -h / 2 + h * 0.22, d / 2 - d * 0.01], "dunkel"),
+  box([w * 0.014, h * 0.38, d * 0.02], [w * 0.33, -h / 2 + h * 0.22, d / 2 - d * 0.01], "dunkel"),
+  // TV-Bildschirm
+  box([w * 0.82, h * 0.48, d * 0.06], [0, -h / 2 + h * 0.7, -d / 2 + d * 0.09], "dunkel"),
+  // TV-Bildschirm Fläche (heller)
+  box([w * 0.76, h * 0.42, d * 0.04], [0, -h / 2 + h * 0.7, -d / 2 + d * 0.11], "glas"),
+  // TV-Standfuss
+  box([w * 0.1, h * 0.04, d * 0.12], [0, -h / 2 + h * 0.46, -d / 2 + d * 0.1], "dunkel"),
 ];
 
-const unterschrank: Bauer = (w, d, h) => [
-  box([w, h * 0.86, d], [0, -h / 2 + h * 0.49, 0], "koerper"),
-  box([w, h * 0.08, d], [0, h / 2 - h * 0.04, 0], "dunkel"),
-  box([w * 0.94, h * 0.06, d * 0.9], [0, -h / 2 + h * 0.03, 0], "dunkel"),
-  box([w * 0.5, h * 0.03, d * 0.03], [0, h / 2 - h * 0.12, d / 2 - d * 0.015], "hell"),
-  box([w * 0.012, h * 0.7, d * 0.02], [0, -h * 0.05, d / 2 - d * 0.01], "dunkel"),
-];
-
-const hochschrank: Bauer = (w, d, h) => [
-  box([w, h * 0.94, d], [0, -h / 2 + h * 0.53, 0], "koerper"),
-  box([w * 0.94, h * 0.06, d * 0.9], [0, -h / 2 + h * 0.03, 0], "dunkel"),
-  box([w * 0.98, h * 0.012, d * 0.02], [0, h * 0.05, d / 2 - d * 0.01], "dunkel"),
-  box([w * 0.5, h * 0.03, d * 0.03], [0, h * 0.12, d / 2 - d * 0.015], "hell"),
-  box([w * 0.5, h * 0.03, d * 0.03], [0, -h * 0.02, d / 2 - d * 0.015], "hell"),
-];
-
-const haengeschrank: Bauer = (w, d, h) => [
-  box([w, h, d], [0, 0, 0], "koerper"),
-  box([w * 0.012, h * 0.92, d * 0.02], [0, 0, d / 2 - d * 0.01], "dunkel"),
-  box([w * 0.5, h * 0.03, d * 0.03], [0, -h / 2 + h * 0.12, d / 2 - d * 0.015], "hell"),
-];
-
-const spuele: Bauer = (w, d, h) => [
-  box([w, h, d], [0, 0, 0], "koerper"),
-  box([w * 0.72, h * 0.12, d * 0.72], [0, h / 2 - h * 0.06, 0], "dunkel"),
-];
-
-const kochfeld: Bauer = (w, d, h) => {
-  const r = Math.min(w, d) * 0.16;
-  const platte = (x: number, z: number): Teil =>
-    zyl(r, r, h * 0.03, [x, h / 2 - h * 0.09, z], "dunkel");
-  return [
-    box([w, h * 0.9, d], [0, -h / 2 + h * 0.45, 0], "koerper"),
-    box([w * 0.96, h * 0.1, d * 0.96], [0, h / 2 - h * 0.05, 0], "dunkel"),
-    platte(-w * 0.22, -d * 0.22),
-    platte(w * 0.22, -d * 0.22),
-    platte(-w * 0.22, d * 0.22),
-    platte(w * 0.22, d * 0.22),
-  ];
-};
-
-const kuehlschrank: Bauer = (w, d, h) => [
-  box([w, h, d], [0, 0, 0], "koerper"),
-  box([w * 0.98, h * 0.015, d * 0.02], [0, h * 0.18, d / 2 - d * 0.01], "dunkel"),
-  box([w * 0.04, h * 0.5, d * 0.03], [w / 2 - w * 0.08, -h * 0.1, d / 2 - d * 0.015], "hell"),
-  box([w * 0.04, h * 0.2, d * 0.03], [w / 2 - w * 0.08, h * 0.32, d / 2 - d * 0.015], "hell"),
-];
-
-const geschirrspueler: Bauer = (w, d, h) => [
-  box([w, h, d], [0, 0, 0], "koerper"),
-  box([w, h * 0.12, d * 0.06], [0, h / 2 - h * 0.06, d / 2 - d * 0.03], "dunkel"),
-  box([w * 0.9, h * 0.8, d * 0.03], [0, -h * 0.05, d / 2 - d * 0.015], "hell"),
-];
-
-const dunstabzug: Bauer = (w, d, h) => [
-  box([w, h, d], [0, 0, 0], "koerper"),
-  box([w * 0.7, h * 0.2, d * 0.5], [0, -h / 2 + h * 0.1, d / 2 - d * 0.25], "dunkel"),
-];
-
-const eckschrank: Bauer = (w, d, h) => [
-  box([w, h * 0.86, d], [0, -h / 2 + h * 0.43, 0], "koerper"),
-  box([w, h * 0.08, d], [0, h / 2 - h * 0.04, 0], "dunkel"),
-  box([w * 0.012, h * 0.7, d * 0.02], [0, -h * 0.05, d / 2 - d * 0.01], "dunkel"),
-];
-
-const fuellstueck: Bauer = (w, d, h) => [
-  box([w, h, d], [0, 0, 0], "koerper"),
-  box([w * 0.3, h, d * 0.05], [0, 0, d / 2 - d * 0.025], "dunkel"),
-];
-
+// Deko: Sockel + Kugel (generisches Deko-Objekt)
 const deko: Bauer = (w, d, h) => {
   const r = Math.min(Math.min(w, d) * 0.45, h * 0.45);
   return [
@@ -362,9 +505,442 @@ const deko: Bauer = (w, d, h) => {
   ];
 };
 
+// Bett (allgemein): Bettkasten + Matratze + 2 Kissen + Kopfteil
+const bett: Bauer = (w, d, h) => [
+  // Bettkasten (Holz)
+  box([w, h * 0.35, d], [0, -h / 2 + h * 0.175, 0], "koerper"),
+  // Matratze
+  box([w * 0.96, h * 0.22, d * 0.96], [0, -h / 2 + h * 0.46, 0], "hell"),
+  // Kopfteil
+  box([w, h * 0.48, d * 0.1], [0, h / 2 - h * 0.24, -d / 2 + d * 0.05], "koerper"),
+  // Bettdecke
+  box([w * 0.92, h * 0.08, d * 0.72], [0, -h / 2 + h * 0.6, d * 0.08], "hell"),
+  // Kissen links
+  box([w * 0.38, h * 0.1, d * 0.18], [-w * 0.24, -h / 2 + h * 0.63, -d * 0.3], "glas"),
+  // Kissen rechts
+  box([w * 0.38, h * 0.1, d * 0.18], [w * 0.24, -h / 2 + h * 0.63, -d * 0.3], "glas"),
+  // Fussende
+  box([w, h * 0.22, d * 0.07], [0, -h / 2 + h * 0.11, d / 2 - d * 0.035], "dunkel"),
+];
+
+// Einzelbett = gleiche Form wie Bett, Alias
+const einzelbett: Bauer = bett;
+
+// Doppelbett = Bett + 2 Nachttische-Lücken (visuell breiteres Kopfteil)
+const doppelbett: Bauer = (w, d, h) => [
+  // Bettkasten
+  box([w, h * 0.35, d], [0, -h / 2 + h * 0.175, 0], "koerper"),
+  // Matratze links
+  box([w * 0.46, h * 0.22, d * 0.96], [-w * 0.24, -h / 2 + h * 0.46, 0], "hell"),
+  // Matratze rechts
+  box([w * 0.46, h * 0.22, d * 0.96], [w * 0.24, -h / 2 + h * 0.46, 0], "hell"),
+  // Kopfteil
+  box([w, h * 0.52, d * 0.1], [0, h / 2 - h * 0.26, -d / 2 + d * 0.05], "koerper"),
+  // Bettdecke links
+  box([w * 0.44, h * 0.08, d * 0.72], [-w * 0.24, -h / 2 + h * 0.6, d * 0.08], "glas"),
+  // Bettdecke rechts
+  box([w * 0.44, h * 0.08, d * 0.72], [w * 0.24, -h / 2 + h * 0.6, d * 0.08], "glas"),
+  // Kissen links
+  box([w * 0.36, h * 0.1, d * 0.16], [-w * 0.24, -h / 2 + h * 0.63, -d * 0.3], "hell"),
+  // Kissen rechts
+  box([w * 0.36, h * 0.1, d * 0.16], [w * 0.24, -h / 2 + h * 0.63, -d * 0.3], "hell"),
+  // Fussende
+  box([w, h * 0.22, d * 0.07], [0, -h / 2 + h * 0.11, d / 2 - d * 0.035], "dunkel"),
+];
+
+// Kinderbett: Wie Bett aber mit Gitterstäben als Seitenteile
+const kinderbett: Bauer = (w, d, h) => [
+  // Bettkasten
+  box([w, h * 0.35, d], [0, -h / 2 + h * 0.175, 0], "koerper"),
+  // Matratze
+  box([w * 0.94, h * 0.18, d * 0.94], [0, -h / 2 + h * 0.44, 0], "hell"),
+  // Kopfteil (höher, wie Gitter)
+  box([w, h * 0.58, d * 0.08], [0, h / 2 - h * 0.29, -d / 2 + d * 0.04], "koerper"),
+  // Fussende-Gitter
+  box([w, h * 0.4, d * 0.08], [0, -h / 2 + h * 0.38, d / 2 - d * 0.04], "koerper"),
+  // Gitterstäbe links (4 Stäbe als vertikale Boxen)
+  ...Array.from({ length: 4 }, (_, i) =>
+    box([w * 0.04, h * 0.38, d * 0.07], [-w * 0.4 + i * w * 0.27, -h / 2 + h * 0.36, -d * 0.45], "dunkel"),
+  ),
+  // Gitterstäbe rechts
+  ...Array.from({ length: 4 }, (_, i) =>
+    box([w * 0.04, h * 0.38, d * 0.07], [-w * 0.4 + i * w * 0.27, -h / 2 + h * 0.36, d * 0.45], "dunkel"),
+  ),
+];
+
+// Kleiderschrank: Breiter Korpus + Schiebetüren + Griffe
+const kleiderschrank: Bauer = (w, d, h) => [
+  // Korpus
+  box([w, h * 0.97, d], [0, -h / 2 + h * 0.485, 0], "koerper"),
+  // Sockel
+  box([w * 0.96, h * 0.04, d * 0.7], [0, -h / 2 + h * 0.02, 0], "dunkel"),
+  // Deckplatte
+  box([w * 0.98, h * 0.04, d], [0, h / 2 - h * 0.02, 0], "dunkel"),
+  // Tür-Trennlinie (2 Schiebetüren)
+  box([w * 0.014, h * 0.9, d * 0.02], [-w * 0.25, 0, d / 2 - d * 0.01], "dunkel"),
+  box([w * 0.014, h * 0.9, d * 0.02], [w * 0.25, 0, d / 2 - d * 0.015], "hell"),
+  // Griff links
+  box([w * 0.04, h * 0.06, d * 0.04], [-w * 0.12, 0, d / 2 - d * 0.02], "hell"),
+  // Griff rechts
+  box([w * 0.04, h * 0.06, d * 0.04], [w * 0.38, 0, d / 2 - d * 0.025], "hell"),
+];
+
+// Nachttisch: Schrank + Schublade + Griff + Tischlampe-Andeutung
+const nachttisch: Bauer = (w, d, h) => [
+  // Korpus
+  box([w, h * 0.86, d], [0, -h / 2 + h * 0.43, 0], "koerper"),
+  // Deckplatte
+  box([w, h * 0.07, d], [0, h / 2 - h * 0.035, 0], "dunkel"),
+  // Schublade-Trennlinie
+  box([w * 0.9, h * 0.015, d * 0.02], [0, -h * 0.08, d / 2 - d * 0.01], "dunkel"),
+  // Griff
+  box([w * 0.3, h * 0.04, d * 0.04], [0, -h * 0.08, d / 2 - d * 0.02], "hell"),
+  // Sockel
+  box([w * 0.88, h * 0.05, d * 0.7], [0, -h / 2 + h * 0.025, 0], "dunkel"),
+];
+
+// Kommode: 4 Schubladen, Griffe, Füsse
+const kommode: Bauer = (w, d, h) => {
+  const fuss = (x: number, z: number): Teil =>
+    box([w * 0.06, h * 0.08, d * 0.06], [x, -h / 2 + h * 0.04, z], "dunkel");
+  return [
+    // Korpus
+    box([w, h * 0.88, d], [0, -h / 2 + h * 0.48, 0], "koerper"),
+    // Deckplatte
+    box([w, h * 0.07, d], [0, h / 2 - h * 0.035, 0], "dunkel"),
+    // 4 Schubladen-Trennlinien
+    box([w * 0.9, h * 0.012, d * 0.02], [0, -h * 0.04, d / 2 - d * 0.01], "dunkel"),
+    box([w * 0.9, h * 0.012, d * 0.02], [0, -h * 0.26, d / 2 - d * 0.01], "dunkel"),
+    box([w * 0.9, h * 0.012, d * 0.02], [0, h * 0.16, d / 2 - d * 0.01], "dunkel"),
+    // Griffe (4)
+    box([w * 0.25, h * 0.04, d * 0.04], [0, -h * 0.04, d / 2 - d * 0.02], "hell"),
+    box([w * 0.25, h * 0.04, d * 0.04], [0, -h * 0.26, d / 2 - d * 0.02], "hell"),
+    box([w * 0.25, h * 0.04, d * 0.04], [0, h * 0.16, d / 2 - d * 0.02], "hell"),
+    box([w * 0.25, h * 0.04, d * 0.04], [0, h * 0.36, d / 2 - d * 0.02], "hell"),
+    // 4 Füsse
+    fuss(-w * 0.42, -d * 0.38),
+    fuss(w * 0.42, -d * 0.38),
+    fuss(-w * 0.42, d * 0.38),
+    fuss(w * 0.42, d * 0.38),
+  ];
+};
+
+// Stuhl (Ess-/Beistellstuhl): Sitz + 4 Beine + Rückenlehne
+const stuhl: Bauer = (w, d, h) => {
+  const bx = w / 2 - w * 0.08;
+  const bz = d / 2 - d * 0.08;
+  const bein = (x: number, z: number, hFaktor: number): Teil =>
+    box([w * 0.06, h * hFaktor, d * 0.06], [x, -h / 2 + h * (hFaktor / 2), z], "dunkel");
+  return [
+    // Sitzfläche
+    box([w, h * 0.08, d * 0.9], [0, h / 2 - h * 0.55, 0], "koerper"),
+    // Sitzpolster
+    box([w * 0.88, h * 0.06, d * 0.78], [0, h / 2 - h * 0.5, 0], "hell"),
+    // Rückenlehne
+    box([w * 0.92, h * 0.42, d * 0.08], [0, h / 2 - h * 0.21, -d / 2 + d * 0.06], "koerper"),
+    // Vordere Beine (kürzere Rückbeine ergibt stabile Optik – alle gleich)
+    bein(-bx, bz, 0.52),
+    bein(bx, bz, 0.52),
+    // Hintere Beine (höher bis Rückenlehne)
+    bein(-bx, -bz, 0.92),
+    bein(bx, -bz, 0.92),
+  ];
+};
+
+// Bürostuhl: Sitz + Rückenlehne + Gaskolben + Stern-Fuss
+const buerostuhl: Bauer = (w, d, h) => {
+  const r = Math.min(w, d);
+  return [
+    // Sternfuss (5 Arme als flache Boxen)
+    ...Array.from({ length: 5 }, (_, i) => {
+      const angle = (i / 5) * Math.PI * 2;
+      const cx = Math.cos(angle) * r * 0.34;
+      const cz = Math.sin(angle) * r * 0.34;
+      return box([r * 0.08, h * 0.04, r * 0.7], [cx, -h / 2 + h * 0.03, cz], "dunkel");
+    }),
+    // Rollen (2 symbolisch)
+    zyl(r * 0.04, r * 0.04, r * 0.06, [0, -h / 2 + h * 0.02, r * 0.3], "dunkel"),
+    zyl(r * 0.04, r * 0.04, r * 0.06, [0, -h / 2 + h * 0.02, -r * 0.3], "dunkel"),
+    // Gaskolben
+    zyl(r * 0.05, r * 0.05, h * 0.22, [0, -h / 2 + h * 0.18, 0], "dunkel"),
+    // Sitzmechanismus-Box
+    box([w * 0.44, h * 0.06, d * 0.44], [0, -h / 2 + h * 0.33, 0], "dunkel"),
+    // Sitzfläche
+    box([w * 0.88, h * 0.1, d * 0.88], [0, -h / 2 + h * 0.4, 0], "koerper"),
+    // Sitzkissen
+    box([w * 0.78, h * 0.08, d * 0.78], [0, -h / 2 + h * 0.47, 0], "hell"),
+    // Rückenlehne
+    box([w * 0.78, h * 0.42, d * 0.1], [0, h / 2 - h * 0.26, -d / 2 + d * 0.1], "koerper"),
+    // Kopfstütze
+    box([w * 0.42, h * 0.12, d * 0.08], [0, h / 2 - h * 0.06, -d / 2 + d * 0.08], "dunkel"),
+    // Armlehne links
+    box([w * 0.06, h * 0.1, d * 0.42], [-w * 0.44, -h / 2 + h * 0.44, 0], "dunkel"),
+    // Armlehne rechts
+    box([w * 0.06, h * 0.1, d * 0.42], [w * 0.44, -h / 2 + h * 0.44, 0], "dunkel"),
+  ];
+};
+
+// Schreibtisch: Breite Platte + 2 Tischbeine/Schränkchen + Kabelkanal
+const schreibtisch: Bauer = (w, d, h) => [
+  // Tischplatte
+  box([w, h * 0.07, d], [0, h / 2 - h * 0.035, 0], "koerper"),
+  // Platte Unterseite (hell)
+  box([w * 0.96, h * 0.02, d * 0.96], [0, h / 2 - h * 0.08, 0], "hell"),
+  // Linkes Tischbein (als schmaler Schrank)
+  box([w * 0.18, h * 0.92, d * 0.96], [-w / 2 + w * 0.09, -h / 2 + h * 0.46, 0], "dunkel"),
+  // Rechtes Tischbein
+  box([w * 0.18, h * 0.92, d * 0.96], [w / 2 - w * 0.09, -h / 2 + h * 0.46, 0], "dunkel"),
+  // Griff linkes Schränkchen
+  box([w * 0.04, h * 0.05, d * 0.04], [-w * 0.4, -h * 0.08, d / 2 - d * 0.02], "hell"),
+  // Griff rechtes Schränkchen
+  box([w * 0.04, h * 0.05, d * 0.04], [w * 0.4, -h * 0.08, d / 2 - d * 0.02], "hell"),
+  // Kabelkanal hinten
+  box([w * 0.6, h * 0.04, d * 0.05], [0, h / 2 - h * 0.1, -d / 2 + d * 0.03], "dunkel"),
+];
+
+// Hocker: Sitzfläche + 4 Beine
+const hocker: Bauer = (w, d, h) => {
+  const bx = w / 2 - w * 0.1;
+  const bz = d / 2 - d * 0.1;
+  const bein = (x: number, z: number): Teil =>
+    box([w * 0.08, h * 0.86, d * 0.08], [x, -h / 2 + h * 0.43, z], "dunkel");
+  return [
+    // Sitzfläche
+    box([w, h * 0.1, d], [0, h / 2 - h * 0.05, 0], "koerper"),
+    // Polster
+    box([w * 0.82, h * 0.08, d * 0.82], [0, h / 2 - h * 0.04, 0], "hell"),
+    bein(-bx, -bz),
+    bein(bx, -bz),
+    bein(-bx, bz),
+    bein(bx, bz),
+    // Querstreben zwischen den Beinen
+    box([w * 0.72, h * 0.04, d * 0.04], [0, -h / 2 + h * 0.3, -bz], "dunkel"),
+    box([w * 0.04, h * 0.04, d * 0.72], [-bx, -h / 2 + h * 0.3, 0], "dunkel"),
+  ];
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// KÜCHE
+// ═══════════════════════════════════════════════════════════════════
+
+// Unterschrank: Korpus + 2 Türen + Griffe + Sockel + Arbeitsplatte
+const unterschrank: Bauer = (w, d, h) => [
+  // Korpus
+  box([w, h * 0.86, d], [0, -h / 2 + h * 0.49, 0], "koerper"),
+  // Arbeitsplatte
+  box([w, h * 0.07, d], [0, h / 2 - h * 0.035, 0], "dunkel"),
+  // Sockel
+  box([w * 0.92, h * 0.06, d * 0.6], [0, -h / 2 + h * 0.03, 0], "dunkel"),
+  // Türtrennlinie
+  box([w * 0.014, h * 0.72, d * 0.02], [0, -h * 0.04, d / 2 - d * 0.01], "dunkel"),
+  // Griff links
+  box([w * 0.3, h * 0.03, d * 0.04], [-w * 0.24, h * 0.04, d / 2 - d * 0.02], "hell"),
+  // Griff rechts
+  box([w * 0.3, h * 0.03, d * 0.04], [w * 0.24, h * 0.04, d / 2 - d * 0.02], "hell"),
+];
+
+// Hochschrank: Korpus + 2 Griffe (oben/unten) + Sockel
+const hochschrank: Bauer = (w, d, h) => [
+  // Korpus
+  box([w, h * 0.94, d], [0, -h / 2 + h * 0.53, 0], "koerper"),
+  // Sockel
+  box([w * 0.92, h * 0.06, d * 0.7], [0, -h / 2 + h * 0.03, 0], "dunkel"),
+  // Türtrennlinie
+  box([w * 0.014, h * 0.88, d * 0.02], [0, -h / 2 + h * 0.49, d / 2 - d * 0.01], "dunkel"),
+  // Griff oben
+  box([w * 0.42, h * 0.03, d * 0.04], [0, h * 0.1, d / 2 - d * 0.015], "hell"),
+  // Griff unten
+  box([w * 0.42, h * 0.03, d * 0.04], [0, -h * 0.02, d / 2 - d * 0.015], "hell"),
+  // Abschlussleiste oben
+  box([w, h * 0.04, d], [0, h / 2 - h * 0.02, 0], "dunkel"),
+];
+
+// Hängeschrank: Korpus + Griff + Unterboden (sichtbar bei Wandmontage)
+const haengeschrank: Bauer = (w, d, h) => [
+  // Korpus
+  box([w, h, d], [0, 0, 0], "koerper"),
+  // Türtrennlinie
+  box([w * 0.014, h * 0.92, d * 0.02], [0, 0, d / 2 - d * 0.01], "dunkel"),
+  // Griff
+  box([w * 0.42, h * 0.03, d * 0.04], [0, -h / 2 + h * 0.14, d / 2 - d * 0.02], "hell"),
+  // Unterboden sichtbar
+  box([w * 0.96, h * 0.04, d * 0.96], [0, -h / 2 + h * 0.02, 0], "dunkel"),
+];
+
+// Spüle: Arbeitsplatte + 1 oder 2 Becken + Armatur + Ablage
+const spuele: Bauer = (w, d, h) => [
+  // Arbeitsplatte
+  box([w, h * 0.1, d], [0, h / 2 - h * 0.05, 0], "koerper"),
+  // Becken links
+  box([w * 0.38, h * 0.14, d * 0.72], [-w * 0.2, h / 2 - h * 0.12, 0], "dunkel"),
+  // Becken rechts (kleines Abtropfbecken)
+  box([w * 0.24, h * 0.1, d * 0.62], [w * 0.3, h / 2 - h * 0.1, 0], "dunkel"),
+  // Armaturkörper
+  box([w * 0.06, h * 0.22, d * 0.06], [-w * 0.02, h / 2 - h * 0.01, -d * 0.1], "dunkel"),
+  // Auslauf
+  box([w * 0.03, h * 0.03, d * 0.24], [-w * 0.02, h / 2 - h * 0.01, d * 0.04], "dunkel"),
+  // Unterschrank (Unterbau)
+  box([w, h * 0.88, d], [0, -h / 2 + h * 0.44, 0], "koerper"),
+];
+
+// Kochfeld: Platte + 4 Kochzonen + Regler
+const kochfeld: Bauer = (w, d, h) => {
+  const r = Math.min(w, d) * 0.16;
+  const platte = (x: number, z: number): Teil =>
+    zyl(r, r, h * 0.04, [x, h / 2 - h * 0.07, z], "dunkel");
+  return [
+    // Unterbau
+    box([w, h * 0.88, d], [0, -h / 2 + h * 0.44, 0], "koerper"),
+    // Deckfläche
+    box([w * 0.96, h * 0.1, d * 0.96], [0, h / 2 - h * 0.05, 0], "dunkel"),
+    // 4 Kochzonen
+    platte(-w * 0.22, -d * 0.2),
+    platte(w * 0.22, -d * 0.2),
+    platte(-w * 0.22, d * 0.2),
+    platte(w * 0.22, d * 0.2),
+    // Regler (4 Zylinder an der Frontkante)
+    zyl(w * 0.04, w * 0.04, h * 0.05, [-w * 0.3, h / 2 - h * 0.03, d / 2 - d * 0.06], "hell"),
+    zyl(w * 0.04, w * 0.04, h * 0.05, [-w * 0.1, h / 2 - h * 0.03, d / 2 - d * 0.06], "hell"),
+    zyl(w * 0.04, w * 0.04, h * 0.05, [w * 0.1, h / 2 - h * 0.03, d / 2 - d * 0.06], "hell"),
+    zyl(w * 0.04, w * 0.04, h * 0.05, [w * 0.3, h / 2 - h * 0.03, d / 2 - d * 0.06], "hell"),
+  ];
+};
+
+// Kühlschrank: Korpus + 2-türig + Griffe + Lüftungsschlitze oben
+const kuehlschrank: Bauer = (w, d, h) => [
+  // Korpus
+  box([w, h, d], [0, 0, 0], "koerper"),
+  // Türtrenner
+  box([w * 0.96, h * 0.016, d * 0.02], [0, h * 0.18, d / 2 - d * 0.01], "dunkel"),
+  // Griff Oberteil
+  box([w * 0.04, h * 0.22, d * 0.04], [w / 2 - w * 0.08, h * 0.3, d / 2 - d * 0.02], "hell"),
+  // Griff Unterteil
+  box([w * 0.04, h * 0.18, d * 0.04], [w / 2 - w * 0.08, -h * 0.1, d / 2 - d * 0.02], "hell"),
+  // Lüftungsschlitze oben (3 Linien)
+  box([w * 0.78, h * 0.012, d * 0.02], [0, h / 2 - h * 0.04, d / 2 - d * 0.01], "dunkel"),
+  box([w * 0.78, h * 0.012, d * 0.02], [0, h / 2 - h * 0.07, d / 2 - d * 0.01], "dunkel"),
+  box([w * 0.78, h * 0.012, d * 0.02], [0, h / 2 - h * 0.1, d / 2 - d * 0.01], "dunkel"),
+];
+
+// Geschirrspüler: Korpus + Bedienfeld + Tür + Griff
+const geschirrspueler: Bauer = (w, d, h) => [
+  // Korpus
+  box([w, h, d], [0, 0, 0], "koerper"),
+  // Bedienfeld oben
+  box([w, h * 0.1, d * 0.05], [0, h / 2 - h * 0.05, d / 2 - d * 0.025], "dunkel"),
+  // Status-LEDs (kleine helle Punkte)
+  box([w * 0.18, h * 0.04, d * 0.03], [w * 0.2, h / 2 - h * 0.05, d / 2 - d * 0.015], "glas"),
+  // Tür
+  box([w * 0.92, h * 0.82, d * 0.03], [0, -h * 0.06, d / 2 - d * 0.015], "hell"),
+  // Griff
+  box([w * 0.68, h * 0.04, d * 0.04], [0, h / 2 - h * 0.14, d / 2 - d * 0.02], "dunkel"),
+];
+
+// Backofen: Korpus + Tür + Glasfenster + Griff + Regler
+const backofen: Bauer = (w, d, h) => [
+  // Korpus
+  box([w, h, d], [0, 0, 0], "koerper"),
+  // Türrahmen
+  box([w * 0.9, h * 0.72, d * 0.04], [0, -h / 2 + h * 0.43, d / 2 - d * 0.02], "dunkel"),
+  // Glasfenster
+  box([w * 0.76, h * 0.48, d * 0.03], [0, -h / 2 + h * 0.4, d / 2 - d * 0.015], "glas"),
+  // Griff
+  box([w * 0.62, h * 0.04, d * 0.04], [0, h / 2 - h * 0.16, d / 2 - d * 0.02], "hell"),
+  // Bedienfeld oben
+  box([w, h * 0.14, d * 0.04], [0, h / 2 - h * 0.07, d / 2 - d * 0.02], "dunkel"),
+  // Regler (3 Zylinder)
+  zyl(w * 0.04, w * 0.04, h * 0.04, [-w * 0.28, h / 2 - h * 0.07, d / 2 - d * 0.02], "hell"),
+  zyl(w * 0.04, w * 0.04, h * 0.04, [0, h / 2 - h * 0.07, d / 2 - d * 0.02], "hell"),
+  zyl(w * 0.04, w * 0.04, h * 0.04, [w * 0.28, h / 2 - h * 0.07, d / 2 - d * 0.02], "hell"),
+];
+
+// Mikrowelle: Flaches Gehäuse + Tür + Fenster + Bedienfeld
+const mikrowelle: Bauer = (w, d, h) => [
+  // Gehäuse
+  box([w, h, d], [0, 0, 0], "koerper"),
+  // Tür (2/3 der Breite links)
+  box([w * 0.62, h * 0.82, d * 0.04], [-w * 0.14, 0, d / 2 - d * 0.02], "dunkel"),
+  // Türfenster
+  box([w * 0.52, h * 0.62, d * 0.03], [-w * 0.14, 0, d / 2 - d * 0.015], "glas"),
+  // Türgriff
+  box([w * 0.04, h * 0.58, d * 0.04], [w * 0.18, 0, d / 2 - d * 0.02], "dunkel"),
+  // Bedienfeld rechts
+  box([w * 0.3, h * 0.82, d * 0.03], [w * 0.34, 0, d / 2 - d * 0.015], "dunkel"),
+  // Display (leuchtet)
+  box([w * 0.2, h * 0.22, d * 0.02], [w * 0.28, h * 0.2, d / 2 - d * 0.01], "glas"),
+];
+
+// Dunstabzug: Gehäuse + Auslass + Lüfteröffnung
+const dunstabzug: Bauer = (w, d, h) => [
+  // Hauptgehäuse
+  box([w, h * 0.82, d], [0, h / 2 - h * 0.41, 0], "koerper"),
+  // Frontblende mit Lüfteröffnungen
+  box([w * 0.82, h * 0.2, d * 0.5], [0, -h / 2 + h * 0.25, d / 2 - d * 0.26], "dunkel"),
+  // Lüftungsschlitze (3 Linien)
+  box([w * 0.72, h * 0.03, d * 0.42], [0, -h / 2 + h * 0.2, d / 2 - d * 0.23], "hell"),
+  box([w * 0.72, h * 0.03, d * 0.42], [0, -h / 2 + h * 0.27, d / 2 - d * 0.23], "hell"),
+  // Bedienfeld
+  box([w * 0.64, h * 0.1, d * 0.44], [0, -h / 2 + h * 0.14, d / 2 - d * 0.24], "hell"),
+  // Unterkante (Lichtstreifen)
+  box([w * 0.88, h * 0.04, d * 0.08], [0, -h / 2 + h * 0.04, d / 2 - d * 0.05], "glas"),
+];
+
+// Waschmaschine: Korpus + Rundes Bullauge + Bedienfeld
+const waschmaschine: Bauer = (w, d, h) => {
+  const r = Math.min(w, d) * 0.32;
+  return [
+    // Korpus
+    box([w, h, d], [0, 0, 0], "koerper"),
+    // Türrahmen (rund simuliert durch 2 Boxen im Kreuz)
+    zyl(r, r, d * 0.06, [0, -h * 0.06, d / 2 - d * 0.03], "dunkel"),
+    // Bullauge Glas
+    zyl(r * 0.82, r * 0.82, d * 0.04, [0, -h * 0.06, d / 2 - d * 0.01], "glas"),
+    // Türgriff
+    box([w * 0.04, h * 0.04, d * 0.06], [r * 0.88, -h * 0.06, d / 2 - d * 0.03], "hell"),
+    // Bedienfeld oben
+    box([w * 0.92, h * 0.18, d * 0.04], [0, h / 2 - h * 0.09, d / 2 - d * 0.02], "dunkel"),
+    // Display
+    box([w * 0.32, h * 0.1, d * 0.03], [-w * 0.22, h / 2 - h * 0.09, d / 2 - d * 0.015], "glas"),
+    // Regler
+    zyl(w * 0.06, w * 0.06, d * 0.04, [w * 0.2, h / 2 - h * 0.09, d / 2 - d * 0.02], "hell"),
+    // Sockel zurückgesetzt
+    box([w * 0.88, h * 0.05, d * 0.6], [0, -h / 2 + h * 0.025, 0], "dunkel"),
+  ];
+};
+
+// Tumbler / Wäschetrockner: Gleiche Form wie Waschmaschine
+const tumbler: Bauer = (w, d, h) => {
+  const r = Math.min(w, d) * 0.32;
+  return [
+    box([w, h, d], [0, 0, 0], "koerper"),
+    zyl(r, r, d * 0.06, [0, -h * 0.05, d / 2 - d * 0.03], "dunkel"),
+    zyl(r * 0.8, r * 0.8, d * 0.04, [0, -h * 0.05, d / 2 - d * 0.01], "glas"),
+    // Lüftungsöffnungen rechts
+    box([w * 0.12, h * 0.5, d * 0.03], [w / 2 - w * 0.1, -h * 0.05, d / 2 - d * 0.015], "dunkel"),
+    box([w * 0.08, h * 0.4, d * 0.02], [w / 2 - w * 0.1, -h * 0.05, d / 2 - d * 0.01], "hell"),
+    box([w * 0.88, h * 0.18, d * 0.04], [0, h / 2 - h * 0.09, d / 2 - d * 0.02], "dunkel"),
+    zyl(w * 0.06, w * 0.06, d * 0.04, [w * 0.2, h / 2 - h * 0.09, d / 2 - d * 0.02], "hell"),
+    box([w * 0.88, h * 0.05, d * 0.6], [0, -h / 2 + h * 0.025, 0], "dunkel"),
+  ];
+};
+
+// Eckschrank: Korpus + 1 Tür + Griff + Sockel
+const eckschrank: Bauer = (w, d, h) => [
+  box([w, h * 0.86, d], [0, -h / 2 + h * 0.43, 0], "koerper"),
+  box([w, h * 0.08, d], [0, h / 2 - h * 0.04, 0], "dunkel"),
+  box([w * 0.92, h * 0.06, d * 0.7], [0, -h / 2 + h * 0.03, 0], "dunkel"),
+  box([w * 0.3, h * 0.03, d * 0.04], [w * 0.1, h * 0.04, d / 2 - d * 0.02], "hell"),
+];
+
+// Füllstück: Dünnes Verbindungsstück zwischen Küchenschränken
+const fuellstueck: Bauer = (w, d, h) => [
+  box([w, h, d], [0, 0, 0], "koerper"),
+  box([w * 0.3, h, d * 0.05], [0, 0, d / 2 - d * 0.025], "dunkel"),
+];
+
 /** funktionsTyp → Bauteil-Bausatz. Fehlt ein Typ, greift der Box-Fallback. */
 const BAUSAETZE: Record<string, Bauer> = {
-  // Bad
+  // ── Bad ───────────────────────────────────────────────────────────
   wc,
   lavabo,
   dusche,
@@ -375,8 +951,11 @@ const BAUSAETZE: Record<string, Bauer> = {
   handtuchheizung,
   badmoebel,
   badteppich: matte,
-  // Wohnen
+  urinal,
+  bidet,
+  // ── Wohnen ────────────────────────────────────────────────────────
   sofa,
+  sessel,
   esstisch: tisch,
   couchtisch: tisch,
   beistelltisch: tisch,
@@ -389,7 +968,21 @@ const BAUSAETZE: Record<string, Bauer> = {
   wandleuchte,
   tvmoebel,
   deko,
-  // Küche
+  // ── Schlafen ──────────────────────────────────────────────────────
+  bett,
+  einzelbett,
+  doppelbett,
+  kinderbett,
+  kleiderschrank,
+  nachttisch,
+  kommode,
+  // ── Büro / Arbeiten ───────────────────────────────────────────────
+  schreibtisch,
+  stuhl,
+  esstischstuhl: stuhl,
+  buerostuhl,
+  hocker,
+  // ── Küche ─────────────────────────────────────────────────────────
   unterschrank,
   hochschrank,
   haengeschrank,
@@ -397,7 +990,11 @@ const BAUSAETZE: Record<string, Bauer> = {
   kochfeld,
   kuehlschrank,
   geschirrspueler,
+  backofen,
+  mikrowelle,
   dunstabzug,
+  waschmaschine,
+  tumbler,
   eckschrank,
   fuellstueck,
 };
