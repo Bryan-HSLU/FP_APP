@@ -17,7 +17,7 @@ export interface BildItem {
 /** Bild-Kachel mit Fallback: fehlt/lädt das Foto nicht (echte PNGs kommen von
  *  Bryan separat), zeigen wir die getaggte Farbpalette als Vorschau statt eines
  *  kaputten Bild-Icons – der Swipe bleibt so schon vor den Fotos benutzbar. */
-function BildKachel({ bild }: { bild: BildItem }) {
+export function BildKachel({ bild }: { bild: BildItem }) {
   const [fehler, setFehler] = useState(false);
   if (fehler || !bild.bildRef) {
     return (

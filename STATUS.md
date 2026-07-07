@@ -483,6 +483,28 @@
    Präsentation ersetzt (weisser Grund, alter Header/Stepper/Footer → AppRahmen),
    Schritt-Logik/State unangetastet. **Web 79 Tests grün**, lint/typecheck/build
    sauber.
+   · ✅ **UI-Redesign Etappe B: die 5 Ansichten (2026-07-07, Bryan-Konzept):**
+   Schritt-Inhalte aus App.tsx in eigene Komponenten gezogen –
+   `SchrittProjekt.tsx` («WAS MÖCHTEST DU PLANEN?», 3 Raumtyp-Karten mit
+   Piktogramm + Auswahlzustand, darunter die 3 Wege Beispiel/Scan/Manuell;
+   Raumtyp-Vorwahl steuert Scan-Raumtyp + filtert Beispiele) ·
+   `SchrittStil.tsx` (bildzentriertes Bewerten inline statt Overlay,
+   Fortschritt «n von m», Like/Dislike/Überspringen mit Piktogrammen,
+   Stilprofil-Karte mit Kurzworten/Spider/Top-3-%-Balken via fp-two-column,
+   «Dein Stilprofil wird genauer.» alle 5 Bewertungen) · `SchrittVorschlag.tsx`
+   (Zustand A Auslöser inkl. Küche-Normprofil/Formwahl; Zustand B «DEIN
+   RAUMVORSCHLAG IST BEREIT» mit 2D-Vorschau, Stilbegründung, Haupt-
+   materialien, Variante/Seed, einfacher Normstatus; EINE orange Hauptaktion
+   «Ansehen & anpassen») · `SchrittAnpassen.tsx` (fp-two-column: Viewer links,
+   Elementkarte rechts mit Normstatus passt/knapp/anpassen als Text+Piktogramm,
+   Tausch-Alternativen, Sperren; Hilfe-Karte ohne Auswahl) ·
+   `SchrittAuswertung.tsx` («DEIN PROJEKT»-Zusammenfassung mit Kosten-Spanne/
+   Gewerke-Zahl/Status + Dokument-Karten-Raster mit Piktogrammen, bestehende
+   api.dokument-Downloads). Ladezustände (stil/vorschlag/scan/dokumente)
+   verdrahtet. Logik/State/API unverändert in App.tsx. Hinweis: Etappe-B-Agent
+   brach am Session-Limit ab – Splice-Reparatur (verwaistes </div>, TS-Narrowing
+   Stil-Bild, Prettier) durch die Hauptsession. **Web 79 Tests grün**,
+   lint/typecheck/build sauber.
    **Als Nächstes:** Presets optional kuratieren · ⚠️ 90 PNG (~180 MB) blähen
    Repo + Space-Deploy – ggf. Bildgrösse reduzieren/auslagern ·
    Schritt 5 E2E gegen R1 auf Colab (braucht AR-App-Aufnahmen) ·

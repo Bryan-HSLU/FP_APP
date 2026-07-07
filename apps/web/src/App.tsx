@@ -6,13 +6,7 @@
  *  Live-Regel-Feedback läuft CLIENTSEITIG über den TS-Interpreter aus
  *  @fp/shared – dieselben Regel-JSONs wie der Server (Regel-Parität).
  */
-import {
-  buildScene,
-  evaluateRules,
-  type ConstraintReport,
-  type Rule,
-  type RuleResult,
-} from "@fp/shared/rules";
+import { buildScene, evaluateRules, type ConstraintReport, type Rule } from "@fp/shared/rules";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   api,
@@ -27,33 +21,20 @@ import {
 import { AppRahmen } from "./AppRahmen";
 import { RaumEditor } from "./RaumEditor";
 import { ScanKorrektur } from "./ScanKorrektur";
-import { SmartSpider, StilSwipe, type Achse, type BildItem, type Stilprofil } from "./Stil";
-import { CSS, karte, pill, THEME, titel } from "./theme";
+import { SchrittAnpassen } from "./SchrittAnpassen";
+import { SchrittAuswertung } from "./SchrittAuswertung";
+import { SchrittProjekt, type RaumtypKey } from "./SchrittProjekt";
+import { SchrittStil } from "./SchrittStil";
+import { SchrittVorschlag } from "./SchrittVorschlag";
+import { type Achse, type BildItem, type Stilprofil } from "./Stil";
+import { CSS, THEME } from "./theme";
 import { Viewer2D } from "./Viewer2D";
 import { Viewer3D } from "./Viewer3D";
 
-const AMPEL: Record<RuleResult["status"], string> = {
-  ok: "✅",
-  knapp: "⚠️",
-  verletzt: "❌",
-  "nicht-geprueft": "➖",
-};
-
-const DREIECK_SYMBOL: Record<Arbeitsdreieck["bewertung"], string> = {
-  effizient: "✅",
-  akzeptabel: "⚠️",
-  beengt: "🔻",
-  weitläufig: "🔺",
-};
-
-// UI-Redesign Etappe A: Header, Fortschrittsweg und Footer stellt jetzt
-// <AppRahmen> bereit (weisser Grund, CI-Karten via .fp-card / theme.ts v2).
-// Hier bleiben nur die Schritt-Inhalte + zwei lokale Style-Objekte.
-const stil = {
-  // Wiederverwendbarer Karten-Stil (CI) für Abschnitte/Panels.
-  sektion: { ...karte, padding: 12, marginBottom: 12 },
-  panel: { padding: 12, overflowY: "auto" as const, minWidth: 0 },
-} as const;
+// UI-Redesign Etappe B: Die fünf Schritt-Inhalte leben jetzt in eigenen
+// Schritt*-Komponenten (SchrittProjekt/Stil/Vorschlag/Anpassen/Auswertung).
+// App.tsx hält weiterhin State, Callbacks, Live-Ampel und Navigation – die
+// bestehende Logik ist unverändert, nur die Präsentation ist ausgelagert.
 
 export function App() {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -68,7 +49,6 @@ export function App() {
   const [bilder, setBilder] = useState<BildItem[]>([]);
   const [achsen, setAchsen] = useState<Achse[]>([]);
   const [stilprofil, setStilprofil] = useState<Stilprofil | null>(null);
-  const [swipeOffen, setSwipeOffen] = useState(false);
   // Manueller Raum-Editor (dritte Erstellungsvariante neben Sample/Scan).
   const [editorOffen, setEditorOffen] = useState(false);
   const [begruendung, setBegruendung] = useState<string>("");
@@ -88,6 +68,13 @@ export function App() {
   const [korrektur, setKorrektur] = useState<{ room: Room; warnungen: string[] } | null>(null);
   // Wizard: aktueller Schritt (1..5). Schritt-für-Schritt statt alles auf einmal.
   const [schritt, setSchritt] = useState(1);
+  // Raumtyp-Vorwahl (Schritt 1): steuert Scan-Raumtyp + filtert Beispielräume.
+  const [raumtypVorwahl, setRaumtypVorwahl] = useState<RaumtypKey | null>(null);
+  // Ladezustände (Etappe B): hängen die <Ladezustand>-Anzeigen an die await-Stellen.
+  const [ladenStil, setLadenStil] = useState(false);
+  const [ladenVorschlag, setLadenVorschlag] = useState(false);
+  const [ladenDokumente, setLadenDokumente] = useState(false);
+  const [ladenScan, setLadenScan] = useState(false);
 
   useEffect(() => {
     api
@@ -142,6 +129,7 @@ export function App() {
   const scanLaden = useCallback(
     async (datei: File) => {
       setMeldung("Scan wird verarbeitet…");
+      setLadenScan(true);
       try {
         const { room: neu, warnungen } = await api.scan(datei, scanRoomType, datei.name);
         setKorrektur({ room: neu, warnungen });
@@ -150,6 +138,8 @@ export function App() {
         setMeldung(
           e instanceof ApiFehler ? `Scan fehlgeschlagen: ${e.message}` : "Scan fehlgeschlagen.",
         );
+      } finally {
+        setLadenScan(false);
       }
     },
     [scanRoomType],
@@ -168,6 +158,7 @@ export function App() {
       if (!room) return;
       setMeldung("");
       setKv(null);
+      setLadenVorschlag(true);
       try {
         let res: { plan: Plan; room: Room; hinweis?: string; arbeitsdreieck?: Arbeitsdreieck };
         if (kuecheInfo.istKueche) {
@@ -200,8 +191,9 @@ export function App() {
         setPlanRoom(res.room);
         setDreieck(res.arbeitsdreieck ?? null);
         setSeed(s);
-        // Nach erfolgreichem Plan automatisch weiter zu Schritt 4 «Anpassen».
-        setSchritt(4);
+        // Kein Auto-Sprung mehr: Schritt 3 «Vorschlag» zeigt das Ergebnis selbst
+        // (der Nutzer geht per «Ansehen & anpassen» weiter zu Schritt 4). So kann
+        // «Neue Variante» aus Schritt 4 dort bleiben, ohne zurückzuspringen.
         if (res.hinweis)
           setMeldung("Hinweis: Geometrie unbestätigt – Ampel rechnet mit Messunsicherheit.");
       } catch (e) {
@@ -209,6 +201,8 @@ export function App() {
           setMeldung(`Solver ehrlich: ${e.message} – Raum zu klein / Anschlüsse fehlen.`);
           setPlan(null);
         } else throw e;
+      } finally {
+        setLadenVorschlag(false);
       }
     },
     [room, stilprofil, kuecheInfo, form, normProfile],
@@ -333,8 +327,50 @@ export function App() {
 
   const auswerten = useCallback(async () => {
     if (!room || !plan) return;
-    setKv(await api.evaluate(room, plan));
+    setLadenDokumente(true);
+    try {
+      setKv(await api.evaluate(room, plan));
+    } finally {
+      setLadenDokumente(false);
+    }
   }, [room, plan]);
+
+  // Schritt 5 «Auswertung»: die Kostenschätzung beim Betreten automatisch laden,
+  // damit die Zusammenfassungs-Karte direkt Zahlen zeigt (nutzt `auswerten`).
+  useEffect(() => {
+    if (schritt === 5 && plan && !kv && !ladenDokumente) void auswerten();
+  }, [schritt, plan, kv, ladenDokumente, auswerten]);
+
+  // Stilprofil berechnen (Schritt 2, nach der letzten Bewertung / Preset).
+  const stilBerechnen = useCallback(
+    (likes: string[], dislikes: string[], presetId: string | null) => {
+      if (!room) return;
+      setLadenStil(true);
+      api
+        .styleProfile(room.roomType, likes, dislikes, presetId)
+        .then(setStilprofil)
+        .catch(() => setMeldung("Stilprofil konnte nicht berechnet werden."))
+        .finally(() => setLadenStil(false));
+    },
+    [room],
+  );
+
+  // Dokument-Download (Schritt 5) – Blob über den bestehenden Export-Endpunkt.
+  const dokumentLaden = useCallback(
+    (pfad: string, datei: string) => {
+      if (!room || !plan) return;
+      void api
+        .dokument(pfad, datei, room, plan)
+        .catch(() => setMeldung("Download fehlgeschlagen."));
+    },
+    [room, plan],
+  );
+
+  // Raumtyp-Vorwahl (Schritt 1): steuert zugleich den Scan-Raumtyp.
+  const vorwahlSetzen = useCallback((typ: RaumtypKey) => {
+    setRaumtypVorwahl(typ);
+    setScanRoomType(typ);
+  }, []);
 
   const gewaehltesItem =
     plan && gewaehltId
@@ -355,13 +391,82 @@ export function App() {
       )
     : [];
 
-  // Zwei-Spalten-Layout (Viewer links, Panel rechts) nur ab Schritt 4/5.
-  const zweiSpaltig = schritt >= 4;
+  // Gesperrt-/Normstatus des aktuell gewählten Placements (Schritt 4).
+  const gesperrt = !!(plan && gewaehltId
+    ? plan.placements.find((p) => p.id === gewaehltId)?.locked
+    : false);
+  const elementStatus = gewaehltId ? statusById.get(gewaehltId) : undefined;
+
+  // Korrektur-Modus erneut öffnen – nur für gescannte Räume (captureMethod "ar").
+  const korrigierbar =
+    !!room && (room.meta as { captureMethod?: string } | undefined)?.captureMethod === "ar";
+
   // Erreichbarkeit der Schritte: 1/2 immer, 3 nur mit Raum, 4/5 nur mit Plan.
   const erreichbar = (nr: number) => (nr <= 2 ? true : nr === 3 ? !!room : !!plan);
   // Am weitesten freigeschalteter Schritt (für den Fortschrittsweg): mit Plan
   // sind alle 5 offen, mit Raum bis 3, sonst bis 2.
   const maxErreicht = plan ? 5 : room ? 3 : 2;
+
+  // Viewer-Bereich (Schritt 4): 2D/3D-Umschalter + Viewer in fester Höhe, damit
+  // der Canvas verlässlich füllt (kein Flex/Grid-Höhenproblem im fp-two-column).
+  const viewerBereich = (
+    <div style={{ display: "flex", flexDirection: "column", height: "min(72vh, 640px)" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          alignItems: "center",
+          padding: "0 0 8px",
+          flexWrap: "wrap",
+        }}
+      >
+        <button
+          type="button"
+          className={CSS.button}
+          onClick={() => setAnsicht((a) => (a === "2d" ? "3d" : "2d"))}
+          style={{
+            borderRadius: 999,
+            padding: "7px 14px",
+            cursor: "pointer",
+            border: `1px solid ${THEME.gruen}`,
+            background: "#fff",
+            color: THEME.gruen,
+          }}
+        >
+          {ansicht === "2d" ? "🧊 3D-Ansicht" : "🗺️ 2D-Grundriss"}
+        </button>
+        {plan && (
+          <span style={{ fontSize: 12, color: THEME.salbei }}>
+            Seed {plan.meta.seed} · Solver {plan.meta.solverVersion}
+          </span>
+        )}
+      </div>
+      <div className={CSS.card} style={{ flex: 1, minHeight: 0, overflow: "hidden", padding: 6 }}>
+        {aktuellerRaum &&
+          (ansicht === "2d" ? (
+            <Viewer2D
+              room={aktuellerRaum}
+              placements={plan?.placements ?? []}
+              catalog={catalog}
+              gewaehltId={gewaehltId}
+              statusById={statusById}
+              onSelect={setGewaehltId}
+              onMove={verschiebeNach}
+            />
+          ) : (
+            <Viewer3D
+              room={aktuellerRaum}
+              placements={plan?.placements ?? []}
+              catalog={catalog}
+              gewaehltId={gewaehltId}
+              statusById={statusById}
+              onSelect={setGewaehltId}
+              stilprofil={stilprofil}
+            />
+          ))}
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -377,526 +482,100 @@ export function App() {
         weiterDeaktiviert={schritt === 5 || !erreichbar(schritt + 1)}
         weiterLabel={schritt === 4 ? "Zur Auswertung" : "Weiter"}
       >
-        <div
-          style={{
-            flex: 1,
-            minHeight: 0,
-            display: zweiSpaltig ? "grid" : "block",
-            gridTemplateColumns: zweiSpaltig ? "minmax(0,1fr) 360px" : undefined,
-            overflow: zweiSpaltig ? "hidden" : "auto",
-          }}
-        >
-          {/* ---------- Schritte 1–3: einspaltig ---------- */}
-          {schritt <= 3 && (
-            // key={schritt} + fp-schritt-neu: einmalige Einblendung je Schrittwechsel.
-            <div
-              key={schritt}
-              className={CSS.schrittNeu}
-              style={{ maxWidth: 760, margin: "0 auto", padding: 20 }}
-            >
-              {/* Schritt 1 – Projekt: Raum wählen / Scan / selbst erstellen. */}
-              {schritt === 1 && (
-                <section>
-                  <h2 style={{ ...titel, marginTop: 0 }}>Projekt starten</h2>
-                  <p style={{ color: "#5a635a", fontSize: 14 }}>
-                    Raum wählen – oder einen Scan laden bzw. selbst erstellen.
-                  </p>
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {rooms.map((r) => {
-                      const gewaehlt = room?.id === r.id;
-                      return (
-                        <button
-                          key={r.id}
-                          type="button"
-                          onClick={() => void raumWaehlen(r)}
-                          style={{
-                            ...karte,
-                            textAlign: "left",
-                            padding: 12,
-                            cursor: "pointer",
-                            border: `2px solid ${gewaehlt ? THEME.orange : THEME.salbei}`,
-                          }}
-                        >
-                          <strong style={{ color: THEME.gruen }}>{r.name}</strong>
-                          <span style={{ fontSize: 12, color: "#5a635a", marginLeft: 8 }}>
-                            {r.roomType}
-                          </span>
-                        </button>
-                      );
-                    })}
-                    {rooms.length === 0 && (
-                      <p style={{ fontSize: 13, color: "#5a635a" }}>Räume werden geladen…</p>
-                    )}
-                  </div>
+        {schritt === 1 && (
+          <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+            <SchrittProjekt
+              rooms={rooms}
+              room={room}
+              vorwahl={raumtypVorwahl}
+              onVorwahl={vorwahlSetzen}
+              onRaumWaehlen={(r) => void raumWaehlen(r)}
+              onScanDatei={(f) => void scanLaden(f)}
+              onEditorOeffnen={() => setEditorOffen(true)}
+              onKorrigieren={() => room && setKorrektur({ room, warnungen: [] })}
+              korrigierbar={korrigierbar}
+              ladenScan={ladenScan}
+            />
+          </div>
+        )}
 
-                  <div
-                    style={{
-                      ...stil.sektion,
-                      marginTop: 16,
-                      display: "flex",
-                      gap: 10,
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <label
-                      style={{ ...pill, display: "inline-flex", gap: 6, alignItems: "center" }}
-                      title="Scan-Bundle (layout.txt oder .zip vom Colab-Worker) laden"
-                    >
-                      📷 Scan laden
-                      <input
-                        type="file"
-                        accept=".zip,.txt"
-                        style={{ display: "none" }}
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) void scanLaden(f);
-                          e.target.value = "";
-                        }}
-                      />
-                    </label>
-                    <select
-                      value={scanRoomType}
-                      onChange={(e) => setScanRoomType(e.target.value)}
-                      title="Raumtyp des Scans (SpatialLM kennt ihn nicht)"
-                    >
-                      <option value="bad">Scan → Bad</option>
-                      <option value="wohnen">Scan → Wohnen</option>
-                      <option value="kueche">Scan → Küche</option>
-                      {/* «sonstig» bewusst nicht anbieten: ohne Katalog kein Klickpfad. */}
-                    </select>
-                    <button style={pill} onClick={() => setEditorOffen(true)}>
-                      ✏️ Raum erstellen
-                    </button>
-                    {/* Korrektur erneut öffnen – nur für gescannte Räume (captureMethod
-                      "ar"); defensiv geprüft, da Samples evtl. kein meta tragen. */}
-                    {room &&
-                      (room.meta as { captureMethod?: string } | undefined)?.captureMethod ===
-                        "ar" && (
-                        <button
-                          style={{ ...pill, background: THEME.blau }}
-                          onClick={() => setKorrektur({ room, warnungen: [] })}
-                        >
-                          📐 Korrigieren
-                        </button>
-                      )}
-                  </div>
-                </section>
-              )}
+        {schritt === 2 && (
+          <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+            <SchrittStil
+              room={room}
+              bilder={bilder}
+              achsen={achsen}
+              stilprofil={stilprofil}
+              onProfil={stilBerechnen}
+              onUeberspringen={() => setSchritt(3)}
+              ladenStil={ladenStil}
+            />
+          </div>
+        )}
 
-              {/* Schritt 2 – Stil: StilSwipe + SmartSpider + Preset. */}
-              {schritt === 2 && (
-                <section>
-                  <h2 style={{ ...titel, marginTop: 0 }}>Stil festlegen</h2>
-                  <p style={{ color: "#5a635a", fontSize: 14 }}>
-                    Swipe dich durch Beispielbilder (oder wähle ein Preset) – oder überspringe.
-                  </p>
-                  <div
-                    style={{
-                      ...stil.sektion,
-                      display: "flex",
-                      gap: 10,
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                    }}
-                  >
-                    <button
-                      style={pill}
-                      disabled={!room || bilder.length === 0}
-                      onClick={() => setSwipeOffen(true)}
-                    >
-                      🎴 Stil swipen
-                    </button>
-                    {(!room || bilder.length === 0) && (
-                      <span style={{ fontSize: 12, color: "#5a635a" }}>
-                        {room
-                          ? "Für diesen Raumtyp liegen keine Beispielbilder vor."
-                          : "Zuerst einen Raum wählen."}
-                      </span>
-                    )}
-                  </div>
+        {schritt === 3 && (
+          <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+            <SchrittVorschlag
+              room={room}
+              aktuellerRaum={aktuellerRaum}
+              catalog={catalog}
+              plan={plan}
+              report={report}
+              statusById={statusById}
+              stilprofil={stilprofil}
+              begruendung={begruendung}
+              seed={seed}
+              ladenVorschlag={ladenVorschlag}
+              istKueche={kuecheInfo.istKueche}
+              grossraum={!!kuecheInfo.zoneId}
+              normProfile={normProfile}
+              onNormProfile={(np) => {
+                setNormProfile(np);
+                setFormen(null);
+                setForm(null);
+              }}
+              formen={formen}
+              form={form}
+              onFormWaehlen={setForm}
+              onFormenLaden={() => void formenLaden()}
+              onVorschlagen={() => void loesen(seed)}
+              onNeueVariante={() => void loesen(seed + 1)}
+              onAnpassen={() => setSchritt(4)}
+            />
+          </div>
+        )}
 
-                  {stilprofil && (
-                    <div style={stil.sektion}>
-                      <h3 style={{ ...titel, marginTop: 0, fontSize: 15 }}>
-                        Dein Stil ({stilprofil.meta.method})
-                      </h3>
-                      <SmartSpider vektor={stilprofil.styleVector} achsen={achsen} />
-                      <p style={{ display: "flex", gap: 4 }}>
-                        {stilprofil.palette.map((f) => (
-                          <span
-                            key={f}
-                            style={{ width: 22, height: 22, background: f, borderRadius: 4 }}
-                          />
-                        ))}
-                      </p>
-                      {!stilprofil.meta.sampleSufficient && (
-                        <p style={{ fontSize: 12, color: THEME.orange }}>
-                          Wenige Bewertungen – Profil noch unsicher.
-                        </p>
-                      )}
-                      {begruendung && <p style={{ fontSize: 12 }}>{begruendung}</p>}
-                    </div>
-                  )}
+        {schritt === 4 && (
+          <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+            <SchrittAnpassen
+              viewer={viewerBereich}
+              gewaehltesItem={gewaehltesItem ?? null}
+              elementStatus={elementStatus}
+              gesperrt={gesperrt}
+              alternativen={alternativen}
+              onTausch={tauscheItem}
+              onSperren={sperren}
+              onWuerfeln={() => void loesen(seed + 1)}
+              report={report}
+              begruendung={begruendung}
+            />
+          </div>
+        )}
 
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <button style={pill} disabled={!stilprofil} onClick={() => setSchritt(3)}>
-                      Stil übernehmen → weiter
-                    </button>
-                    <button
-                      style={{ ...pill, background: THEME.salbei }}
-                      onClick={() => setSchritt(3)}
-                    >
-                      Überspringen
-                    </button>
-                  </div>
-                </section>
-              )}
-
-              {/* Schritt 3 – Vorschlag: Küche (Normprofil + Formwahl) + Plan lösen. */}
-              {schritt === 3 && (
-                <section>
-                  <h2 style={{ ...titel, marginTop: 0 }}>Vorschlag</h2>
-                  {stilprofil && (
-                    <p style={{ fontSize: 12, color: "#5a635a" }}>
-                      Stil aktiv ({stilprofil.meta.method}).
-                    </p>
-                  )}
-
-                  {kuecheInfo.istKueche && (
-                    <div style={stil.sektion}>
-                      <h3 style={{ ...titel, marginTop: 0, fontSize: 15 }}>Küche planen</h3>
-                      {kuecheInfo.zoneId && (
-                        <p style={{ fontSize: 12, color: THEME.gruen }}>
-                          Grossraum – geplant wird die Zone «Küche».
-                        </p>
-                      )}
-                      <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
-                        {(["ch", "eu"] as const).map((np) => (
-                          <button
-                            key={np}
-                            onClick={() => {
-                              setNormProfile(np);
-                              setFormen(null);
-                              setForm(null);
-                            }}
-                            style={{
-                              ...pill,
-                              background: normProfile === np ? THEME.gruen : "#a3b9aa",
-                            }}
-                          >
-                            {np === "ch" ? "CH (55er)" : "EU (60er)"}
-                          </button>
-                        ))}
-                        <button style={pill} onClick={() => void formenLaden()}>
-                          Formen zeigen
-                        </button>
-                      </div>
-                      {formen && (
-                        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                          {formen.map((f) => (
-                            <li
-                              key={f.form}
-                              onClick={() => setForm(f.form)}
-                              style={{
-                                ...karte,
-                                padding: 8,
-                                marginBottom: 6,
-                                cursor: "pointer",
-                                border: `2px solid ${form === f.form ? THEME.orange : THEME.salbei}`,
-                              }}
-                            >
-                              <strong>{f.form.toUpperCase()}-Form</strong> · {f.nutzlaenge_m} m
-                              <div style={{ fontSize: 12, color: "#555" }}>{f.begruendung}</div>
-                              <div
-                                style={{
-                                  height: 6,
-                                  marginTop: 4,
-                                  background: "#eee",
-                                  borderRadius: 3,
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    width: `${Math.round(f.score * 100)}%`,
-                                    height: 6,
-                                    background: "#5b8a72",
-                                    borderRadius: 3,
-                                  }}
-                                />
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  )}
-
-                  <button style={pill} disabled={!room} onClick={() => void loesen(seed)}>
-                    Plan vorschlagen
-                  </button>
-                </section>
-              )}
-            </div>
-          )}
-
-          {/* ---------- Schritte 4–5: zweispaltig (Viewer + Panel) ---------- */}
-          {zweiSpaltig && (
-            <>
-              <main
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  minWidth: 0,
-                  minHeight: 0,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    alignItems: "center",
-                    padding: "8px 12px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <button
-                    style={{ ...pill, background: "#5b8a72" }}
-                    onClick={() => setAnsicht((a) => (a === "2d" ? "3d" : "2d"))}
-                  >
-                    {ansicht === "2d" ? "🧊 3D-Ansicht" : "🗺️ 2D-Grundriss"}
-                  </button>
-                  {plan && (
-                    <span style={{ fontSize: 12, color: THEME.gruen }}>
-                      Seed {plan.meta.seed} · Solver {plan.meta.solverVersion}
-                    </span>
-                  )}
-                </div>
-                <div style={{ flex: 1, minHeight: 0 }}>
-                  {aktuellerRaum &&
-                    (ansicht === "2d" ? (
-                      <Viewer2D
-                        room={aktuellerRaum}
-                        placements={plan?.placements ?? []}
-                        catalog={catalog}
-                        gewaehltId={gewaehltId}
-                        statusById={statusById}
-                        onSelect={setGewaehltId}
-                        onMove={verschiebeNach}
-                      />
-                    ) : (
-                      <Viewer3D
-                        room={aktuellerRaum}
-                        placements={plan?.placements ?? []}
-                        catalog={catalog}
-                        gewaehltId={gewaehltId}
-                        statusById={statusById}
-                        onSelect={setGewaehltId}
-                        stilprofil={stilprofil}
-                      />
-                    ))}
-                </div>
-              </main>
-
-              {/* key={schritt}: das Panel blendet bei 4↔5 einmalig ein (der
-                Viewer in <main> bleibt davon unberührt = kein Remount). */}
-              <aside key={schritt} className={CSS.schrittNeu} style={stil.panel}>
-                {/* Schritt 4 – Anpassen: würfeln + Auswahl-Panel + Live-Ampel. */}
-                {schritt === 4 && (
-                  <>
-                    <div style={stil.sektion}>
-                      <button
-                        style={{ ...pill, width: "100%" }}
-                        disabled={!plan}
-                        onClick={() => void loesen(seed + 1)}
-                      >
-                        🎲 Variante würfeln
-                      </button>
-                    </div>
-
-                    {gewaehltesItem && (
-                      <section style={stil.sektion}>
-                        <h3 style={{ ...titel, marginTop: 0, fontSize: 15 }}>
-                          {gewaehltesItem.name}
-                        </h3>
-                        <p style={{ fontSize: 12 }}>
-                          Ziehen (2D) oder Pfeiltasten = verschieben · «r» = rotieren · Klick
-                          daneben = abwählen
-                        </p>
-                        {alternativen.length > 0 && (
-                          <label style={{ display: "block", fontSize: 12, marginBottom: 8 }}>
-                            Austauschen:{" "}
-                            <select
-                              value=""
-                              onChange={(e) => {
-                                if (e.target.value) tauscheItem(e.target.value);
-                                e.target.value = "";
-                              }}
-                            >
-                              <option value="" disabled>
-                                Alternative wählen… ({alternativen.length})
-                              </option>
-                              {alternativen.map((a) => (
-                                <option key={a.id} value={a.id}>
-                                  {a.name}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                        )}
-                        <button style={pill} onClick={sperren}>
-                          🔒 sperren/entsperren
-                        </button>
-                      </section>
-                    )}
-
-                    {begruendung && (
-                      <section style={stil.sektion}>
-                        <p style={{ fontSize: 12, margin: 0 }}>{begruendung}</p>
-                      </section>
-                    )}
-
-                    {report && (
-                      <section style={stil.sektion}>
-                        <h3 style={{ marginTop: 0 }}>
-                          Norm-Ampel {report.hard.ok ? "✅" : "❌"} ({report.hard.summary.erfuellt}{" "}
-                          ok · {report.hard.summary.knapp} knapp · {report.hard.summary.verletzt}{" "}
-                          verletzt)
-                        </h3>
-                        <ul style={{ listStyle: "none", padding: 0, fontSize: 13 }}>
-                          {report.results.map((r) => (
-                            <li key={r.ruleId} style={{ marginBottom: 4 }}>
-                              {AMPEL[r.status]} <code>{r.ruleId}</code>
-                              {r.margin_cm !== null && ` · Marge ${r.margin_cm} cm`}
-                            </li>
-                          ))}
-                        </ul>
-                      </section>
-                    )}
-                  </>
-                )}
-
-                {/* Schritt 5 – Auswertung & Export: Auswertung + KV + Dokumente + Dreieck. */}
-                {schritt === 5 && (
-                  <>
-                    <div
-                      style={{
-                        ...stil.sektion,
-                        display: "flex",
-                        gap: 8,
-                        flexWrap: "wrap",
-                        alignItems: "center",
-                      }}
-                    >
-                      <button style={pill} disabled={!plan} onClick={() => void auswerten()}>
-                        Auswertung
-                      </button>
-                      <select
-                        disabled={!plan}
-                        value=""
-                        onChange={(e) => {
-                          const [pfad, datei] = e.target.value.split("|");
-                          if (room && plan && pfad && datei)
-                            void api.dokument(pfad, datei, room, plan);
-                          e.target.value = "";
-                        }}
-                      >
-                        <option value="" disabled>
-                          📄 Dokumente…
-                        </option>
-                        <option value="kv-pdf|kostenschaetzung.pdf">Kostenschätzung (KV)</option>
-                        <option value="lv-pdf|leistungsverzeichnis.pdf">
-                          Leistungsverzeichnis
-                        </option>
-                        <option value="bauzeitenplan-pdf|bauzeitenplan.pdf">Bauzeitenplan</option>
-                        <option value="offertanfrage|offertanfrage.pdf">Offertanfrage-Paket</option>
-                        <option value="gewerke-pdf|gewerke-uebersicht.pdf">
-                          Gewerke-Übersicht
-                        </option>
-                        <option value="einkaufsliste-pdf|einkaufsliste.pdf">Einkaufsliste</option>
-                        <option value="plan-pdf|grundriss.pdf">2D-Plan (PDF)</option>
-                        <option value="dxf|grundriss.dxf">2D-Plan (DXF)</option>
-                        <option value="gltf|szene.gltf">3D-Export (glTF)</option>
-                      </select>
-                    </div>
-
-                    {kv && (
-                      <section style={stil.sektion}>
-                        <h3 style={{ marginTop: 0 }}>Kostenschätzung</h3>
-                        <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
-                          <tbody>
-                            {kv.positionen.map((p) => (
-                              <tr key={p.bezeichnung}>
-                                <td>{p.bezeichnung}</td>
-                                <td style={{ textAlign: "right" }}>
-                                  CHF {p.total_chf.toLocaleString("de-CH")}
-                                </td>
-                              </tr>
-                            ))}
-                            <tr
-                              style={{ fontWeight: "bold", borderTop: `1px solid ${THEME.gruen}` }}
-                            >
-                              <td>Summe (±{kv.bandbreitePct}%)</td>
-                              <td style={{ textAlign: "right" }}>
-                                CHF {kv.summe_chf.toLocaleString("de-CH")}
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                        <p style={{ fontSize: 11, color: THEME.orange }}>⚠ {kv.hinweis}</p>
-                        {kv.nextSteps.length > 0 && (
-                          <>
-                            <h4>Next Steps</h4>
-                            <ul style={{ fontSize: 12 }}>
-                              {kv.nextSteps.map((s) => (
-                                <li key={s}>{s}</li>
-                              ))}
-                            </ul>
-                          </>
-                        )}
-                      </section>
-                    )}
-
-                    {dreieck && (
-                      <section style={stil.sektion}>
-                        <h3 style={{ marginBottom: 4, marginTop: 0 }}>
-                          {DREIECK_SYMBOL[dreieck.bewertung]} Arbeitsdreieck · {dreieck.bewertung}
-                        </h3>
-                        <p style={{ fontSize: 13, margin: "2px 0" }}>
-                          Ergonomie {Math.round(dreieck.score * 100)} % · Summe{" "}
-                          {dreieck.summe_m.toLocaleString("de-CH")} m
-                        </p>
-                        <p style={{ fontSize: 12, color: "#555", margin: "2px 0" }}>
-                          Seiten{" "}
-                          {dreieck.seiten_m.map((s) => s.toLocaleString("de-CH")).join(" · ")} m
-                          (Spüle–Kochfeld–Kühlschrank)
-                        </p>
-                        <p style={{ fontSize: 11, color: "#999", margin: "2px 0" }}>
-                          AMK-Richtwert: jede Seite 1.2–2.7 m, Summe 4–8 m = effizient.
-                        </p>
-                      </section>
-                    )}
-                  </>
-                )}
-              </aside>
-            </>
-          )}
-        </div>
+        {schritt === 5 && (
+          <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+            <SchrittAuswertung
+              room={room}
+              plan={plan}
+              kv={kv}
+              dreieck={dreieck}
+              normOk={!!report?.hard.ok}
+              ladenDokumente={ladenDokumente}
+              onDokument={dokumentLaden}
+            />
+          </div>
+        )}
       </AppRahmen>
-
-      {swipeOffen && (
-        <StilSwipe
-          bilder={bilder}
-          onAbbruch={() => setSwipeOffen(false)}
-          onFertig={(likes, dislikes, presetId) => {
-            setSwipeOffen(false);
-            if (!room) return;
-            void api
-              .styleProfile(room.roomType, likes, dislikes, presetId)
-              .then((p) => setStilprofil(p));
-          }}
-        />
-      )}
 
       {editorOffen && (
         <RaumEditor
