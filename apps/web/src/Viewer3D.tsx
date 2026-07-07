@@ -6,9 +6,14 @@
  */
 import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
+import { useMemo } from "react";
 import { Shape } from "three";
 import type { KatalogItem, Placement, Room } from "./api";
 import { materialFarbe, Moebel3D } from "./moebel3d.tsx";
+import { leiteOberflaechen, type OberflaechenSpez } from "./oberflaechen";
+import { bodenTextur, WandMitOeffnungen, wandTextur } from "./raum3d.tsx";
+import type { WandOeffnung } from "./raum3d";
+import type { Stilprofil } from "./Stil";
 import { THEME } from "./theme";
 
 // Norm-Ampel-Statusfarben (identisch zu Viewer2D) – die Ampel dominiert die
@@ -20,9 +25,13 @@ const FARBE_GESPERRT = "#7a7a7a";
 
 type Status = "verletzt" | "knapp";
 
-function Boden({ room }: { room: Room }) {
+function Boden({ room, spez }: { room: Room; spez: OberflaechenSpez }) {
   const shape = new Shape();
   const poly = room.shell.floor.polygon;
+  const textur = useMemo(
+    () => bodenTextur(spez.boden),
+    [spez.boden.muster, spez.boden.grundfarbe, spez.boden.fugenfarbe, spez.boden.masse_m],
+  );
   const start = poly[0];
   if (!start) return null;
   shape.moveTo(start[0], start[1]);
@@ -31,36 +40,48 @@ function Boden({ room }: { room: Room }) {
   return (
     <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
       <shapeGeometry args={[shape]} />
-      <meshStandardMaterial color="#e8e2d6" side={2} />
+      {/* Bei Textur: Grundfarbe = weiss, damit die Kachel-/Dielenfarben echt wirken. */}
+      <meshStandardMaterial
+        color={textur ? "#ffffff" : spez.boden.grundfarbe}
+        map={textur ?? undefined}
+        side={2}
+      />
     </mesh>
   );
 }
 
-function Waende({ room }: { room: Room }) {
+function Waende({ room, spez }: { room: Room; spez: OberflaechenSpez }) {
+  // Öffnungen je Host-Wand zuordnen (openings referenzieren die Wand per hostWall).
+  const proWand = new Map<string, WandOeffnung[]>();
+  for (const o of room.openings) {
+    // Das lose RoomInput-Öffnungsobjekt trägt height nicht im Typ, im echten
+    // Raummodell aber schon (Schema) → optional lesen mit Fallback.
+    const eintrag = o as (typeof room.openings)[number] & { height?: number };
+    const liste = proWand.get(eintrag.hostWall) ?? [];
+    liste.push({
+      type: eintrag.type,
+      offset: eintrag.offset,
+      width: eintrag.width,
+      height: eintrag.height ?? (eintrag.type === "door" ? 2.0 : 1.2),
+      sill: eintrag.sill,
+    });
+    proWand.set(eintrag.hostWall, liste);
+  }
+  const fliesenTex = useMemo(
+    () => wandTextur(spez.wand),
+    [spez.wand.muster, spez.wand.farbe, spez.wand.fliesenHoehe_m],
+  );
   return (
     <>
-      {room.shell.walls.map((w) => {
-        const dx = w.end[0] - w.start[0];
-        const dz = w.end[1] - w.start[1];
-        const laenge = Math.hypot(dx, dz);
-        const wand = w as typeof w & { height?: number; thickness?: number };
-        const hoehe = wand.height ?? 2.4;
-        const dicke = wand.thickness ?? 0.1;
-        return (
-          <mesh
-            key={w.id}
-            position={[(w.start[0] + w.end[0]) / 2, hoehe / 2, (w.start[1] + w.end[1]) / 2]}
-            rotation={[0, -Math.atan2(dz, dx), 0]}
-          >
-            <boxGeometry args={[laenge, hoehe, dicke]} />
-            <meshStandardMaterial
-              color={w.kind === "massiv" ? "#d8d2c4" : "#eeeeee"}
-              transparent
-              opacity={0.45}
-            />
-          </mesh>
-        );
-      })}
+      {room.shell.walls.map((w) => (
+        <WandMitOeffnungen
+          key={w.id}
+          wand={w as Parameters<typeof WandMitOeffnungen>[0]["wand"]}
+          oeffnungen={proWand.get(w.id) ?? []}
+          spez={spez.wand}
+          fliesenTextur={fliesenTex}
+        />
+      ))}
     </>
   );
 }
@@ -123,6 +144,7 @@ export function Viewer3D({
   gewaehltId,
   statusById,
   onSelect,
+  stilprofil,
 }: {
   room: Room;
   placements: Placement[];
@@ -131,11 +153,15 @@ export function Viewer3D({
   /** Pro-Placement-Norm-Ampel (verletzt/knapp) – wie in Viewer2D. */
   statusById: Map<string, Status>;
   onSelect: (id: string | null) => void;
+  /** Aktives Stilprofil des geplanten Raums – steuert Boden-/Wandoberflächen.
+   *  Fehlt es, bleibt die neutrale Default-Optik; Türen/Fenster erscheinen immer. */
+  stilprofil?: Stilprofil | null;
 }) {
   const byId = new Map(catalog.map((c) => [c.id, c]));
   const poly = room.shell.floor.polygon;
   const cx = poly.reduce((s, p) => s + p[0], 0) / poly.length;
   const cz = poly.reduce((s, p) => s + p[1], 0) / poly.length;
+  const spez = leiteOberflaechen(stilprofil ?? null, room.roomType);
   return (
     <Canvas
       camera={{ position: [cx + 3, 3.2, cz + 3], fov: 50 }}
@@ -143,8 +169,8 @@ export function Viewer3D({
     >
       <ambientLight intensity={0.7} />
       <directionalLight position={[4, 6, 3]} intensity={0.8} />
-      <Boden room={room} />
-      <Waende room={room} />
+      <Boden room={room} spez={spez} />
+      <Waende room={room} spez={spez} />
       {placements.map((p) => {
         const item = byId.get(p.catalogItemId);
         if (!item) return null;

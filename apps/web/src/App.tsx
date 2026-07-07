@@ -780,6 +780,7 @@ export function App() {
                       gewaehltId={gewaehltId}
                       statusById={statusById}
                       onSelect={setGewaehltId}
+                      stilprofil={stilprofil}
                     />
                   ))}
               </div>

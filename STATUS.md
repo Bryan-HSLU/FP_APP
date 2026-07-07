@@ -441,6 +441,21 @@
    Design-WC + Eckdusche). Erweitern = Katalog-Item mit achsenTags (+ optional
    neuer Bausatz), 3-Schritte-Anleitung im moebel3d-Docstring. Suite: Web 36 +
    engines 205/1 skip + scan-worker 22 grün.
+   · ✅ **3D-Viewer: Türen/Fenster + stilgetriebene Oberflächen (2026-07-07,
+   Bryan-Wunsch):** Wände jetzt aus massiven Segment-Quadern statt einer Voll-Box
+   → Türen/Fenster sind **echte Löcher** (Vollsegmente + Sturz + Brüstung, ohne
+   CSG). `raum3d.ts` (rein, getestet: `wandSegmente`/`clipZone`/`oeffnungsPose`) +
+   `raum3d.tsx` (`Tuer3D` mit ~20°-Türblatt/Griff, `Fenster3D` mit getöntem Glas +
+   Sprosse, `WandMitOeffnungen`, prozedurale CanvasTexture für Boden/Wand). Boden-
+   & Wandoptik werden aus dem Stilprofil abgeleitet (`oberflaechen.ts`, rein/
+   deterministisch, **kein Schema-Eingriff** – Konvention wie `MATERIAL_FARBE`):
+   Bad→Fliesen+Wandsockel 1.2 m, Wohnen→Parkett, Küche→Stein/Fliesen je
+   Materialität; Achsen temperatur/helligkeit/materialitaet/farbigkeit steuern die
+   Farbe (HSL-Herleitung). Ohne Stilprofil bleibt die heutige neutrale Optik;
+   Türen/Fenster erscheinen immer. Abweichung dokumentiert: Wand-Fliesenzone per
+   Höhen-Clip (2 gestapelte Zonen) statt CSG-Zonenschnitt – robust & dependency-
+   frei. Suite: **Web +21 (raum3d 12 · oberflaechen 9)**, Gates lint/typecheck/
+   test(73)/build grün.
    **Als Nächstes:** Presets optional kuratieren · ⚠️ 90 PNG (~180 MB) blähen
    Repo + Space-Deploy – ggf. Bildgrösse reduzieren/auslagern ·
    Schritt 5 E2E gegen R1 auf Colab (braucht AR-App-Aufnahmen) ·
