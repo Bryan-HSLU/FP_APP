@@ -53,6 +53,8 @@ const FARBE_KNAPP = "#e67e22";
 const FARBE_GESPERRT = "#7a7a7a";
 const FARBE_GEWAEHLT = THEME.orange;
 const FARBE_NEUTRAL = "#2c2c28";
+/** Reiner Planlook (Ampel-Ebene aus): schwarzer Stift, weisse Schraffur. */
+const FARBE_PLAN = "#1a1a1a";
 
 type Status = "verletzt" | "knapp";
 
@@ -74,8 +76,10 @@ function strichfarbe(
     if (status === "verletzt") return FARBE_VERLETZT;
     if (status === "knapp") return FARBE_KNAPP;
     if (placement.locked) return FARBE_GESPERRT;
+    return materialFarbe(item.funktionsTyp);
   }
-  return materialFarbe(item.funktionsTyp);
+  // Ampel-Ebene aus → reiner Planlook mit schwarzem Stift (Bryan 2026-07-07).
+  return FARBE_PLAN;
 }
 
 /** Türschwenk als robuste Polylinie (Viertelkreis von der Wand ins Innere). */
@@ -164,13 +168,22 @@ function Oeffnung({
 function ObjektSymbol({
   prims,
   farbe,
+  schraffur,
 }: {
   prims: ReturnType<typeof symbolScreenPrims>;
   farbe: string;
+  /** Ampel aus → geschlossene Formen mit weisser Schraffur füllen (Planlook). */
+  schraffur: boolean;
 }) {
   if (!prims) return null;
   return (
-    <g fill="none" stroke={farbe} strokeWidth={1.6} strokeLinejoin="round" strokeLinecap="round">
+    <g
+      fill={schraffur ? "url(#fp-schraffur)" : "none"}
+      stroke={farbe}
+      strokeWidth={1.6}
+      strokeLinejoin="round"
+      strokeLinecap="round"
+    >
       {prims.map((p, i) => {
         const dash = p.dash ? "5 4" : undefined;
         if (p.kind === "circle") {
@@ -325,7 +338,23 @@ export function Viewer2D({
           role="img"
           aria-label="2D-Grundriss"
         >
-          <polygon points={floorPts} fill="#efe9dc" stroke="none" />
+          <defs>
+            {/* Weisse Schraffur (Architektenplan) für die Objektfüllung, wenn
+                die Ampel-Ebene aus ist – weisser Grund + feine schwarze
+                Diagonalen (Bryan 2026-07-07). */}
+            <pattern
+              id="fp-schraffur"
+              width={5}
+              height={5}
+              patternTransform="rotate(45)"
+              patternUnits="userSpaceOnUse"
+            >
+              <rect width={5} height={5} fill="#ffffff" />
+              <line x1={0} y1={0} x2={0} y2={5} stroke={FARBE_PLAN} strokeWidth={0.6} />
+            </pattern>
+          </defs>
+          {/* Boden: beige normal, im Planlook (Ampel aus) reinweiss. */}
+          <polygon points={floorPts} fill={ebenen.ampel ? "#efe9dc" : "#ffffff"} stroke="none" />
 
           {/* Wände als gefüllte Polygone mit echter Wandstärke */}
           {room.shell.walls.map((w) => {
@@ -438,6 +467,15 @@ export function Viewer2D({
                     <ObjektSymbol
                       prims={prims}
                       farbe={strichfarbe(item, p, status, ebenen.ampel)}
+                      schraffur={!ebenen.ampel}
+                    />
+                  ) : !ebenen.ampel ? (
+                    // Fallback im Planlook: weisse Schraffur + schwarzer Rahmen.
+                    <polygon
+                      points={fp}
+                      fill="url(#fp-schraffur)"
+                      stroke={FARBE_PLAN}
+                      strokeWidth={1.2}
                     />
                   ) : (
                     // Fallback: bisherige beschriftete Box

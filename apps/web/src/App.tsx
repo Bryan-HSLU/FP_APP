@@ -563,8 +563,6 @@ export function App() {
               onSelect={waehleItem}
               stilprofil={stilprofil}
               interaktiv
-              onMove={verschiebeNach}
-              onRotate={rotiereNach}
               gewaehlteFlaeche={flaeche}
               onSelectFlaeche={waehleFlaeche}
               oberflaechenWahl={oberflaechenWahl}
@@ -589,9 +587,13 @@ export function App() {
         maxErreichterSchritt={maxErreicht}
         onSchrittWechsel={setSchritt}
         hinweis={meldung || undefined}
-        onZurueck={() => setSchritt((s) => Math.max(1, s - 1))}
+        onZurueck={() =>
+          // Auf Schritt 1 führt «Zurück» zurück zur Titelseite (Startmenü),
+          // sonst einen Wizard-Schritt zurück (Bryan 2026-07-07).
+          schritt === 1 ? setPhase("menue") : setSchritt((s) => Math.max(1, s - 1))
+        }
         onWeiter={() => setSchritt((s) => Math.min(5, s + 1))}
-        zurueckDeaktiviert={schritt === 1}
+        zurueckLabel={schritt === 1 ? "← Zur Startseite" : "← Zurück"}
         weiterDeaktiviert={schritt === 5 || !erreichbar(schritt + 1)}
         weiterLabel={schritt === 4 ? "Zur Auswertung" : "Weiter"}
       >

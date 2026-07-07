@@ -19,7 +19,6 @@ import {
   type OberflaechenSpez,
   type OberflaechenWahl,
 } from "./oberflaechen";
-import { rasten } from "./plan2d.ts";
 import { bodenTextur, WandMitOeffnungen, wandTextur } from "./raum3d.tsx";
 import type { WandOeffnung } from "./raum3d";
 import type { Stilprofil } from "./Stil";
@@ -142,20 +141,14 @@ function PlacementBox({
   gewaehlt,
   status,
   ampelAn,
-  interaktiv,
   onClick,
-  onDoubleClick,
-  onDragStart,
 }: {
   placement: Placement;
   item: KatalogItem;
   gewaehlt: boolean;
   status: Status | undefined;
   ampelAn: boolean;
-  interaktiv: boolean;
   onClick: () => void;
-  onDoubleClick: () => void;
-  onDragStart: () => void;
 }) {
   const { w, d, h } = item.masse;
   const y = (placement.mountHeight ?? 0) + h / 2;
@@ -169,7 +162,9 @@ function PlacementBox({
         : ampelAn && placement.locked
           ? FARBE_GESPERRT
           : materialFarbe(item.funktionsTyp);
-  const ziehbar = interaktiv && !placement.locked;
+  // 3D ist reine Ansicht/Begehung: Klick wählt aus (öffnet die Produktkarte),
+  // aber Möbel werden hier NICHT mehr verschoben/gedreht – das Bearbeiten läuft
+  // über den 2D-Grundriss (Bryan 2026-07-07).
   return (
     <group
       position={[placement.pose.pos[0], y, placement.pose.pos[1]]}
@@ -178,23 +173,6 @@ function PlacementBox({
         e.stopPropagation();
         onClick();
       }}
-      onDoubleClick={
-        ziehbar
-          ? (e) => {
-              e.stopPropagation();
-              onDoubleClick();
-            }
-          : undefined
-      }
-      onPointerDown={
-        ziehbar
-          ? (e) => {
-              e.stopPropagation();
-              onClick();
-              onDragStart();
-            }
-          : undefined
-      }
     >
       <Moebel3D
         funktionsTyp={item.funktionsTyp}
@@ -208,48 +186,16 @@ function PlacementBox({
   );
 }
 
-/** Unsichtbare Bodenebene (y=0): fängt beim Objekt-Drag den Raycast fürs Rastern. */
-function DragEbene({
-  aktiv,
-  onMove,
-  onUp,
-}: {
-  aktiv: boolean;
-  onMove: (welt: [number, number]) => void;
-  onUp: () => void;
-}) {
-  if (!aktiv) return null;
-  return (
-    <mesh
-      rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, 0, 0]}
-      onPointerMove={(e) => {
-        e.stopPropagation();
-        onMove([rasten(e.point.x), rasten(e.point.z)]);
-      }}
-      onPointerUp={(e) => {
-        e.stopPropagation();
-        onUp();
-      }}
-    >
-      <planeGeometry args={[1000, 1000]} />
-      <meshBasicMaterial visible={false} />
-    </mesh>
-  );
-}
-
 /** Orbit-/Preset-Kamerasteuerung: setzt Kamera + OrbitControls-Ziel bei jedem
  *  Preset-Wechsel neu (animationsfrei, Bryan ok). */
 function KameraSteuerung({
   preset,
   bboxKey,
   pose,
-  aktiv,
 }: {
   preset: Ansichtspreset;
   bboxKey: string;
   pose: ReturnType<typeof presetKamera>;
-  aktiv: boolean;
 }) {
   const ref = useRef<ComponentRef<typeof OrbitControls>>(null);
   const { camera } = useThree();
@@ -264,9 +210,7 @@ function KameraSteuerung({
     }
     // preset + bboxKey als Auslöser: nur bei Preset-/Raumwechsel neu setzen.
   }, [preset, bboxKey]);
-  // Während eines Objekt-Drags (aktiv=false) die Kamera festhalten, damit das
-  // Ziehen nicht zugleich die Ansicht dreht.
-  return <OrbitControls ref={ref} makeDefault enabled={aktiv} maxPolarAngle={Math.PI / 2.05} />;
+  return <OrbitControls ref={ref} makeDefault maxPolarAngle={Math.PI / 2.05} />;
 }
 
 /** First-Person-Begehung: Drag = umsehen (Yaw/Pitch), WASD/Pfeile = bewegen,
@@ -468,8 +412,6 @@ export function Viewer3D({
   onSelect,
   stilprofil,
   interaktiv = false,
-  onMove,
-  onRotate,
   gewaehlteFlaeche,
   onSelectFlaeche,
   oberflaechenWahl,
@@ -483,12 +425,9 @@ export function Viewer3D({
   statusById: Map<string, Status>;
   onSelect: (id: string | null) => void;
   stilprofil?: Stilprofil | null;
-  /** Editier-Interaktion (Drag/Rotate/Flächenwahl). Default aus (Vorschau read-only). */
+  /** Flächenwahl (Oberflächen) aktiv. Möbel werden im 3D NICHT bearbeitet –
+   *  Verschieben/Drehen läuft nur im 2D-Grundriss (Bryan 2026-07-07). */
   interaktiv?: boolean;
-  /** Möbel per Drag auf der Bodenebene verschieben (absolute Weltposition). */
-  onMove?: (id: string, welt: [number, number]) => void;
-  /** Möbel drehen (absoluter Yaw in Grad) – Doppelklick = +90°. */
-  onRotate?: (id: string, yawDeg: number) => void;
   /** Aktuell gewählte Oberfläche (Boden/Wand) – zeigt die Oberflächen-Karte. */
   gewaehlteFlaeche?: FlaechenWahl | null;
   /** Klick auf Boden/Wand (kein Möbel getroffen) wählt die Fläche. */
@@ -507,7 +446,6 @@ export function Viewer3D({
   const [preset, setPreset] = useState<Ansichtspreset>("perspektive");
   const [ampel, setAmpel] = useState(true);
   const [waende, setWaende] = useState(true);
-  const [dragId, setDragId] = useState<string | null>(null);
 
   const basis = leiteOberflaechen(stilprofil ?? null, room.roomType);
   const spez = wendeVariantenAn(basis, room.roomType, oberflaechenWahl);
@@ -516,11 +454,6 @@ export function Viewer3D({
   const bboxKey = `${bbox.cx.toFixed(2)}:${bbox.cz.toFixed(2)}:${bbox.breite.toFixed(2)}`;
   const orbitPose = presetKamera(bbox, preset, raumHoehe);
   const startPose = begehungStart(bbox);
-
-  // Beim Verlassen des Begehungsmodus den Drag beenden.
-  useEffect(() => {
-    if (modus === "begehung") setDragId(null);
-  }, [modus]);
 
   const flaecheKlick =
     interaktiv && onSelectFlaeche
@@ -581,18 +514,12 @@ export function Viewer3D({
                 gewaehlt={p.id === gewaehltId}
                 status={statusById.get(p.id)}
                 ampelAn={ampel}
-                interaktiv={interaktiv && modus === "orbit"}
                 onClick={() => onSelect(p.id)}
-                onDoubleClick={() => onRotate?.(p.id, (p.pose.yawDeg + 90) % 360)}
-                onDragStart={() => setDragId(p.id)}
               />
             );
           })}
-          {dragId && onMove && modus === "orbit" && (
-            <DragEbene aktiv onMove={(welt) => onMove(dragId, welt)} onUp={() => setDragId(null)} />
-          )}
           {modus === "orbit" ? (
-            <KameraSteuerung preset={preset} bboxKey={bboxKey} pose={orbitPose} aktiv={!dragId} />
+            <KameraSteuerung preset={preset} bboxKey={bboxKey} pose={orbitPose} />
           ) : (
             <Begehung start={startPose} />
           )}

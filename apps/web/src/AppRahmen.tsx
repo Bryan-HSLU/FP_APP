@@ -30,6 +30,8 @@ export interface AppRahmenProps {
   weiterDeaktiviert?: boolean;
   /** Label des Weiter-Buttons (Default «Weiter»). */
   weiterLabel?: string;
+  /** Label des Zurück-Buttons (Default «← Zurück»). */
+  zurueckLabel?: string;
   /** Menü rechts im Header (Default = Platzhalter-Button). */
   menu?: ReactNode;
   children: ReactNode;
@@ -46,6 +48,7 @@ export function AppRahmen({
   zurueckDeaktiviert,
   weiterDeaktiviert,
   weiterLabel = "Weiter",
+  zurueckLabel = "← Zurück",
   menu,
   children,
 }: AppRahmenProps) {
@@ -165,7 +168,7 @@ export function AppRahmen({
             border: "1px solid var(--fp-primary)",
           }}
         >
-          ← Zurück
+          {zurueckLabel}
         </button>
         <button
           type="button"

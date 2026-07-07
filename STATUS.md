@@ -483,6 +483,17 @@
    Ebene (der 3D-Viewer trägt keine Text-Labels), PointerLock (Drag-Look ist
    robuster + mobiltauglich). Suite: **Web +19 (viewer3d-logik 13 · oberflaechen
    +6) → 120**, Gates lint/typecheck/test/build grün.
+   · ✅ **Viewer-Feinschliff (2026-07-07, Bryan):** (1) **3D-Bearbeitungsmodus
+   entfernt** – Möbel werden im 3D NICHT mehr verschoben/gedreht (Drag/Rotate +
+   DragEbene raus); 3D = reine Ansicht/Begehung, Klick wählt weiterhin aus
+   (Produktkarte) und Flächen/Oberflächen bleiben wählbar. Bearbeiten läuft nur
+   noch im 2D-Grundriss. (2) **2D-Planlook bei Ampel-aus**: ist die Ampel-Ebene
+   aus, zeichnen die Objektsymbole mit schwarzem Stift (`FARBE_PLAN`) und
+   **weisser Schraffur-Füllung** (SVG-`<pattern>` 45°), Boden wird reinweiss –
+   Architektenplan-Optik; Ampel an = farbig wie bisher. (3) **Zurück zur
+   Titelseite**: «Zurück» auf Schritt 1 führt zurück ins Startmenü
+   (`setPhase("menue")`, Label «← Zur Startseite»); AppRahmen um `zurueckLabel`
+   erweitert. Gates grün, 120 Tests.
    · ✅ **UI-Redesign Etappe A: Designsystem + App-Rahmen (2026-07-07,
    Bryan-Konzept):** Fundament, das die 5 Schritt-Ansichten (Etappe B) nur noch
    konsumieren. **Designsystem** – globales Stylesheet `apps/web/src/fp.css`
