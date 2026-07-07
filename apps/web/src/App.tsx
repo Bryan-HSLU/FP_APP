@@ -19,6 +19,7 @@ import {
   type Room,
 } from "./api";
 import { AppRahmen } from "./AppRahmen";
+import { Splash, StartMenue } from "./StartMenue";
 import { RaumEditor } from "./RaumEditor";
 import { ScanKorrektur } from "./ScanKorrektur";
 import { SchrittAnpassen } from "./SchrittAnpassen";
@@ -66,6 +67,8 @@ export function App() {
   const [scanRoomType, setScanRoomType] = useState("bad");
   // Scan-Korrektur-Modus (M7 Schritt 6): geladener Scan wartet auf Korrektur.
   const [korrektur, setKorrektur] = useState<{ room: Room; warnungen: string[] } | null>(null);
+  // Einstieg vor dem Wizard: Splash (Logo) → Startmenü → App (Bryan-Wunsch).
+  const [phase, setPhase] = useState<"splash" | "menue" | "app">("splash");
   // Wizard: aktueller Schritt (1..5). Schritt-für-Schritt statt alles auf einmal.
   const [schritt, setSchritt] = useState(1);
   // Raumtyp-Vorwahl (Schritt 1): steuert Scan-Raumtyp + filtert Beispielräume.
@@ -467,6 +470,11 @@ export function App() {
       </div>
     </div>
   );
+
+  // Einstieg: Splash → Startmenü, erst danach der Wizard. Hooks oben bleiben
+  // unverändert aktiv (Daten laden schon im Hintergrund).
+  if (phase === "splash") return <Splash onFertig={() => setPhase("menue")} />;
+  if (phase === "menue") return <StartMenue onStart={() => setPhase("app")} />;
 
   return (
     <>

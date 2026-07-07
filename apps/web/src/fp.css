@@ -34,7 +34,7 @@
   /* Vereinheitlichter Kartenstil: harter Schlagschatten OHNE Blur (gleiche
      Richtung/Stärke überall) + weisser Innenschein. */
   --fp-card-border: 1px solid rgba(36, 61, 53, 0.22);
-  --fp-card-radius: 18px;
+  --fp-card-radius: 12px;
   --fp-card-shadow: 7px 7px 0 rgba(36, 61, 53, 0.15), inset 0 0 18px rgba(240, 247, 242, 0.85);
 }
 
@@ -88,6 +88,14 @@ body {
 }
 
 /* ---------- Buttons ---------- */
+/* Farbige Objekte (Buttons/Chips/Karten mit CI-Farbe) tragen die CI-Grafik-
+   sprache: harter Schlagschatten (kleiner als Karten) + Schein nach innen. */
+.fp-farbig {
+  box-shadow:
+    4px 4px 0 rgba(36, 61, 53, 0.18),
+    inset 0 0 10px rgba(255, 255, 255, 0.35);
+}
+
 .fp-button {
   transition:
     transform 140ms ease,

@@ -52,6 +52,8 @@ export const CSS = {
   twoColumn: "fp-two-column",
   dreiKarten: "fp-drei-karten",
   fortschritt: "fp-fortschritt",
+  /** Farbige Objekte (CI-Farbe) tragen Schlagschatten + Innenschein (Bryan). */
+  farbig: "fp-farbig",
 } as const;
 
 /** Harter Schlagschatten OHNE Blur (scharfe Kante) – Bryans Pitch-/Grafikstil.
@@ -66,7 +68,7 @@ export const innerGlow = "inset 0 0 18px rgba(240,247,242,0.85)";
  *  `.fp-card`). Wo möglich stattdessen `className={CSS.card}` nutzen. */
 export const karte = {
   background: "#ffffff",
-  borderRadius: 18,
+  borderRadius: 12,
   border: "1px solid rgba(36,61,53,0.22)",
   boxShadow: `${schlagschatten}, ${innerGlow}`,
 } as const;
