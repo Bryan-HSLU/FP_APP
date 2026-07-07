@@ -456,6 +456,33 @@
    Höhen-Clip (2 gestapelte Zonen) statt CSG-Zonenschnitt – robust & dependency-
    frei. Suite: **Web +21 (raum3d 12 · oberflaechen 9)**, Gates lint/typecheck/
    test(73)/build grün.
+   · ✅ **UI-Redesign Etappe A: Designsystem + App-Rahmen (2026-07-07,
+   Bryan-Konzept):** Fundament, das die 5 Schritt-Ansichten (Etappe B) nur noch
+   konsumieren. **Designsystem** – globales Stylesheet `apps/web/src/fp.css`
+   (in `main.tsx` importiert): `:root`-Farbrollen als CSS-Variablen
+   (`--fp-primary/-dark/-accent/-muted/-soft/-background/-text`), Typografie-Vars
+   (`--fp-font-display/-body`, Schriftdateien BEWUSST nicht eingebettet – Lizenz
+   offen), vereinheitlichter Kartenstil `.fp-card` (+ `.fp-card-flach`
+   flach, `.fp-card-aktiv` oranger Rand) mit hartem Schlagschatten OHNE Blur
+   (7px 7px 0) + Innenschein, `.fp-button` (Press/Hover-Animation + `:active`
+   scale), `.fp-schritt-neu` (einmalige Einblendung), `.fp-piktogramm-puls`,
+   Responsive-Helfer `.fp-two-column`/`.fp-drei-karten` (@media 820px) + reduce-
+   motion. **Hintergrund reinweiss** (index.html body + `--fp-background`);
+   Off-White nur für Sekundärflächen. `theme.ts` **v2** – Rückwärtskompatibel
+   (THEME/karte/pill/titel/schlagschatten/innerGlow behalten, zeigen auf die
+   neuen Werte) + neu `FP_VAR` (CSS-Var-Strings) & `CSS` (Klassennamen-Konstanten).
+   **App-Rahmen** `AppRahmen.tsx` (Header Logo/Projektname/Menü-Platzhalter ·
+   Fortschrittsweg · Inhalt zentriert max-width 1400 · Footer Zurück/Weiter).
+   **Fortschrittsweg** `Fortschrittsweg.tsx` (Kreis+Label+Linie, aktiv=orange /
+   erledigt=grün+✓ / gesperrt=salbei, mobil scrollbar) auf getesteter Logik
+   `fortschritt.ts` (`schrittZustand`, 6 neue Tests). **Piktogramm-System**
+   `Piktogramm.tsx` – 25 Inline-SVGs + **Drop-in** (`<img /piktogramme/<name>.png>`
+   → onError-Fallback aufs SVG; Ordner `public/piktogramme/` mit README). **Lade-
+   zustände** `Ladezustand.tsx` (pulsierendes Piktogramm + 4 Presets stil/
+   vorschlag/scan/dokumente – Etappe B verdrahtet). App.tsx: nur Rahmen-
+   Präsentation ersetzt (weisser Grund, alter Header/Stepper/Footer → AppRahmen),
+   Schritt-Logik/State unangetastet. **Web 79 Tests grün**, lint/typecheck/build
+   sauber.
    **Als Nächstes:** Presets optional kuratieren · ⚠️ 90 PNG (~180 MB) blähen
    Repo + Space-Deploy – ggf. Bildgrösse reduzieren/auslagern ·
    Schritt 5 E2E gegen R1 auf Colab (braucht AR-App-Aufnahmen) ·

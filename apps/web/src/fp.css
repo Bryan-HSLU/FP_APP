@@ -1,0 +1,183 @@
+/* Future Planning – globales Stylesheet (UI-Redesign Etappe A, Bryan-Konzept).
+ *
+ * Hier lebt ALLES, was Pseudoklassen (:hover/:active), Media-Queries oder
+ * Keyframes braucht – Inline-Styles in React können das nicht. Statische
+ * JS-Tokens (Farben, Kartenobjekt, Pill) bleiben in theme.ts, damit
+ * Inline-Reste sie weiter konsumieren. Die Klassennamen sind zusätzlich als
+ * Konstanten in theme.ts (`CSS`) gespiegelt.
+ *
+ * Quelle/Vorgabe: Bryans UI-Konzept + Brain Corporate-Identity.md.
+ */
+
+:root {
+  /* Farbrollen (Bryan-Vorgabe). Dunkelgrün = Navigation/Titel/Text/Icons/
+     Rahmen/Sekundär-Buttons · Orange = die EINE Hauptaktion pro Ansicht,
+     aktiver Schritt, Fortschritt, Auswahl · Salbei = inaktiv/Tags/ruhige
+     Flächen. */
+  --fp-primary: #243d35;
+  --fp-primary-dark: #123845;
+  --fp-accent: #d6914f;
+  --fp-muted: #9ba494;
+  --fp-soft: #f0f7f2; /* Off-White NUR für Felder, Auswahl, Infoboxen,
+                         Sekundärkarten, Ladezustände – NICHT als App-Grund. */
+  --fp-background: #ffffff; /* App-Body reinweiss. */
+  --fp-text: #123845;
+
+  /* Typografie. Schriftdateien werden BEWUSST NICHT eingebettet – die Lizenz
+     für «Accidental Presidency» (Display) und «GeosansLight» (Body) ist laut
+     Brain (Corporate-Identity.md §Offene Punkte) noch offen. Bis zur Klärung
+     nur Fallback-Ketten; sobald geklärt, hier @font-face ergänzen. */
+  --fp-font-display:
+    "Accidental Presidency", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+  --fp-font-body: "GeosansLight", "Century Gothic", "Futura", system-ui, sans-serif;
+
+  /* Vereinheitlichter Kartenstil: harter Schlagschatten OHNE Blur (gleiche
+     Richtung/Stärke überall) + weisser Innenschein. */
+  --fp-card-border: 1px solid rgba(36, 61, 53, 0.22);
+  --fp-card-radius: 18px;
+  --fp-card-shadow: 7px 7px 0 rgba(36, 61, 53, 0.15), inset 0 0 18px rgba(240, 247, 242, 0.85);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fp-background);
+  color: var(--fp-text);
+  font-family: var(--fp-font-body);
+}
+
+/* Display-Font nur für Titel/grosse Zahlen/kurze Aussagen (UPPERCASE +
+   leichte Sperrung). Als Utility, falls Inline-`titel` nicht reicht. */
+.fp-titel {
+  font-family: var(--fp-font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fp-primary);
+  font-weight: 400;
+}
+
+/* ---------- Karten ---------- */
+.fp-card {
+  background: #fff;
+  border: var(--fp-card-border);
+  border-radius: var(--fp-card-radius);
+  box-shadow: var(--fp-card-shadow);
+}
+/* Unterelemente flacher: nur Rahmen + Radius, kein Schlagschatten. */
+.fp-card-flach {
+  background: #fff;
+  border: var(--fp-card-border);
+  border-radius: var(--fp-card-radius);
+  box-shadow: none;
+}
+/* Aktive/ausgewählte Karte: oranger Rand (gleiche Schattenrichtung). */
+.fp-card-aktiv {
+  border-color: var(--fp-accent);
+  box-shadow:
+    7px 7px 0 rgba(214, 145, 79, 0.2),
+    inset 0 0 18px rgba(240, 247, 242, 0.85);
+}
+
+/* Sekundärfläche/Infobox/Ladefläche – Off-White ist hier erlaubt. */
+.fp-soft {
+  background: var(--fp-soft);
+  border-radius: var(--fp-card-radius);
+}
+
+/* ---------- Buttons ---------- */
+.fp-button {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease;
+}
+.fp-button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.fp-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* Auswählbare Karte: hebt leicht an; der orange Rand kommt über
+   .fp-card-aktiv dazu. */
+.fp-auswahl {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease;
+}
+.fp-auswahl:hover {
+  transform: translateY(-2px);
+}
+
+/* ---------- Schrittwechsel-Einblendung (einmalig via CSS-Animation) ---------- */
+@keyframes fp-einblenden {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fp-schritt-neu {
+  animation: fp-einblenden 200ms ease-out both;
+}
+
+/* ---------- Ladezustand: sanft pulsierendes Piktogramm ---------- */
+@keyframes fp-puls {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+}
+.fp-piktogramm-puls {
+  animation: fp-puls 1.4s ease-in-out infinite;
+}
+
+/* ---------- Responsive-Helfer ---------- */
+.fp-two-column {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.8fr);
+  gap: 24px;
+}
+.fp-drei-karten {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 820px) {
+  .fp-two-column {
+    grid-template-columns: 1fr;
+  }
+  .fp-drei-karten {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Fortschrittsweg: auf kleinen Screens horizontal scrollbar statt Umbruch. */
+.fp-fortschritt {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Barrierefreiheit: Bewegung reduzieren, wenn das System es wünscht. */
+@media (prefers-reduced-motion: reduce) {
+  .fp-schritt-neu,
+  .fp-piktogramm-puls,
+  .fp-button,
+  .fp-auswahl {
+    animation: none;
+    transition: none;
+  }
+}

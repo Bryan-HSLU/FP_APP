@@ -24,10 +24,11 @@ import {
   type Plan,
   type Room,
 } from "./api";
+import { AppRahmen } from "./AppRahmen";
 import { RaumEditor } from "./RaumEditor";
 import { ScanKorrektur } from "./ScanKorrektur";
 import { SmartSpider, StilSwipe, type Achse, type BildItem, type Stilprofil } from "./Stil";
-import { karte, pill, schlagschatten, THEME, titel } from "./theme";
+import { CSS, karte, pill, THEME, titel } from "./theme";
 import { Viewer2D } from "./Viewer2D";
 import { Viewer3D } from "./Viewer3D";
 
@@ -45,50 +46,13 @@ const DREIECK_SYMBOL: Record<Arbeitsdreieck["bewertung"], string> = {
   weitläufig: "🔺",
 };
 
-// Schriften (Accidental Presidency/Gleasonslight lt. CI) werden bewusst NICHT
-// eingebettet – Lizenz laut Brain (Corporate-Identity.md, "Offene Punkte")
-// noch ungeklärt. Bis zur Klärung bleibt system-ui als sichere Wahl.
-// CI-Layoutsprache: heller Grund (dezenter Verlauf, NICHT der dunkle Marketing-
-// Look), helle Karten mit innerem Schein + hartem Schlagschatten, orange Pills.
+// UI-Redesign Etappe A: Header, Fortschrittsweg und Footer stellt jetzt
+// <AppRahmen> bereit (weisser Grund, CI-Karten via .fp-card / theme.ts v2).
+// Hier bleiben nur die Schritt-Inhalte + zwei lokale Style-Objekte.
 const stil = {
-  seite: {
-    display: "flex",
-    flexDirection: "column" as const,
-    height: "100vh",
-    fontFamily: "system-ui, sans-serif",
-    background: "linear-gradient(160deg, #F0F7F2, #dfe7df)",
-  },
-  // Header wird HELL (weiss), dünne Salbei-Unterkante, harter Schlagschatten.
-  kopf: {
-    display: "flex",
-    gap: 12,
-    alignItems: "center",
-    padding: "10px 16px",
-    background: "#ffffff",
-    borderBottom: `1px solid ${THEME.salbei}`,
-    boxShadow: schlagschatten,
-    flexWrap: "wrap" as const,
-    zIndex: 2,
-  },
-  // Rechtes Panel + wiederverwendbarer Karten-Stil (CI).
+  // Wiederverwendbarer Karten-Stil (CI) für Abschnitte/Panels.
   sektion: { ...karte, padding: 12, marginBottom: 12 },
   panel: { padding: 12, overflowY: "auto" as const, minWidth: 0 },
-} as const;
-
-// Reihenfolge der Wizard-Schritte (Bryans Schritt-für-Schritt-Kreislauf, CI).
-const SCHRITTE = ["Projekt", "Stil", "Vorschlag", "Anpassen", "Auswertung & Export"] as const;
-
-const badgeBasis = {
-  width: 30,
-  height: 30,
-  borderRadius: 999,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  color: "white",
-  fontWeight: 600,
-  fontSize: 14,
-  flex: "0 0 auto",
 } as const;
 
 export function App() {
@@ -393,600 +357,532 @@ export function App() {
 
   // Zwei-Spalten-Layout (Viewer links, Panel rechts) nur ab Schritt 4/5.
   const zweiSpaltig = schritt >= 4;
-  // Erreichbarkeit der Badges: 1/2 immer, 3 nur mit Raum, 4/5 nur mit Plan.
+  // Erreichbarkeit der Schritte: 1/2 immer, 3 nur mit Raum, 4/5 nur mit Plan.
   const erreichbar = (nr: number) => (nr <= 2 ? true : nr === 3 ? !!room : !!plan);
+  // Am weitesten freigeschalteter Schritt (für den Fortschrittsweg): mit Plan
+  // sind alle 5 offen, mit Raum bis 3, sonst bis 2.
+  const maxErreicht = plan ? 5 : room ? 3 : 2;
 
   return (
-    <div style={stil.seite}>
-      <header style={stil.kopf}>
-        {/* Echtes Horizontal-Logo (Signet + Wortmarke) ersetzt die getippte
-            Wortmarke; Claim klein/dezent in Salbei daneben (CI). */}
-        <img src="/FP-Logo-horizontal.png" alt="Future Planning" style={{ height: 44 }} />
-        <span style={{ fontSize: 12, color: THEME.salbei, letterSpacing: "0.04em" }}>
-          Meet. Match. Build.
-        </span>
-      </header>
-
-      {/* Stepper: 5 Kreis-Badges (dunkelblau) + Label. erledigt = grün mit ✓,
-          aktiv = orange Ring. Klick springt zu jedem erreichbaren Schritt. */}
-      <nav
-        aria-label="Schritte"
-        style={{
-          display: "flex",
-          gap: 14,
-          padding: "10px 16px",
-          alignItems: "center",
-          flexWrap: "wrap",
-          borderBottom: `1px solid ${THEME.salbei}`,
-        }}
+    <>
+      <AppRahmen
+        projektName={room?.name}
+        aktuellerSchritt={schritt}
+        maxErreichterSchritt={maxErreicht}
+        onSchrittWechsel={setSchritt}
+        hinweis={meldung || undefined}
+        onZurueck={() => setSchritt((s) => Math.max(1, s - 1))}
+        onWeiter={() => setSchritt((s) => Math.min(5, s + 1))}
+        zurueckDeaktiviert={schritt === 1}
+        weiterDeaktiviert={schritt === 5 || !erreichbar(schritt + 1)}
+        weiterLabel={schritt === 4 ? "Zur Auswertung" : "Weiter"}
       >
-        {SCHRITTE.map((label, i) => {
-          const nr = i + 1;
-          const kann = erreichbar(nr);
-          const erledigt = nr < schritt;
-          const aktiv = nr === schritt;
-          return (
-            <button
-              key={label}
-              type="button"
-              disabled={!kann}
-              onClick={() => kann && setSchritt(nr)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                background: "transparent",
-                border: "none",
-                padding: 0,
-                cursor: kann ? "pointer" : "not-allowed",
-                opacity: kann ? 1 : 0.4,
-              }}
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: zweiSpaltig ? "grid" : "block",
+            gridTemplateColumns: zweiSpaltig ? "minmax(0,1fr) 360px" : undefined,
+            overflow: zweiSpaltig ? "hidden" : "auto",
+          }}
+        >
+          {/* ---------- Schritte 1–3: einspaltig ---------- */}
+          {schritt <= 3 && (
+            // key={schritt} + fp-schritt-neu: einmalige Einblendung je Schrittwechsel.
+            <div
+              key={schritt}
+              className={CSS.schrittNeu}
+              style={{ maxWidth: 760, margin: "0 auto", padding: 20 }}
             >
-              <span
-                style={{
-                  ...badgeBasis,
-                  background: erledigt ? "#5b8a72" : THEME.blau,
-                  boxShadow: aktiv ? `0 0 0 3px ${THEME.orange}` : "none",
-                }}
-              >
-                {erledigt ? "✓" : nr}
-              </span>
-              <span
-                style={{
-                  fontSize: 13,
-                  color: aktiv ? THEME.gruen : "#5a635a",
-                  fontWeight: aktiv ? 700 : 400,
-                }}
-              >
-                {label}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Meldungszeile bleibt global sichtbar. */}
-      {meldung && (
-        <div style={{ padding: "6px 16px", color: THEME.orange, fontSize: 13 }}>{meldung}</div>
-      )}
-
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          display: zweiSpaltig ? "grid" : "block",
-          gridTemplateColumns: zweiSpaltig ? "minmax(0,1fr) 360px" : undefined,
-          overflow: zweiSpaltig ? "hidden" : "auto",
-        }}
-      >
-        {/* ---------- Schritte 1–3: einspaltig ---------- */}
-        {schritt <= 3 && (
-          <div style={{ maxWidth: 760, margin: "0 auto", padding: 20 }}>
-            {/* Schritt 1 – Projekt: Raum wählen / Scan / selbst erstellen. */}
-            {schritt === 1 && (
-              <section>
-                <h2 style={{ ...titel, marginTop: 0 }}>Projekt starten</h2>
-                <p style={{ color: "#5a635a", fontSize: 14 }}>
-                  Raum wählen – oder einen Scan laden bzw. selbst erstellen.
-                </p>
-                <div style={{ display: "grid", gap: 10 }}>
-                  {rooms.map((r) => {
-                    const gewaehlt = room?.id === r.id;
-                    return (
-                      <button
-                        key={r.id}
-                        type="button"
-                        onClick={() => void raumWaehlen(r)}
-                        style={{
-                          ...karte,
-                          textAlign: "left",
-                          padding: 12,
-                          cursor: "pointer",
-                          border: `2px solid ${gewaehlt ? THEME.orange : THEME.salbei}`,
-                        }}
-                      >
-                        <strong style={{ color: THEME.gruen }}>{r.name}</strong>
-                        <span style={{ fontSize: 12, color: "#5a635a", marginLeft: 8 }}>
-                          {r.roomType}
-                        </span>
-                      </button>
-                    );
-                  })}
-                  {rooms.length === 0 && (
-                    <p style={{ fontSize: 13, color: "#5a635a" }}>Räume werden geladen…</p>
-                  )}
-                </div>
-
-                <div
-                  style={{
-                    ...stil.sektion,
-                    marginTop: 16,
-                    display: "flex",
-                    gap: 10,
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <label
-                    style={{ ...pill, display: "inline-flex", gap: 6, alignItems: "center" }}
-                    title="Scan-Bundle (layout.txt oder .zip vom Colab-Worker) laden"
-                  >
-                    📷 Scan laden
-                    <input
-                      type="file"
-                      accept=".zip,.txt"
-                      style={{ display: "none" }}
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) void scanLaden(f);
-                        e.target.value = "";
-                      }}
-                    />
-                  </label>
-                  <select
-                    value={scanRoomType}
-                    onChange={(e) => setScanRoomType(e.target.value)}
-                    title="Raumtyp des Scans (SpatialLM kennt ihn nicht)"
-                  >
-                    <option value="bad">Scan → Bad</option>
-                    <option value="wohnen">Scan → Wohnen</option>
-                    <option value="kueche">Scan → Küche</option>
-                    {/* «sonstig» bewusst nicht anbieten: ohne Katalog kein Klickpfad. */}
-                  </select>
-                  <button style={pill} onClick={() => setEditorOffen(true)}>
-                    ✏️ Raum erstellen
-                  </button>
-                  {/* Korrektur erneut öffnen – nur für gescannte Räume (captureMethod
-                      "ar"); defensiv geprüft, da Samples evtl. kein meta tragen. */}
-                  {room &&
-                    (room.meta as { captureMethod?: string } | undefined)?.captureMethod ===
-                      "ar" && (
-                      <button
-                        style={{ ...pill, background: THEME.blau }}
-                        onClick={() => setKorrektur({ room, warnungen: [] })}
-                      >
-                        📐 Korrigieren
-                      </button>
-                    )}
-                </div>
-              </section>
-            )}
-
-            {/* Schritt 2 – Stil: StilSwipe + SmartSpider + Preset. */}
-            {schritt === 2 && (
-              <section>
-                <h2 style={{ ...titel, marginTop: 0 }}>Stil festlegen</h2>
-                <p style={{ color: "#5a635a", fontSize: 14 }}>
-                  Swipe dich durch Beispielbilder (oder wähle ein Preset) – oder überspringe.
-                </p>
-                <div
-                  style={{
-                    ...stil.sektion,
-                    display: "flex",
-                    gap: 10,
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                  }}
-                >
-                  <button
-                    style={pill}
-                    disabled={!room || bilder.length === 0}
-                    onClick={() => setSwipeOffen(true)}
-                  >
-                    🎴 Stil swipen
-                  </button>
-                  {(!room || bilder.length === 0) && (
-                    <span style={{ fontSize: 12, color: "#5a635a" }}>
-                      {room
-                        ? "Für diesen Raumtyp liegen keine Beispielbilder vor."
-                        : "Zuerst einen Raum wählen."}
-                    </span>
-                  )}
-                </div>
-
-                {stilprofil && (
-                  <div style={stil.sektion}>
-                    <h3 style={{ ...titel, marginTop: 0, fontSize: 15 }}>
-                      Dein Stil ({stilprofil.meta.method})
-                    </h3>
-                    <SmartSpider vektor={stilprofil.styleVector} achsen={achsen} />
-                    <p style={{ display: "flex", gap: 4 }}>
-                      {stilprofil.palette.map((f) => (
-                        <span
-                          key={f}
-                          style={{ width: 22, height: 22, background: f, borderRadius: 4 }}
-                        />
-                      ))}
-                    </p>
-                    {!stilprofil.meta.sampleSufficient && (
-                      <p style={{ fontSize: 12, color: THEME.orange }}>
-                        Wenige Bewertungen – Profil noch unsicher.
-                      </p>
-                    )}
-                    {begruendung && <p style={{ fontSize: 12 }}>{begruendung}</p>}
-                  </div>
-                )}
-
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button style={pill} disabled={!stilprofil} onClick={() => setSchritt(3)}>
-                    Stil übernehmen → weiter
-                  </button>
-                  <button
-                    style={{ ...pill, background: THEME.salbei }}
-                    onClick={() => setSchritt(3)}
-                  >
-                    Überspringen
-                  </button>
-                </div>
-              </section>
-            )}
-
-            {/* Schritt 3 – Vorschlag: Küche (Normprofil + Formwahl) + Plan lösen. */}
-            {schritt === 3 && (
-              <section>
-                <h2 style={{ ...titel, marginTop: 0 }}>Vorschlag</h2>
-                {stilprofil && (
-                  <p style={{ fontSize: 12, color: "#5a635a" }}>
-                    Stil aktiv ({stilprofil.meta.method}).
+              {/* Schritt 1 – Projekt: Raum wählen / Scan / selbst erstellen. */}
+              {schritt === 1 && (
+                <section>
+                  <h2 style={{ ...titel, marginTop: 0 }}>Projekt starten</h2>
+                  <p style={{ color: "#5a635a", fontSize: 14 }}>
+                    Raum wählen – oder einen Scan laden bzw. selbst erstellen.
                   </p>
-                )}
-
-                {kuecheInfo.istKueche && (
-                  <div style={stil.sektion}>
-                    <h3 style={{ ...titel, marginTop: 0, fontSize: 15 }}>Küche planen</h3>
-                    {kuecheInfo.zoneId && (
-                      <p style={{ fontSize: 12, color: THEME.gruen }}>
-                        Grossraum – geplant wird die Zone «Küche».
-                      </p>
-                    )}
-                    <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
-                      {(["ch", "eu"] as const).map((np) => (
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {rooms.map((r) => {
+                      const gewaehlt = room?.id === r.id;
+                      return (
                         <button
-                          key={np}
-                          onClick={() => {
-                            setNormProfile(np);
-                            setFormen(null);
-                            setForm(null);
-                          }}
+                          key={r.id}
+                          type="button"
+                          onClick={() => void raumWaehlen(r)}
                           style={{
-                            ...pill,
-                            background: normProfile === np ? THEME.gruen : "#a3b9aa",
+                            ...karte,
+                            textAlign: "left",
+                            padding: 12,
+                            cursor: "pointer",
+                            border: `2px solid ${gewaehlt ? THEME.orange : THEME.salbei}`,
                           }}
                         >
-                          {np === "ch" ? "CH (55er)" : "EU (60er)"}
+                          <strong style={{ color: THEME.gruen }}>{r.name}</strong>
+                          <span style={{ fontSize: 12, color: "#5a635a", marginLeft: 8 }}>
+                            {r.roomType}
+                          </span>
                         </button>
-                      ))}
-                      <button style={pill} onClick={() => void formenLaden()}>
-                        Formen zeigen
-                      </button>
-                    </div>
-                    {formen && (
-                      <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                        {formen.map((f) => (
-                          <li
-                            key={f.form}
-                            onClick={() => setForm(f.form)}
-                            style={{
-                              ...karte,
-                              padding: 8,
-                              marginBottom: 6,
-                              cursor: "pointer",
-                              border: `2px solid ${form === f.form ? THEME.orange : THEME.salbei}`,
-                            }}
-                          >
-                            <strong>{f.form.toUpperCase()}-Form</strong> · {f.nutzlaenge_m} m
-                            <div style={{ fontSize: 12, color: "#555" }}>{f.begruendung}</div>
-                            <div
-                              style={{
-                                height: 6,
-                                marginTop: 4,
-                                background: "#eee",
-                                borderRadius: 3,
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: `${Math.round(f.score * 100)}%`,
-                                  height: 6,
-                                  background: "#5b8a72",
-                                  borderRadius: 3,
-                                }}
-                              />
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
+                      );
+                    })}
+                    {rooms.length === 0 && (
+                      <p style={{ fontSize: 13, color: "#5a635a" }}>Räume werden geladen…</p>
                     )}
                   </div>
-                )}
 
-                <button style={pill} disabled={!room} onClick={() => void loesen(seed)}>
-                  Plan vorschlagen
-                </button>
-              </section>
-            )}
-          </div>
-        )}
-
-        {/* ---------- Schritte 4–5: zweispaltig (Viewer + Panel) ---------- */}
-        {zweiSpaltig && (
-          <>
-            <main
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                minWidth: 0,
-                minHeight: 0,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  alignItems: "center",
-                  padding: "8px 12px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <button
-                  style={{ ...pill, background: "#5b8a72" }}
-                  onClick={() => setAnsicht((a) => (a === "2d" ? "3d" : "2d"))}
-                >
-                  {ansicht === "2d" ? "🧊 3D-Ansicht" : "🗺️ 2D-Grundriss"}
-                </button>
-                {plan && (
-                  <span style={{ fontSize: 12, color: THEME.gruen }}>
-                    Seed {plan.meta.seed} · Solver {plan.meta.solverVersion}
-                  </span>
-                )}
-              </div>
-              <div style={{ flex: 1, minHeight: 0 }}>
-                {aktuellerRaum &&
-                  (ansicht === "2d" ? (
-                    <Viewer2D
-                      room={aktuellerRaum}
-                      placements={plan?.placements ?? []}
-                      catalog={catalog}
-                      gewaehltId={gewaehltId}
-                      statusById={statusById}
-                      onSelect={setGewaehltId}
-                      onMove={verschiebeNach}
-                    />
-                  ) : (
-                    <Viewer3D
-                      room={aktuellerRaum}
-                      placements={plan?.placements ?? []}
-                      catalog={catalog}
-                      gewaehltId={gewaehltId}
-                      statusById={statusById}
-                      onSelect={setGewaehltId}
-                      stilprofil={stilprofil}
-                    />
-                  ))}
-              </div>
-            </main>
-
-            <aside style={stil.panel}>
-              {/* Schritt 4 – Anpassen: würfeln + Auswahl-Panel + Live-Ampel. */}
-              {schritt === 4 && (
-                <>
-                  <div style={stil.sektion}>
-                    <button
-                      style={{ ...pill, width: "100%" }}
-                      disabled={!plan}
-                      onClick={() => void loesen(seed + 1)}
+                  <div
+                    style={{
+                      ...stil.sektion,
+                      marginTop: 16,
+                      display: "flex",
+                      gap: 10,
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <label
+                      style={{ ...pill, display: "inline-flex", gap: 6, alignItems: "center" }}
+                      title="Scan-Bundle (layout.txt oder .zip vom Colab-Worker) laden"
                     >
-                      🎲 Variante würfeln
+                      📷 Scan laden
+                      <input
+                        type="file"
+                        accept=".zip,.txt"
+                        style={{ display: "none" }}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) void scanLaden(f);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                    <select
+                      value={scanRoomType}
+                      onChange={(e) => setScanRoomType(e.target.value)}
+                      title="Raumtyp des Scans (SpatialLM kennt ihn nicht)"
+                    >
+                      <option value="bad">Scan → Bad</option>
+                      <option value="wohnen">Scan → Wohnen</option>
+                      <option value="kueche">Scan → Küche</option>
+                      {/* «sonstig» bewusst nicht anbieten: ohne Katalog kein Klickpfad. */}
+                    </select>
+                    <button style={pill} onClick={() => setEditorOffen(true)}>
+                      ✏️ Raum erstellen
                     </button>
-                  </div>
-
-                  {gewaehltesItem && (
-                    <section style={stil.sektion}>
-                      <h3 style={{ ...titel, marginTop: 0, fontSize: 15 }}>
-                        {gewaehltesItem.name}
-                      </h3>
-                      <p style={{ fontSize: 12 }}>
-                        Ziehen (2D) oder Pfeiltasten = verschieben · «r» = rotieren · Klick daneben
-                        = abwählen
-                      </p>
-                      {alternativen.length > 0 && (
-                        <label style={{ display: "block", fontSize: 12, marginBottom: 8 }}>
-                          Austauschen:{" "}
-                          <select
-                            value=""
-                            onChange={(e) => {
-                              if (e.target.value) tauscheItem(e.target.value);
-                              e.target.value = "";
-                            }}
-                          >
-                            <option value="" disabled>
-                              Alternative wählen… ({alternativen.length})
-                            </option>
-                            {alternativen.map((a) => (
-                              <option key={a.id} value={a.id}>
-                                {a.name}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
+                    {/* Korrektur erneut öffnen – nur für gescannte Räume (captureMethod
+                      "ar"); defensiv geprüft, da Samples evtl. kein meta tragen. */}
+                    {room &&
+                      (room.meta as { captureMethod?: string } | undefined)?.captureMethod ===
+                        "ar" && (
+                        <button
+                          style={{ ...pill, background: THEME.blau }}
+                          onClick={() => setKorrektur({ room, warnungen: [] })}
+                        >
+                          📐 Korrigieren
+                        </button>
                       )}
-                      <button style={pill} onClick={sperren}>
-                        🔒 sperren/entsperren
-                      </button>
-                    </section>
-                  )}
-
-                  {begruendung && (
-                    <section style={stil.sektion}>
-                      <p style={{ fontSize: 12, margin: 0 }}>{begruendung}</p>
-                    </section>
-                  )}
-
-                  {report && (
-                    <section style={stil.sektion}>
-                      <h3 style={{ marginTop: 0 }}>
-                        Norm-Ampel {report.hard.ok ? "✅" : "❌"} ({report.hard.summary.erfuellt} ok
-                        · {report.hard.summary.knapp} knapp · {report.hard.summary.verletzt}{" "}
-                        verletzt)
-                      </h3>
-                      <ul style={{ listStyle: "none", padding: 0, fontSize: 13 }}>
-                        {report.results.map((r) => (
-                          <li key={r.ruleId} style={{ marginBottom: 4 }}>
-                            {AMPEL[r.status]} <code>{r.ruleId}</code>
-                            {r.margin_cm !== null && ` · Marge ${r.margin_cm} cm`}
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
-                  )}
-                </>
+                  </div>
+                </section>
               )}
 
-              {/* Schritt 5 – Auswertung & Export: Auswertung + KV + Dokumente + Dreieck. */}
-              {schritt === 5 && (
-                <>
+              {/* Schritt 2 – Stil: StilSwipe + SmartSpider + Preset. */}
+              {schritt === 2 && (
+                <section>
+                  <h2 style={{ ...titel, marginTop: 0 }}>Stil festlegen</h2>
+                  <p style={{ color: "#5a635a", fontSize: 14 }}>
+                    Swipe dich durch Beispielbilder (oder wähle ein Preset) – oder überspringe.
+                  </p>
                   <div
                     style={{
                       ...stil.sektion,
                       display: "flex",
-                      gap: 8,
+                      gap: 10,
                       flexWrap: "wrap",
                       alignItems: "center",
                     }}
                   >
-                    <button style={pill} disabled={!plan} onClick={() => void auswerten()}>
-                      Auswertung
-                    </button>
-                    <select
-                      disabled={!plan}
-                      value=""
-                      onChange={(e) => {
-                        const [pfad, datei] = e.target.value.split("|");
-                        if (room && plan && pfad && datei)
-                          void api.dokument(pfad, datei, room, plan);
-                        e.target.value = "";
-                      }}
+                    <button
+                      style={pill}
+                      disabled={!room || bilder.length === 0}
+                      onClick={() => setSwipeOffen(true)}
                     >
-                      <option value="" disabled>
-                        📄 Dokumente…
-                      </option>
-                      <option value="kv-pdf|kostenschaetzung.pdf">Kostenschätzung (KV)</option>
-                      <option value="lv-pdf|leistungsverzeichnis.pdf">Leistungsverzeichnis</option>
-                      <option value="bauzeitenplan-pdf|bauzeitenplan.pdf">Bauzeitenplan</option>
-                      <option value="offertanfrage|offertanfrage.pdf">Offertanfrage-Paket</option>
-                      <option value="gewerke-pdf|gewerke-uebersicht.pdf">Gewerke-Übersicht</option>
-                      <option value="einkaufsliste-pdf|einkaufsliste.pdf">Einkaufsliste</option>
-                      <option value="plan-pdf|grundriss.pdf">2D-Plan (PDF)</option>
-                      <option value="dxf|grundriss.dxf">2D-Plan (DXF)</option>
-                      <option value="gltf|szene.gltf">3D-Export (glTF)</option>
-                    </select>
+                      🎴 Stil swipen
+                    </button>
+                    {(!room || bilder.length === 0) && (
+                      <span style={{ fontSize: 12, color: "#5a635a" }}>
+                        {room
+                          ? "Für diesen Raumtyp liegen keine Beispielbilder vor."
+                          : "Zuerst einen Raum wählen."}
+                      </span>
+                    )}
                   </div>
 
-                  {kv && (
-                    <section style={stil.sektion}>
-                      <h3 style={{ marginTop: 0 }}>Kostenschätzung</h3>
-                      <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
-                        <tbody>
-                          {kv.positionen.map((p) => (
-                            <tr key={p.bezeichnung}>
-                              <td>{p.bezeichnung}</td>
+                  {stilprofil && (
+                    <div style={stil.sektion}>
+                      <h3 style={{ ...titel, marginTop: 0, fontSize: 15 }}>
+                        Dein Stil ({stilprofil.meta.method})
+                      </h3>
+                      <SmartSpider vektor={stilprofil.styleVector} achsen={achsen} />
+                      <p style={{ display: "flex", gap: 4 }}>
+                        {stilprofil.palette.map((f) => (
+                          <span
+                            key={f}
+                            style={{ width: 22, height: 22, background: f, borderRadius: 4 }}
+                          />
+                        ))}
+                      </p>
+                      {!stilprofil.meta.sampleSufficient && (
+                        <p style={{ fontSize: 12, color: THEME.orange }}>
+                          Wenige Bewertungen – Profil noch unsicher.
+                        </p>
+                      )}
+                      {begruendung && <p style={{ fontSize: 12 }}>{begruendung}</p>}
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button style={pill} disabled={!stilprofil} onClick={() => setSchritt(3)}>
+                      Stil übernehmen → weiter
+                    </button>
+                    <button
+                      style={{ ...pill, background: THEME.salbei }}
+                      onClick={() => setSchritt(3)}
+                    >
+                      Überspringen
+                    </button>
+                  </div>
+                </section>
+              )}
+
+              {/* Schritt 3 – Vorschlag: Küche (Normprofil + Formwahl) + Plan lösen. */}
+              {schritt === 3 && (
+                <section>
+                  <h2 style={{ ...titel, marginTop: 0 }}>Vorschlag</h2>
+                  {stilprofil && (
+                    <p style={{ fontSize: 12, color: "#5a635a" }}>
+                      Stil aktiv ({stilprofil.meta.method}).
+                    </p>
+                  )}
+
+                  {kuecheInfo.istKueche && (
+                    <div style={stil.sektion}>
+                      <h3 style={{ ...titel, marginTop: 0, fontSize: 15 }}>Küche planen</h3>
+                      {kuecheInfo.zoneId && (
+                        <p style={{ fontSize: 12, color: THEME.gruen }}>
+                          Grossraum – geplant wird die Zone «Küche».
+                        </p>
+                      )}
+                      <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+                        {(["ch", "eu"] as const).map((np) => (
+                          <button
+                            key={np}
+                            onClick={() => {
+                              setNormProfile(np);
+                              setFormen(null);
+                              setForm(null);
+                            }}
+                            style={{
+                              ...pill,
+                              background: normProfile === np ? THEME.gruen : "#a3b9aa",
+                            }}
+                          >
+                            {np === "ch" ? "CH (55er)" : "EU (60er)"}
+                          </button>
+                        ))}
+                        <button style={pill} onClick={() => void formenLaden()}>
+                          Formen zeigen
+                        </button>
+                      </div>
+                      {formen && (
+                        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                          {formen.map((f) => (
+                            <li
+                              key={f.form}
+                              onClick={() => setForm(f.form)}
+                              style={{
+                                ...karte,
+                                padding: 8,
+                                marginBottom: 6,
+                                cursor: "pointer",
+                                border: `2px solid ${form === f.form ? THEME.orange : THEME.salbei}`,
+                              }}
+                            >
+                              <strong>{f.form.toUpperCase()}-Form</strong> · {f.nutzlaenge_m} m
+                              <div style={{ fontSize: 12, color: "#555" }}>{f.begruendung}</div>
+                              <div
+                                style={{
+                                  height: 6,
+                                  marginTop: 4,
+                                  background: "#eee",
+                                  borderRadius: 3,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: `${Math.round(f.score * 100)}%`,
+                                    height: 6,
+                                    background: "#5b8a72",
+                                    borderRadius: 3,
+                                  }}
+                                />
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+
+                  <button style={pill} disabled={!room} onClick={() => void loesen(seed)}>
+                    Plan vorschlagen
+                  </button>
+                </section>
+              )}
+            </div>
+          )}
+
+          {/* ---------- Schritte 4–5: zweispaltig (Viewer + Panel) ---------- */}
+          {zweiSpaltig && (
+            <>
+              <main
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  minWidth: 0,
+                  minHeight: 0,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    alignItems: "center",
+                    padding: "8px 12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <button
+                    style={{ ...pill, background: "#5b8a72" }}
+                    onClick={() => setAnsicht((a) => (a === "2d" ? "3d" : "2d"))}
+                  >
+                    {ansicht === "2d" ? "🧊 3D-Ansicht" : "🗺️ 2D-Grundriss"}
+                  </button>
+                  {plan && (
+                    <span style={{ fontSize: 12, color: THEME.gruen }}>
+                      Seed {plan.meta.seed} · Solver {plan.meta.solverVersion}
+                    </span>
+                  )}
+                </div>
+                <div style={{ flex: 1, minHeight: 0 }}>
+                  {aktuellerRaum &&
+                    (ansicht === "2d" ? (
+                      <Viewer2D
+                        room={aktuellerRaum}
+                        placements={plan?.placements ?? []}
+                        catalog={catalog}
+                        gewaehltId={gewaehltId}
+                        statusById={statusById}
+                        onSelect={setGewaehltId}
+                        onMove={verschiebeNach}
+                      />
+                    ) : (
+                      <Viewer3D
+                        room={aktuellerRaum}
+                        placements={plan?.placements ?? []}
+                        catalog={catalog}
+                        gewaehltId={gewaehltId}
+                        statusById={statusById}
+                        onSelect={setGewaehltId}
+                        stilprofil={stilprofil}
+                      />
+                    ))}
+                </div>
+              </main>
+
+              {/* key={schritt}: das Panel blendet bei 4↔5 einmalig ein (der
+                Viewer in <main> bleibt davon unberührt = kein Remount). */}
+              <aside key={schritt} className={CSS.schrittNeu} style={stil.panel}>
+                {/* Schritt 4 – Anpassen: würfeln + Auswahl-Panel + Live-Ampel. */}
+                {schritt === 4 && (
+                  <>
+                    <div style={stil.sektion}>
+                      <button
+                        style={{ ...pill, width: "100%" }}
+                        disabled={!plan}
+                        onClick={() => void loesen(seed + 1)}
+                      >
+                        🎲 Variante würfeln
+                      </button>
+                    </div>
+
+                    {gewaehltesItem && (
+                      <section style={stil.sektion}>
+                        <h3 style={{ ...titel, marginTop: 0, fontSize: 15 }}>
+                          {gewaehltesItem.name}
+                        </h3>
+                        <p style={{ fontSize: 12 }}>
+                          Ziehen (2D) oder Pfeiltasten = verschieben · «r» = rotieren · Klick
+                          daneben = abwählen
+                        </p>
+                        {alternativen.length > 0 && (
+                          <label style={{ display: "block", fontSize: 12, marginBottom: 8 }}>
+                            Austauschen:{" "}
+                            <select
+                              value=""
+                              onChange={(e) => {
+                                if (e.target.value) tauscheItem(e.target.value);
+                                e.target.value = "";
+                              }}
+                            >
+                              <option value="" disabled>
+                                Alternative wählen… ({alternativen.length})
+                              </option>
+                              {alternativen.map((a) => (
+                                <option key={a.id} value={a.id}>
+                                  {a.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        )}
+                        <button style={pill} onClick={sperren}>
+                          🔒 sperren/entsperren
+                        </button>
+                      </section>
+                    )}
+
+                    {begruendung && (
+                      <section style={stil.sektion}>
+                        <p style={{ fontSize: 12, margin: 0 }}>{begruendung}</p>
+                      </section>
+                    )}
+
+                    {report && (
+                      <section style={stil.sektion}>
+                        <h3 style={{ marginTop: 0 }}>
+                          Norm-Ampel {report.hard.ok ? "✅" : "❌"} ({report.hard.summary.erfuellt}{" "}
+                          ok · {report.hard.summary.knapp} knapp · {report.hard.summary.verletzt}{" "}
+                          verletzt)
+                        </h3>
+                        <ul style={{ listStyle: "none", padding: 0, fontSize: 13 }}>
+                          {report.results.map((r) => (
+                            <li key={r.ruleId} style={{ marginBottom: 4 }}>
+                              {AMPEL[r.status]} <code>{r.ruleId}</code>
+                              {r.margin_cm !== null && ` · Marge ${r.margin_cm} cm`}
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    )}
+                  </>
+                )}
+
+                {/* Schritt 5 – Auswertung & Export: Auswertung + KV + Dokumente + Dreieck. */}
+                {schritt === 5 && (
+                  <>
+                    <div
+                      style={{
+                        ...stil.sektion,
+                        display: "flex",
+                        gap: 8,
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                      }}
+                    >
+                      <button style={pill} disabled={!plan} onClick={() => void auswerten()}>
+                        Auswertung
+                      </button>
+                      <select
+                        disabled={!plan}
+                        value=""
+                        onChange={(e) => {
+                          const [pfad, datei] = e.target.value.split("|");
+                          if (room && plan && pfad && datei)
+                            void api.dokument(pfad, datei, room, plan);
+                          e.target.value = "";
+                        }}
+                      >
+                        <option value="" disabled>
+                          📄 Dokumente…
+                        </option>
+                        <option value="kv-pdf|kostenschaetzung.pdf">Kostenschätzung (KV)</option>
+                        <option value="lv-pdf|leistungsverzeichnis.pdf">
+                          Leistungsverzeichnis
+                        </option>
+                        <option value="bauzeitenplan-pdf|bauzeitenplan.pdf">Bauzeitenplan</option>
+                        <option value="offertanfrage|offertanfrage.pdf">Offertanfrage-Paket</option>
+                        <option value="gewerke-pdf|gewerke-uebersicht.pdf">
+                          Gewerke-Übersicht
+                        </option>
+                        <option value="einkaufsliste-pdf|einkaufsliste.pdf">Einkaufsliste</option>
+                        <option value="plan-pdf|grundriss.pdf">2D-Plan (PDF)</option>
+                        <option value="dxf|grundriss.dxf">2D-Plan (DXF)</option>
+                        <option value="gltf|szene.gltf">3D-Export (glTF)</option>
+                      </select>
+                    </div>
+
+                    {kv && (
+                      <section style={stil.sektion}>
+                        <h3 style={{ marginTop: 0 }}>Kostenschätzung</h3>
+                        <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
+                          <tbody>
+                            {kv.positionen.map((p) => (
+                              <tr key={p.bezeichnung}>
+                                <td>{p.bezeichnung}</td>
+                                <td style={{ textAlign: "right" }}>
+                                  CHF {p.total_chf.toLocaleString("de-CH")}
+                                </td>
+                              </tr>
+                            ))}
+                            <tr
+                              style={{ fontWeight: "bold", borderTop: `1px solid ${THEME.gruen}` }}
+                            >
+                              <td>Summe (±{kv.bandbreitePct}%)</td>
                               <td style={{ textAlign: "right" }}>
-                                CHF {p.total_chf.toLocaleString("de-CH")}
+                                CHF {kv.summe_chf.toLocaleString("de-CH")}
                               </td>
                             </tr>
-                          ))}
-                          <tr style={{ fontWeight: "bold", borderTop: `1px solid ${THEME.gruen}` }}>
-                            <td>Summe (±{kv.bandbreitePct}%)</td>
-                            <td style={{ textAlign: "right" }}>
-                              CHF {kv.summe_chf.toLocaleString("de-CH")}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                      <p style={{ fontSize: 11, color: THEME.orange }}>⚠ {kv.hinweis}</p>
-                      {kv.nextSteps.length > 0 && (
-                        <>
-                          <h4>Next Steps</h4>
-                          <ul style={{ fontSize: 12 }}>
-                            {kv.nextSteps.map((s) => (
-                              <li key={s}>{s}</li>
-                            ))}
-                          </ul>
-                        </>
-                      )}
-                    </section>
-                  )}
+                          </tbody>
+                        </table>
+                        <p style={{ fontSize: 11, color: THEME.orange }}>⚠ {kv.hinweis}</p>
+                        {kv.nextSteps.length > 0 && (
+                          <>
+                            <h4>Next Steps</h4>
+                            <ul style={{ fontSize: 12 }}>
+                              {kv.nextSteps.map((s) => (
+                                <li key={s}>{s}</li>
+                              ))}
+                            </ul>
+                          </>
+                        )}
+                      </section>
+                    )}
 
-                  {dreieck && (
-                    <section style={stil.sektion}>
-                      <h3 style={{ marginBottom: 4, marginTop: 0 }}>
-                        {DREIECK_SYMBOL[dreieck.bewertung]} Arbeitsdreieck · {dreieck.bewertung}
-                      </h3>
-                      <p style={{ fontSize: 13, margin: "2px 0" }}>
-                        Ergonomie {Math.round(dreieck.score * 100)} % · Summe{" "}
-                        {dreieck.summe_m.toLocaleString("de-CH")} m
-                      </p>
-                      <p style={{ fontSize: 12, color: "#555", margin: "2px 0" }}>
-                        Seiten {dreieck.seiten_m.map((s) => s.toLocaleString("de-CH")).join(" · ")}{" "}
-                        m (Spüle–Kochfeld–Kühlschrank)
-                      </p>
-                      <p style={{ fontSize: 11, color: "#999", margin: "2px 0" }}>
-                        AMK-Richtwert: jede Seite 1.2–2.7 m, Summe 4–8 m = effizient.
-                      </p>
-                    </section>
-                  )}
-                </>
-              )}
-            </aside>
-          </>
-        )}
-      </div>
-
-      {/* Wizard-Navigation: Zurück / Weiter als Pills. */}
-      <nav
-        style={{
-          display: "flex",
-          gap: 10,
-          padding: "10px 16px",
-          borderTop: `1px solid ${THEME.salbei}`,
-          background: "rgba(255,255,255,0.55)",
-        }}
-      >
-        <button
-          style={{ ...pill, background: THEME.salbei }}
-          disabled={schritt === 1}
-          onClick={() => setSchritt((s) => Math.max(1, s - 1))}
-        >
-          ← Zurück
-        </button>
-        <button
-          style={pill}
-          disabled={schritt === 5 || !erreichbar(schritt + 1)}
-          onClick={() => setSchritt((s) => Math.min(5, s + 1))}
-        >
-          Weiter →
-        </button>
-      </nav>
+                    {dreieck && (
+                      <section style={stil.sektion}>
+                        <h3 style={{ marginBottom: 4, marginTop: 0 }}>
+                          {DREIECK_SYMBOL[dreieck.bewertung]} Arbeitsdreieck · {dreieck.bewertung}
+                        </h3>
+                        <p style={{ fontSize: 13, margin: "2px 0" }}>
+                          Ergonomie {Math.round(dreieck.score * 100)} % · Summe{" "}
+                          {dreieck.summe_m.toLocaleString("de-CH")} m
+                        </p>
+                        <p style={{ fontSize: 12, color: "#555", margin: "2px 0" }}>
+                          Seiten{" "}
+                          {dreieck.seiten_m.map((s) => s.toLocaleString("de-CH")).join(" · ")} m
+                          (Spüle–Kochfeld–Kühlschrank)
+                        </p>
+                        <p style={{ fontSize: 11, color: "#999", margin: "2px 0" }}>
+                          AMK-Richtwert: jede Seite 1.2–2.7 m, Summe 4–8 m = effizient.
+                        </p>
+                      </section>
+                    )}
+                  </>
+                )}
+              </aside>
+            </>
+          )}
+        </div>
+      </AppRahmen>
 
       {swipeOffen && (
         <StilSwipe
@@ -1037,6 +933,6 @@ export function App() {
           }}
         />
       )}
-    </div>
+    </>
   );
 }
