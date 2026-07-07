@@ -78,6 +78,68 @@ function entnull(v: Vec2): Vec2 {
   return [v[0] === 0 ? 0 : v[0], v[1] === 0 ? 0 : v[1]];
 }
 
+/** Wand als gefülltes Rechteck (Polygon in Welt) – Dicke mittig auf der
+ *  Wandachse verteilt (je halbe Dicke nach beiden Seiten). */
+export function wallQuad(start: Vec2, end: Vec2, thickness: number): Vec2[] {
+  const dx = end[0] - start[0];
+  const dz = end[1] - start[1];
+  const len = Math.hypot(dx, dz) || 1;
+  const nx = -dz / len; // Wand-Normale (Einheit)
+  const nz = dx / len;
+  const h = thickness / 2;
+  return [
+    [start[0] + nx * h, start[1] + nz * h],
+    [end[0] + nx * h, end[1] + nz * h],
+    [end[0] - nx * h, end[1] - nz * h],
+    [start[0] - nx * h, start[1] - nz * h],
+  ];
+}
+
+/** Euklidische Distanz (Meter) zwischen zwei Weltpunkten – für das Messwerkzeug. */
+export function distanz(a: Vec2, b: Vec2): number {
+  return Math.hypot(b[0] - a[0], b[1] - a[1]);
+}
+
+/** Alle Wand-Endpunkte (Ecken) als Snap-Kandidaten fürs Messwerkzeug. */
+export function wandEcken(walls: { start: Vec2; end: Vec2 }[]): Vec2[] {
+  const ecken: Vec2[] = [];
+  for (const w of walls) {
+    ecken.push([w.start[0], w.start[1]], [w.end[0], w.end[1]]);
+  }
+  return ecken;
+}
+
+/** Snappt einen Weltpunkt auf die nächste Ecke, falls sie näher als
+ *  `schwelle` (Meter) liegt – sonst den Punkt unverändert. */
+export function naechsteEcke(welt: Vec2, ecken: Vec2[], schwelle: number): Vec2 {
+  let beste: Vec2 = welt;
+  let min = schwelle;
+  for (const e of ecken) {
+    const dd = distanz(welt, e);
+    if (dd <= min) {
+      min = dd;
+      beste = e;
+    }
+  }
+  return beste;
+}
+
+/** Yaw (Grad, gerastet) aus der Zeiger-Richtung relativ zum Objektzentrum.
+ *  Front = lokal +z ⇒ frontDir(yaw) = (sin,cos) ⇒ yaw = atan2(dx, dz). */
+export function yawAusZeiger(center: Vec2, welt: Vec2, schrittGrad = 15): number {
+  const dx = welt[0] - center[0];
+  const dz = welt[1] - center[1];
+  if (dx === 0 && dz === 0) return 0;
+  const deg = (Math.atan2(dx, dz) * 180) / Math.PI;
+  const gerastet = Math.round(deg / schrittGrad) * schrittGrad;
+  return ((gerastet % 360) + 360) % 360;
+}
+
+/** Auf ein Raster (Meter) runden – für gerastetes Ziehen (Default 5 cm). */
+export function rasten(v: number, schritt = 0.05): number {
+  return Math.round(v / schritt) * schritt;
+}
+
 function round(n: number): number {
   return Math.round(n * 100) / 100;
 }

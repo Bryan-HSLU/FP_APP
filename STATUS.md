@@ -521,6 +521,37 @@
    Abweichung: finales `onProfil` springt nun automatisch zu Schritt 3
    (bestätigtes Profil → «weiter»). **Web 86 Tests grün** (79 + 7 neue),
    lint/typecheck/build sauber.
+   · ✅ **2D-Viewer v2: Wandstärke, Objektsymbole, Ebenen, Messen, Drag&Rotate,
+   Produkt-Panel (2026-07-07, Bryan):** Der 2D-Grundriss zeigt jetzt echte
+   **Objektsymbole** (Architekten-Draufsicht) statt nur beschrifteter Boxen –
+   neues reines Modul `symbole2d.ts`: je funktionsTyp eine Signatur (WC
+   Schüssel+Spülkasten, Lavabo-Becken, Dusche Quadrat+Diagonale+Abfluss,
+   Badewanne, Sofa Sitz/Rücken/Armlehnen, Ess-/Couchtisch, Bett Kissen+Decke,
+   Regal/Sideboard/TV Tiefenlinien, Kochfeld 4 Kreise, Spüle Becken+Armatur,
+   Kühlschrank Türlinie, Leuchten Kreis+Strahlen, Pflanze, Teppich gestrichelt,
+   Schränke, …) – **alle 31 Katalog-funktionsTypen abgedeckt** (Test), Fallback =
+   bisherige Box. Die Symbole nutzen die vorhandene Footprint-Transformation
+   (Position/Yaw/bbox über `rotateY`+`toScreen`, deckungsgleich mit `footprint()`)
+   und die **Ampel-/Materialfarbe** als Strichfarbe. **Wände mit echter
+   `thickness`** als gefüllte Polygone (`wallQuad`, Fallback 0.1 m); Türen mit
+   Aufschlag-Viertelkreis + Fenster als Doppellinie bleiben. **Ebenen-Leiste**
+   (Beschriftung/Boxen/Masse/Ampel, Default alles an ausser Boxen).
+   **Messwerkzeug** «📏 Messen» (zwei Klicks → Linie + Distanz in m, Snap auf
+   Wand-Ecken < 15 cm, Escape/Moduswechsel löscht). **Direkte Interaktion**:
+   gewähltes Objekt per Pointer-Drag verschieben (5-cm-Raster, bestehende
+   `verschiebeNach`-Constraints) + **Rotations-Griff** (Drag rastet 15°,
+   Doppelklick +90° via neues `rotiereNach`); Live-Ampel läuft wie beim Keyboard
+   weiter. **Detail-Panel (Schritt 4)** erweitert: funktionsTyp, Prioritätsklassen-
+   Badge, Materialfarbe-Punkt + Masse; Tausch-Alternativen als kleine Produkt-
+   karten (Name + Farbpunkt + Masse) statt Select. Schritt 3 (Vorschau) bleibt
+   read-only (`interaktiv=false`): Symbole/Wandstärke automatisch, keine
+   Editier-Interaktion. Neue reine, getestete Geometrie in `plan2d.ts`
+   (`wallQuad`, `distanz`, `wandEcken`, `naechsteEcke`, `yawAusZeiger`, `rasten`).
+   App.tsx nur minimal angefasst (Props + `rotiereNach`); Keyboard-Steuerung
+   unangetastet. **Web 101 Tests grün** (86 + 15 neue), lint/typecheck/build
+   sauber. Bewusst weggelassen: typübergreifender Tausch (wie schon dokumentiert),
+   Symbole als Fill (bewusst nur Strichkontur = Architektenlook, Ampel bleibt als
+   Tint-Füllung + Rahmen lesbar).
    **Als Nächstes:** Presets optional kuratieren · ⚠️ 90 PNG (~180 MB) blähen
    Repo + Space-Deploy – ggf. Bildgrösse reduzieren/auslagern ·
    Schritt 5 E2E gegen R1 auf Colab (braucht AR-App-Aufnahmen) ·

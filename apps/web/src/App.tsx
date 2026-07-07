@@ -315,6 +315,29 @@ export function App() {
     );
   }, []);
 
+  // Absolutes Drehen per Rotations-Griff (Viewer2D). Setzt den Yaw direkt (der
+  // Griff rastet bereits auf 15°) – dieselbe Live-Ampel wie beim Ziehen/«r».
+  const rotiereNach = useCallback((id: string, yawDeg: number) => {
+    setKv(null);
+    setPlan((prev) =>
+      prev
+        ? {
+            ...prev,
+            status: "bearbeitet",
+            placements: prev.placements.map((p) =>
+              p.id !== id || p.locked
+                ? p
+                : {
+                    ...p,
+                    source: "user",
+                    pose: { ...p.pose, yawDeg: ((yawDeg % 360) + 360) % 360 },
+                  },
+            ),
+          }
+        : prev,
+    );
+  }, []);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const schrittW = 0.05;
@@ -475,6 +498,8 @@ export function App() {
               statusById={statusById}
               onSelect={setGewaehltId}
               onMove={verschiebeNach}
+              onRotate={rotiereNach}
+              interaktiv
             />
           ) : (
             <Viewer3D

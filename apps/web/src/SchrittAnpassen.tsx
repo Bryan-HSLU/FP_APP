@@ -32,6 +32,13 @@ const STATUS_TEXT = {
   anpassen: { text: "anpassen", farbe: "#c0392b", aktiv: true },
 } as const;
 
+/** Prioritätsklassen-Erklärung (Tooltip auf dem Badge). */
+const PRIO_TEXT: Record<string, string> = {
+  P1: "P1 – Pflichtobjekt",
+  P2: "P2 – wichtig",
+  P3: "P3 – optional",
+};
+
 export function SchrittAnpassen({
   viewer,
   gewaehltesItem,
@@ -62,7 +69,26 @@ export function SchrittAnpassen({
           <div className={`${CSS.card} ${CSS.cardAktiv}`} style={{ padding: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
               <Piktogramm name="moebel" groesse={28} />
-              <h3 style={{ ...titel, margin: 0, fontSize: 16 }}>{gewaehltesItem.name}</h3>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <h3 style={{ ...titel, margin: 0, fontSize: 16 }}>{gewaehltesItem.name}</h3>
+                <span style={{ fontSize: 12, color: THEME.salbei }}>
+                  {gewaehltesItem.funktionsTyp}
+                </span>
+              </div>
+              <span
+                title={PRIO_TEXT[gewaehltesItem.priorityClass]}
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "#fff",
+                  background: THEME.gruen,
+                  borderRadius: 999,
+                  padding: "2px 9px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {gewaehltesItem.priorityClass}
+              </span>
             </div>
 
             <div
@@ -104,30 +130,50 @@ export function SchrittAnpassen({
               <span style={{ color: st.farbe, fontWeight: 600 }}>{st.text}</span>
             </div>
 
-            {/* Aktionen */}
+            {/* Austausch-Alternativen aus der Produktdatenbank (kleine Karten) */}
             {alternativen.length > 0 && (
-              <label
-                style={{ display: "block", fontSize: 12.5, marginBottom: 10, color: THEME.gruen }}
-              >
-                Austauschen:{" "}
-                <select
-                  value=""
-                  onChange={(e) => {
-                    if (e.target.value) onTausch(e.target.value);
-                    e.target.value = "";
-                  }}
-                  style={{ width: "100%", marginTop: 4, padding: 6 }}
-                >
-                  <option value="" disabled>
-                    Alternative wählen… ({alternativen.length})
-                  </option>
+              <div style={{ marginBottom: 12 }}>
+                <p style={{ fontSize: 12.5, margin: "0 0 6px", color: THEME.gruen }}>
+                  Aus der Produktdatenbank ({alternativen.length}):
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {alternativen.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
+                    <button
+                      key={a.id}
+                      type="button"
+                      className={CSS.card}
+                      onClick={() => onTausch(a.id)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "7px 10px",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        background: "#fff",
+                        border: `1px solid ${THEME.salbei}`,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: 4,
+                          flexShrink: 0,
+                          background: materialFarbe(a.funktionsTyp),
+                          border: `1px solid ${THEME.salbei}`,
+                        }}
+                      />
+                      <span style={{ fontSize: 12.5, color: THEME.gruen, minWidth: 0, flex: 1 }}>
+                        {a.name}
+                      </span>
+                      <span style={{ fontSize: 11, color: THEME.salbei, whiteSpace: "nowrap" }}>
+                        {a.masse.w} × {a.masse.d} m
+                      </span>
+                    </button>
                   ))}
-                </select>
-              </label>
+                </div>
+              </div>
             )}
             <button
               type="button"

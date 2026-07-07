@@ -225,6 +225,8 @@ function Ergebnis({
         {/* Vorschau */}
         <div className={CSS.card} style={{ padding: 12, minHeight: 320 }}>
           <div style={{ height: 360 }}>
+            {/* Vorschau (read-only): Symbole + Wandstärke automatisch,
+                keine Editier-Interaktion (interaktiv bleibt aus). */}
             {aktuellerRaum && (
               <Viewer2D
                 room={aktuellerRaum}
@@ -233,7 +235,6 @@ function Ergebnis({
                 gewaehltId={null}
                 statusById={statusById}
                 onSelect={() => {}}
-                onMove={() => {}}
               />
             )}
           </div>

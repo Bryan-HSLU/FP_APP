@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { footprint, type Vec2 } from "@fp/shared/rules";
-import { computeTransform, footprintPoints, innwardNormal, toScreen, toWorld } from "./plan2d.ts";
+import {
+  computeTransform,
+  distanz,
+  footprintPoints,
+  innwardNormal,
+  naechsteEcke,
+  rasten,
+  toScreen,
+  toWorld,
+  wallQuad,
+  wandEcken,
+  yawAusZeiger,
+} from "./plan2d.ts";
 
 const RAUM: Vec2[] = [
   [0, 0],
@@ -85,5 +97,77 @@ describe("innwardNormal", () => {
     expect(innwardNormal([0, 0], [3, 0], RAUM)).toEqual([0, 1]);
     // obere Wand [3,2.4]→[0,2.4]: Innenseite ist −z
     expect(innwardNormal([3, 2.4], [0, 2.4], RAUM)).toEqual([0, -1]);
+  });
+});
+
+describe("wallQuad", () => {
+  it("erzeugt ein Rechteck der Länge×Dicke, mittig auf der Wandachse", () => {
+    const q = wallQuad([0, 0], [3, 0], 0.1);
+    expect(q).toHaveLength(4);
+    // Dicke 0.1 → je 0.05 nach ±z
+    expect(q).toEqual([
+      [0, 0.05],
+      [3, 0.05],
+      [3, -0.05],
+      [0, -0.05],
+    ]);
+  });
+
+  it("steht senkrecht auf einer vertikalen Wand", () => {
+    const q = wallQuad([0, 0], [0, 2], 0.2);
+    // Wand entlang +z → Dicke entlang x (±0.1)
+    for (const p of q) expect(Math.abs(p[0])).toBeCloseTo(0.1, 9);
+  });
+});
+
+describe("distanz / wandEcken / naechsteEcke", () => {
+  it("misst euklidische Distanz in Metern", () => {
+    expect(distanz([0, 0], [3, 4])).toBeCloseTo(5, 9);
+  });
+
+  it("sammelt alle Wand-Endpunkte", () => {
+    const ecken = wandEcken([
+      { start: [0, 0], end: [3, 0] },
+      { start: [3, 0], end: [3, 2] },
+    ]);
+    expect(ecken).toHaveLength(4);
+    expect(ecken).toContainEqual([3, 0]);
+  });
+
+  it("snappt einen nahen Punkt auf die Ecke, einen fernen nicht", () => {
+    const ecken: Vec2[] = [
+      [0, 0],
+      [3, 0],
+    ];
+    expect(naechsteEcke([0.1, 0.05], ecken, 0.15)).toEqual([0, 0]); // < 15 cm → snap
+    expect(naechsteEcke([1.5, 1], ecken, 0.15)).toEqual([1.5, 1]); // zu weit → unverändert
+  });
+});
+
+describe("yawAusZeiger", () => {
+  it("front lokal +z: Zeiger nach +z ⇒ 0°, nach +x ⇒ 90°", () => {
+    const c: Vec2 = [1, 1];
+    expect(yawAusZeiger(c, [1, 2], 15)).toBe(0); // +z
+    expect(yawAusZeiger(c, [2, 1], 15)).toBe(90); // +x
+    expect(yawAusZeiger(c, [1, 0], 15)).toBe(180); // −z
+    expect(yawAusZeiger(c, [0, 1], 15)).toBe(270); // −x
+  });
+
+  it("rastet auf 15°-Schritte und normalisiert auf [0,360)", () => {
+    const y = yawAusZeiger(
+      [0, 0],
+      [Math.sin((100 * Math.PI) / 180), Math.cos((100 * Math.PI) / 180)],
+      15,
+    );
+    expect(y % 15).toBe(0);
+    expect(y).toBeGreaterThanOrEqual(0);
+    expect(y).toBeLessThan(360);
+  });
+});
+
+describe("rasten", () => {
+  it("rundet auf 5-cm-Raster (Default)", () => {
+    expect(rasten(1.23)).toBeCloseTo(1.25, 9);
+    expect(rasten(1.21)).toBeCloseTo(1.2, 9);
   });
 });
