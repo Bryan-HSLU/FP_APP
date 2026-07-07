@@ -10,8 +10,10 @@ import type { ReactNode } from "react";
 import type { ConstraintReport } from "@fp/shared/rules";
 import type { KatalogItem } from "./api";
 import { materialFarbe } from "./moebel3d";
+import type { OberflaechenSpez, OberflaechenVarianten, OberflaechenWahl } from "./oberflaechen";
 import { Piktogramm } from "./Piktogramm";
 import { CSS, FP_VAR, THEME, titel } from "./theme";
+import type { FlaechenWahl } from "./Viewer3D";
 
 export interface SchrittAnpassenProps {
   viewer: ReactNode;
@@ -24,6 +26,124 @@ export interface SchrittAnpassenProps {
   onWuerfeln: () => void;
   report: ConstraintReport | null;
   begruendung: string;
+  /** Gewählte Oberfläche (Boden/Wand) im 3D – zeigt die Oberflächen-Karte. */
+  flaeche?: FlaechenWahl | null;
+  /** Angebotene Boden-/Wandvarianten des aktuellen Raumtyps. */
+  oberflaechenVarianten?: OberflaechenVarianten | null;
+  /** Aktuelle Variantenwahl (leer = stilabgeleitete Optik). */
+  oberflaechenWahl?: OberflaechenWahl;
+  /** Effektive (ggf. überschriebene) Oberflächen-Spez zur Anzeige. */
+  aktuelleSpez?: OberflaechenSpez | null;
+  onFlaecheVariante?: (art: FlaechenWahl, id: string) => void;
+}
+
+const MUSTER_LABEL: Record<string, string> = {
+  uni: "Uni",
+  fliesen: "Fliesen",
+  parkett: "Parkett",
+  stein: "Stein",
+};
+
+/** Elementkarte-Ersatz für eine gewählte Oberfläche (Boden/Wand). Zeigt das
+ *  aktuelle Muster/Farbe und bietet die vordefinierten Varianten zur Auswahl –
+ *  rein visuell, überschreibt lokal die stilabgeleitete Optik. */
+function OberflaecheKarte({
+  flaeche,
+  varianten,
+  wahl,
+  spez,
+  onVariante,
+}: {
+  flaeche: FlaechenWahl;
+  varianten: OberflaechenVarianten;
+  wahl: OberflaechenWahl | undefined;
+  spez: OberflaechenSpez | null | undefined;
+  onVariante: (art: FlaechenWahl, id: string) => void;
+}) {
+  const istBoden = flaeche === "boden";
+  const liste = istBoden ? varianten.boden : varianten.wand;
+  const aktuelleId = istBoden ? wahl?.boden : wahl?.wand;
+  const aktSpez = istBoden ? spez?.boden : spez?.wand;
+  const aktFarbe = aktSpez
+    ? "grundfarbe" in aktSpez
+      ? aktSpez.grundfarbe
+      : aktSpez.farbe
+    : THEME.salbei;
+  const aktMuster = aktSpez ? (MUSTER_LABEL[aktSpez.muster] ?? aktSpez.muster) : "–";
+  return (
+    <div className={`${CSS.card} ${CSS.cardAktiv}`} style={{ padding: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <Piktogramm name="material" groesse={28} />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <h3 style={{ ...titel, margin: 0, fontSize: 16 }}>Oberfläche</h3>
+          <span style={{ fontSize: 12, color: THEME.salbei }}>{istBoden ? "Boden" : "Wände"}</span>
+        </div>
+      </div>
+
+      <div
+        style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 12 }}
+      >
+        <span
+          style={{
+            width: 16,
+            height: 16,
+            borderRadius: 4,
+            background: aktFarbe,
+            border: `1px solid ${THEME.salbei}`,
+          }}
+        />
+        <span style={{ color: THEME.salbei }}>Aktuell</span>
+        <span style={{ marginLeft: "auto", color: THEME.gruen }}>{aktMuster}</span>
+      </div>
+
+      <p style={{ fontSize: 12.5, margin: "0 0 6px", color: THEME.gruen }}>
+        Varianten ({liste.length}):
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {liste.map((v) => {
+          const farbe = "grundfarbe" in v.spez ? v.spez.grundfarbe : v.spez.farbe;
+          const aktiv = aktuelleId === v.id;
+          return (
+            <button
+              key={v.id}
+              type="button"
+              className={CSS.card}
+              onClick={() => onVariante(flaeche, v.id)}
+              aria-pressed={aktiv}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "7px 10px",
+                cursor: "pointer",
+                textAlign: "left",
+                background: aktiv ? THEME.offwhite : "#fff",
+                border: `1px solid ${aktiv ? THEME.orange : THEME.salbei}`,
+              }}
+            >
+              <span
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: 4,
+                  flexShrink: 0,
+                  background: farbe,
+                  border: `1px solid ${THEME.salbei}`,
+                }}
+              />
+              <span style={{ fontSize: 12.5, color: THEME.gruen, minWidth: 0, flex: 1 }}>
+                {v.label}
+              </span>
+              {aktiv && <span style={{ fontSize: 11, color: THEME.orange }}>aktiv</span>}
+            </button>
+          );
+        })}
+      </div>
+      <p style={{ fontSize: 11.5, color: THEME.salbei, marginTop: 12, marginBottom: 0 }}>
+        Rein visuell · bleibt beim Würfeln erhalten · Klick auf ein Möbel wechselt zurück.
+      </p>
+    </div>
+  );
 }
 
 const STATUS_TEXT = {
@@ -50,6 +170,11 @@ export function SchrittAnpassen({
   onWuerfeln,
   report,
   begruendung,
+  flaeche,
+  oberflaechenVarianten,
+  oberflaechenWahl,
+  aktuelleSpez,
+  onFlaecheVariante,
 }: SchrittAnpassenProps) {
   const statusKey =
     elementStatus === "verletzt" ? "anpassen" : elementStatus === "knapp" ? "knapp" : "passt";
@@ -64,8 +189,16 @@ export function SchrittAnpassen({
       <div style={{ minWidth: 0 }}>{viewer}</div>
 
       {/* ---------- Panel rechts ---------- */}
-      <aside key={gewaehltesItem?.id ?? "leer"} style={{ minWidth: 0 }}>
-        {gewaehltesItem ? (
+      <aside key={flaeche ?? gewaehltesItem?.id ?? "leer"} style={{ minWidth: 0 }}>
+        {flaeche && oberflaechenVarianten && onFlaecheVariante ? (
+          <OberflaecheKarte
+            flaeche={flaeche}
+            varianten={oberflaechenVarianten}
+            wahl={oberflaechenWahl}
+            spez={aktuelleSpez}
+            onVariante={onFlaecheVariante}
+          />
+        ) : gewaehltesItem ? (
           <div className={`${CSS.card} ${CSS.cardAktiv}`} style={{ padding: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
               <Piktogramm name="moebel" groesse={28} />

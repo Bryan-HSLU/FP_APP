@@ -1,31 +1,62 @@
-/** 3D-Viewer (M3, bewusst minimal): Raumhülle + Plan als Box-Platzhalter.
+/** 3D-Viewer v2: Raumhülle + Plan als Möbel-Kompositionen, jetzt mit
+ *  Ansichts-Presets, zwei Begehungsmodi (Orbit/Begehung), direkter Objekt-
+ *  Interaktion (Drag auf Bodenebene, Doppelklick = +90°), Ebenen-Toggles und
+ *  wählbaren Oberflächen (Klick auf Boden/Wand → Variantenwahl in der Karte).
  *
- * Box-Platzhalter mit Auto-Upgrade (Schema-Spezifikation): Items ohne glTF
- * rendern als massstäbliche Box aus den Katalog-Massen, CI-eingefärbt nach
- * Prioritätsklasse. Auswahl per Klick; Bewegen/Rotieren macht App.tsx.
+ *  Reine Rechenlogik (Preset-Posen, Begehungs-Schrittvektor, Raum-BBox) lebt in
+ *  `viewer3d-logik.ts` (getestet); hier bleibt nur das r3f-Rendering/Verdrahten.
+ *  Box-Platzhalter-Prinzip und die dominierende Norm-Ampel sind unverändert.
  */
 import { OrbitControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
-import { useMemo } from "react";
-import { Shape } from "three";
+import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
+import { useEffect, useMemo, useRef, useState, type ComponentRef, type CSSProperties } from "react";
+import { Euler, Shape, Vector3, type Camera } from "three";
 import type { KatalogItem, Placement, Room } from "./api";
 import { materialFarbe, Moebel3D } from "./moebel3d.tsx";
-import { leiteOberflaechen, type OberflaechenSpez } from "./oberflaechen";
+import {
+  leiteOberflaechen,
+  wendeVariantenAn,
+  type OberflaechenSpez,
+  type OberflaechenWahl,
+} from "./oberflaechen";
+import { rasten } from "./plan2d.ts";
 import { bodenTextur, WandMitOeffnungen, wandTextur } from "./raum3d.tsx";
 import type { WandOeffnung } from "./raum3d";
 import type { Stilprofil } from "./Stil";
 import { THEME } from "./theme";
+import {
+  AUGENHOEHE,
+  begehungStart,
+  bewegungsDelta,
+  blickRichtung,
+  presetKamera,
+  raumBBox,
+  RAUMHOEHE_FALLBACK,
+  type Ansichtspreset,
+  type Begehungsmodus,
+} from "./viewer3d-logik";
 
-// Norm-Ampel-Statusfarben (identisch zu Viewer2D) – die Ampel dominiert die
-// Materialfarbe: nur bei Status «ok» wird die Möbel-Materialfarbe genutzt.
 const FARBE_VERLETZT = "#c0392b";
 const FARBE_KNAPP = "#e67e22";
-const FARBE_GEWAEHLT = THEME.orange; // CI-Orange
+const FARBE_GEWAEHLT = THEME.orange;
 const FARBE_GESPERRT = "#7a7a7a";
+
+/** Auswählbare Fläche der Raumhülle (Boden bzw. Wände als Ganzes). */
+export type FlaechenWahl = "boden" | "wand";
 
 type Status = "verletzt" | "knapp";
 
-function Boden({ room, spez }: { room: Room; spez: OberflaechenSpez }) {
+function Boden({
+  room,
+  spez,
+  gewaehlt,
+  onFlaeche,
+}: {
+  room: Room;
+  spez: OberflaechenSpez;
+  gewaehlt: boolean;
+  onFlaeche?: (f: FlaechenWahl, e: ThreeEvent<MouseEvent>) => void;
+}) {
   const shape = new Shape();
   const poly = room.shell.floor.polygon;
   const textur = useMemo(
@@ -38,24 +69,38 @@ function Boden({ room, spez }: { room: Room; spez: OberflaechenSpez }) {
   for (const p of poly.slice(1)) shape.lineTo(p[0], p[1]);
   shape.closePath();
   return (
-    <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+    <mesh
+      rotation={[Math.PI / 2, 0, 0]}
+      position={[0, 0, 0]}
+      onClick={onFlaeche ? (e) => onFlaeche("boden", e) : undefined}
+    >
       <shapeGeometry args={[shape]} />
-      {/* Bei Textur: Grundfarbe = weiss, damit die Kachel-/Dielenfarben echt wirken. */}
       <meshStandardMaterial
         color={textur ? "#ffffff" : spez.boden.grundfarbe}
         map={textur ?? undefined}
         side={2}
+        emissive={gewaehlt ? FARBE_GEWAEHLT : "#000000"}
+        emissiveIntensity={gewaehlt ? 0.22 : 0}
       />
     </mesh>
   );
 }
 
-function Waende({ room, spez }: { room: Room; spez: OberflaechenSpez }) {
-  // Öffnungen je Host-Wand zuordnen (openings referenzieren die Wand per hostWall).
+function Waende({
+  room,
+  spez,
+  sichtbar,
+  gewaehlt,
+  onFlaeche,
+}: {
+  room: Room;
+  spez: OberflaechenSpez;
+  sichtbar: boolean;
+  gewaehlt: boolean;
+  onFlaeche?: (f: FlaechenWahl, e: ThreeEvent<MouseEvent>) => void;
+}) {
   const proWand = new Map<string, WandOeffnung[]>();
   for (const o of room.openings) {
-    // Das lose RoomInput-Öffnungsobjekt trägt height nicht im Typ, im echten
-    // Raummodell aber schon (Schema) → optional lesen mit Fallback.
     const eintrag = o as (typeof room.openings)[number] & { height?: number };
     const liste = proWand.get(eintrag.hostWall) ?? [];
     liste.push({
@@ -71,18 +116,23 @@ function Waende({ room, spez }: { room: Room; spez: OberflaechenSpez }) {
     () => wandTextur(spez.wand),
     [spez.wand.muster, spez.wand.farbe, spez.wand.fliesenHoehe_m],
   );
+  if (!sichtbar) return null;
+  // Hervorhebung der gewählten Wandfläche: leichtes Orange über den Wandton.
+  const spezAktiv: OberflaechenSpez["wand"] = gewaehlt
+    ? { ...spez.wand, farbe: FARBE_GEWAEHLT }
+    : spez.wand;
   return (
-    <>
+    <group onClick={onFlaeche ? (e) => onFlaeche("wand", e) : undefined}>
       {room.shell.walls.map((w) => (
         <WandMitOeffnungen
           key={w.id}
           wand={w as Parameters<typeof WandMitOeffnungen>[0]["wand"]}
           oeffnungen={proWand.get(w.id) ?? []}
-          spez={spez.wand}
+          spez={spezAktiv}
           fliesenTextur={fliesenTex}
         />
       ))}
-    </>
+    </group>
   );
 }
 
@@ -91,31 +141,35 @@ function PlacementBox({
   item,
   gewaehlt,
   status,
+  ampelAn,
+  interaktiv,
   onClick,
+  onDoubleClick,
+  onDragStart,
 }: {
   placement: Placement;
   item: KatalogItem;
   gewaehlt: boolean;
   status: Status | undefined;
+  ampelAn: boolean;
+  interaktiv: boolean;
   onClick: () => void;
+  onDoubleClick: () => void;
+  onDragStart: () => void;
 }) {
   const { w, d, h } = item.masse;
   const y = (placement.mountHeight ?? 0) + h / 2;
-  // Ampel MUSS dominieren: Auswahl-Orange und die Norm-Statusfarben
-  // (verletzt/knapp/gesperrt) schlagen die Materialfarbe. NUR bei Status «ok»
-  // (kein verletzt/knapp, nicht gesperrt) zeigt das Möbel seine Materialfarbe
-  // statt der bisherigen P-Klassen-Farbe.
+  // Ampel dominiert: nur bei Status «ok» zeigt das Möbel seine Materialfarbe.
   const farbe = gewaehlt
     ? FARBE_GEWAEHLT
-    : status === "verletzt"
+    : ampelAn && status === "verletzt"
       ? FARBE_VERLETZT
-      : status === "knapp"
+      : ampelAn && status === "knapp"
         ? FARBE_KNAPP
-        : placement.locked
+        : ampelAn && placement.locked
           ? FARBE_GESPERRT
           : materialFarbe(item.funktionsTyp);
-  // Gruppe trägt Pose + Auswahl/Klick 1:1 wie zuvor die Box; die Primitives von
-  // Moebel3D sitzen im lokalen bbox-Raum (Ursprung = Box-Mitte) innerhalb der Gruppe.
+  const ziehbar = interaktiv && !placement.locked;
   return (
     <group
       position={[placement.pose.pos[0], y, placement.pose.pos[1]]}
@@ -124,6 +178,23 @@ function PlacementBox({
         e.stopPropagation();
         onClick();
       }}
+      onDoubleClick={
+        ziehbar
+          ? (e) => {
+              e.stopPropagation();
+              onDoubleClick();
+            }
+          : undefined
+      }
+      onPointerDown={
+        ziehbar
+          ? (e) => {
+              e.stopPropagation();
+              onClick();
+              onDragStart();
+            }
+          : undefined
+      }
     >
       <Moebel3D
         funktionsTyp={item.funktionsTyp}
@@ -137,6 +208,257 @@ function PlacementBox({
   );
 }
 
+/** Unsichtbare Bodenebene (y=0): fängt beim Objekt-Drag den Raycast fürs Rastern. */
+function DragEbene({
+  aktiv,
+  onMove,
+  onUp,
+}: {
+  aktiv: boolean;
+  onMove: (welt: [number, number]) => void;
+  onUp: () => void;
+}) {
+  if (!aktiv) return null;
+  return (
+    <mesh
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, 0, 0]}
+      onPointerMove={(e) => {
+        e.stopPropagation();
+        onMove([rasten(e.point.x), rasten(e.point.z)]);
+      }}
+      onPointerUp={(e) => {
+        e.stopPropagation();
+        onUp();
+      }}
+    >
+      <planeGeometry args={[1000, 1000]} />
+      <meshBasicMaterial visible={false} />
+    </mesh>
+  );
+}
+
+/** Orbit-/Preset-Kamerasteuerung: setzt Kamera + OrbitControls-Ziel bei jedem
+ *  Preset-Wechsel neu (animationsfrei, Bryan ok). */
+function KameraSteuerung({
+  preset,
+  bboxKey,
+  pose,
+  aktiv,
+}: {
+  preset: Ansichtspreset;
+  bboxKey: string;
+  pose: ReturnType<typeof presetKamera>;
+  aktiv: boolean;
+}) {
+  const ref = useRef<ComponentRef<typeof OrbitControls>>(null);
+  const { camera } = useThree();
+  useEffect(() => {
+    camera.position.set(...pose.position);
+    const c = ref.current;
+    if (c) {
+      c.target.set(...pose.target);
+      c.update();
+    } else {
+      camera.lookAt(...pose.target);
+    }
+    // preset + bboxKey als Auslöser: nur bei Preset-/Raumwechsel neu setzen.
+  }, [preset, bboxKey]);
+  // Während eines Objekt-Drags (aktiv=false) die Kamera festhalten, damit das
+  // Ziehen nicht zugleich die Ansicht dreht.
+  return <OrbitControls ref={ref} makeDefault enabled={aktiv} maxPolarAngle={Math.PI / 2.05} />;
+}
+
+/** First-Person-Begehung: Drag = umsehen (Yaw/Pitch), WASD/Pfeile = bewegen,
+ *  Doppeltipp = ein Schritt vorwärts (Touch). Bodenhöhe (Augenhöhe) bleibt fix.
+ *  Kollision mit Wänden ist bewusst NICHT modelliert (POC, Bryan). */
+function Begehung({ start }: { start: ReturnType<typeof begehungStart> }) {
+  const { camera, gl } = useThree();
+  const yaw = useRef(0);
+  const pitch = useRef(0);
+  const tasten = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    camera.position.set(start.position[0], AUGENHOEHE, start.position[2]);
+    yaw.current = 0;
+    pitch.current = 0;
+  }, [start.position[0], start.position[2]]);
+
+  // Drag zum Umsehen (Maus & Touch); Doppeltipp = Schritt vorwärts.
+  useEffect(() => {
+    const el = gl.domElement;
+    let ziehen = false;
+    let lx = 0;
+    let ly = 0;
+    let letzterTipp = 0;
+    const down = (e: PointerEvent) => {
+      ziehen = true;
+      lx = e.clientX;
+      ly = e.clientY;
+      const jetzt = performance.now();
+      if (jetzt - letzterTipp < 300) {
+        const r = blickRichtung(yaw.current);
+        camera.position.x += r[0] * 0.5;
+        camera.position.z += r[1] * 0.5;
+      }
+      letzterTipp = jetzt;
+    };
+    const move = (e: PointerEvent) => {
+      if (!ziehen) return;
+      yaw.current += (e.clientX - lx) * 0.005;
+      pitch.current = Math.max(-1.4, Math.min(1.4, pitch.current - (e.clientY - ly) * 0.005));
+      lx = e.clientX;
+      ly = e.clientY;
+    };
+    const up = () => {
+      ziehen = false;
+    };
+    el.style.touchAction = "none";
+    el.addEventListener("pointerdown", down);
+    el.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    return () => {
+      el.removeEventListener("pointerdown", down);
+      el.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+  }, [gl, camera]);
+
+  // WASD/Pfeiltasten (nur solange die Begehung montiert ist).
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => tasten.current.add(e.key.toLowerCase());
+    const up = (e: KeyboardEvent) => tasten.current.delete(e.key.toLowerCase());
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+    };
+  }, []);
+
+  useFrame((_, delta) => {
+    const t = tasten.current;
+    const vor =
+      (t.has("w") || t.has("arrowup") ? 1 : 0) - (t.has("s") || t.has("arrowdown") ? 1 : 0);
+    const seit =
+      (t.has("d") || t.has("arrowright") ? 1 : 0) - (t.has("a") || t.has("arrowleft") ? 1 : 0);
+    if (vor !== 0 || seit !== 0) {
+      const [dx, dz] = bewegungsDelta(blickRichtung(yaw.current), vor, seit, delta * 2.4);
+      camera.position.x += dx;
+      camera.position.z += dz;
+    }
+    camera.position.y = AUGENHOEHE;
+    // Blickrichtung aus Yaw/Pitch: aus dem Zentrum heraus schauen.
+    const richtung = new Vector3(0, 0, -1).applyEuler(
+      new Euler(pitch.current, -yaw.current, 0, "YXZ"),
+    );
+    lookAtDir(camera, richtung);
+  });
+  return null;
+}
+
+/** Kamera in Blickrichtung `dir` ausrichten (dir muss nicht normiert sein). */
+function lookAtDir(camera: Camera, dir: Vector3): void {
+  const ziel = new Vector3().copy(camera.position).add(dir);
+  camera.lookAt(ziel);
+}
+
+// ── Bedienleiste ────────────────────────────────────────────────────────────
+
+const PRESETS: [Ansichtspreset, string][] = [
+  ["perspektive", "Perspektive"],
+  ["draufsicht", "Draufsicht"],
+  ["front", "Front"],
+  ["seite", "Seite"],
+];
+
+function knopfStil(aktiv: boolean, farbe: string = THEME.gruen): CSSProperties {
+  return {
+    borderRadius: 999,
+    padding: "5px 11px",
+    fontSize: 12,
+    cursor: "pointer",
+    border: `1px solid ${aktiv ? farbe : THEME.salbei}`,
+    background: aktiv ? farbe : "#fff",
+    color: aktiv ? "#fff" : THEME.salbei,
+  };
+}
+
+function Bedienleiste({
+  preset,
+  onPreset,
+  modus,
+  onModus,
+  ampel,
+  onAmpel,
+  waende,
+  onWaende,
+}: {
+  preset: Ansichtspreset;
+  onPreset: (p: Ansichtspreset) => void;
+  modus: Begehungsmodus;
+  onModus: (m: Begehungsmodus) => void;
+  ampel: boolean;
+  onAmpel: () => void;
+  waende: boolean;
+  onWaende: () => void;
+}) {
+  const trenner = (
+    <span
+      style={{ width: 1, height: 20, background: THEME.salbei, opacity: 0.4, margin: "0 2px" }}
+    />
+  );
+  const begehung = modus === "begehung";
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 6,
+        flexWrap: "wrap",
+        padding: "0 0 8px",
+        alignItems: "center",
+      }}
+    >
+      {PRESETS.map(([p, label]) => (
+        <button
+          key={p}
+          type="button"
+          onClick={() => onPreset(p)}
+          style={knopfStil(preset === p && !begehung)}
+          aria-pressed={preset === p && !begehung}
+          disabled={begehung}
+        >
+          {label}
+        </button>
+      ))}
+      {trenner}
+      <button
+        type="button"
+        onClick={() => onModus("orbit")}
+        style={knopfStil(!begehung)}
+        aria-pressed={!begehung}
+      >
+        🌀 Orbit
+      </button>
+      <button
+        type="button"
+        onClick={() => onModus("begehung")}
+        style={knopfStil(begehung, THEME.orange)}
+        aria-pressed={begehung}
+      >
+        🚶 Begehung
+      </button>
+      {trenner}
+      <button type="button" onClick={onAmpel} style={knopfStil(ampel)} aria-pressed={ampel}>
+        Ampel
+      </button>
+      <button type="button" onClick={onWaende} style={knopfStil(waende)} aria-pressed={waende}>
+        Wände
+      </button>
+    </div>
+  );
+}
+
 export function Viewer3D({
   room,
   placements,
@@ -145,47 +467,137 @@ export function Viewer3D({
   statusById,
   onSelect,
   stilprofil,
+  interaktiv = false,
+  onMove,
+  onRotate,
+  gewaehlteFlaeche,
+  onSelectFlaeche,
+  oberflaechenWahl,
+  modus,
+  onModus,
 }: {
   room: Room;
   placements: Placement[];
   catalog: KatalogItem[];
   gewaehltId: string | null;
-  /** Pro-Placement-Norm-Ampel (verletzt/knapp) – wie in Viewer2D. */
   statusById: Map<string, Status>;
   onSelect: (id: string | null) => void;
-  /** Aktives Stilprofil des geplanten Raums – steuert Boden-/Wandoberflächen.
-   *  Fehlt es, bleibt die neutrale Default-Optik; Türen/Fenster erscheinen immer. */
   stilprofil?: Stilprofil | null;
+  /** Editier-Interaktion (Drag/Rotate/Flächenwahl). Default aus (Vorschau read-only). */
+  interaktiv?: boolean;
+  /** Möbel per Drag auf der Bodenebene verschieben (absolute Weltposition). */
+  onMove?: (id: string, welt: [number, number]) => void;
+  /** Möbel drehen (absoluter Yaw in Grad) – Doppelklick = +90°. */
+  onRotate?: (id: string, yawDeg: number) => void;
+  /** Aktuell gewählte Oberfläche (Boden/Wand) – zeigt die Oberflächen-Karte. */
+  gewaehlteFlaeche?: FlaechenWahl | null;
+  /** Klick auf Boden/Wand (kein Möbel getroffen) wählt die Fläche. */
+  onSelectFlaeche?: (f: FlaechenWahl | null) => void;
+  /** Lokale, rein visuelle Oberflächen-Variantenwahl (überschreibt die Stil-Spez). */
+  oberflaechenWahl?: OberflaechenWahl | null;
+  /** Begehungsmodus (in App gehalten, damit die Möbel-Pfeiltasten dort ruhen). */
+  modus: Begehungsmodus;
+  onModus: (m: Begehungsmodus) => void;
 }) {
   const byId = new Map(catalog.map((c) => [c.id, c]));
-  const poly = room.shell.floor.polygon;
-  const cx = poly.reduce((s, p) => s + p[0], 0) / poly.length;
-  const cz = poly.reduce((s, p) => s + p[1], 0) / poly.length;
-  const spez = leiteOberflaechen(stilprofil ?? null, room.roomType);
+  const bbox = raumBBox(room.shell.floor.polygon);
+  const raumHoehe =
+    (room.shell.walls[0] as { height?: number } | undefined)?.height ?? RAUMHOEHE_FALLBACK;
+
+  const [preset, setPreset] = useState<Ansichtspreset>("perspektive");
+  const [ampel, setAmpel] = useState(true);
+  const [waende, setWaende] = useState(true);
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  const basis = leiteOberflaechen(stilprofil ?? null, room.roomType);
+  const spez = wendeVariantenAn(basis, room.roomType, oberflaechenWahl);
+
+  // Raum-/Preset-Wechsel: Kamera-Pose neu berechnen; bboxKey erzwingt Reset.
+  const bboxKey = `${bbox.cx.toFixed(2)}:${bbox.cz.toFixed(2)}:${bbox.breite.toFixed(2)}`;
+  const orbitPose = presetKamera(bbox, preset, raumHoehe);
+  const startPose = begehungStart(bbox);
+
+  // Beim Verlassen des Begehungsmodus den Drag beenden.
+  useEffect(() => {
+    if (modus === "begehung") setDragId(null);
+  }, [modus]);
+
+  const flaecheKlick =
+    interaktiv && onSelectFlaeche
+      ? (f: FlaechenWahl, e: ThreeEvent<MouseEvent>) => {
+          e.stopPropagation();
+          onSelectFlaeche(f);
+        }
+      : undefined;
+
   return (
-    <Canvas
-      camera={{ position: [cx + 3, 3.2, cz + 3], fov: 50 }}
-      onPointerMissed={() => onSelect(null)}
-    >
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[4, 6, 3]} intensity={0.8} />
-      <Boden room={room} spez={spez} />
-      <Waende room={room} spez={spez} />
-      {placements.map((p) => {
-        const item = byId.get(p.catalogItemId);
-        if (!item) return null;
-        return (
-          <PlacementBox
-            key={p.id}
-            placement={p}
-            item={item}
-            gewaehlt={p.id === gewaehltId}
-            status={statusById.get(p.id)}
-            onClick={() => onSelect(p.id)}
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%" }}>
+      <Bedienleiste
+        preset={preset}
+        onPreset={setPreset}
+        modus={modus}
+        onModus={onModus}
+        ampel={ampel}
+        onAmpel={() => setAmpel((a) => !a)}
+        waende={waende}
+        onWaende={() => setWaende((w) => !w)}
+      />
+      {modus === "begehung" && (
+        <p style={{ fontSize: 11, color: THEME.salbei, margin: "0 0 6px" }}>
+          Ziehen = umsehen · WASD/Pfeile = gehen · Doppeltipp = vorwärts
+        </p>
+      )}
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <Canvas
+          camera={{ position: orbitPose.position, fov: 50 }}
+          onPointerMissed={() => {
+            onSelect(null);
+            onSelectFlaeche?.(null);
+          }}
+        >
+          <ambientLight intensity={0.7} />
+          <directionalLight position={[4, 6, 3]} intensity={0.8} />
+          <Boden
+            room={room}
+            spez={spez}
+            gewaehlt={gewaehlteFlaeche === "boden"}
+            onFlaeche={flaecheKlick}
           />
-        );
-      })}
-      <OrbitControls target={[cx, 0.8, cz]} maxPolarAngle={Math.PI / 2.05} />
-    </Canvas>
+          <Waende
+            room={room}
+            spez={spez}
+            sichtbar={waende}
+            gewaehlt={gewaehlteFlaeche === "wand"}
+            onFlaeche={flaecheKlick}
+          />
+          {placements.map((p) => {
+            const item = byId.get(p.catalogItemId);
+            if (!item) return null;
+            return (
+              <PlacementBox
+                key={p.id}
+                placement={p}
+                item={item}
+                gewaehlt={p.id === gewaehltId}
+                status={statusById.get(p.id)}
+                ampelAn={ampel}
+                interaktiv={interaktiv && modus === "orbit"}
+                onClick={() => onSelect(p.id)}
+                onDoubleClick={() => onRotate?.(p.id, (p.pose.yawDeg + 90) % 360)}
+                onDragStart={() => setDragId(p.id)}
+              />
+            );
+          })}
+          {dragId && onMove && modus === "orbit" && (
+            <DragEbene aktiv onMove={(welt) => onMove(dragId, welt)} onUp={() => setDragId(null)} />
+          )}
+          {modus === "orbit" ? (
+            <KameraSteuerung preset={preset} bboxKey={bboxKey} pose={orbitPose} aktiv={!dragId} />
+          ) : (
+            <Begehung start={startPose} />
+          )}
+        </Canvas>
+      </div>
+    </div>
   );
 }

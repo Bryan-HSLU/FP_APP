@@ -456,6 +456,33 @@
    Höhen-Clip (2 gestapelte Zonen) statt CSG-Zonenschnitt – robust & dependency-
    frei. Suite: **Web +21 (raum3d 12 · oberflaechen 9)**, Gates lint/typecheck/
    test(73)/build grün.
+   · ✅ **3D-Viewer v2: Ansichts-Presets, Orbit+Begehung, 3D-Drag/Rotate,
+   Ebenen, waehlbare Oberflaechen (2026-07-07, Bryan):** `Viewer3D.tsx`
+   generalüberholt. **Ansichts-Presets** (Perspektive/Draufsicht/Front/Seite)
+   als Leiste über dem Canvas – Kamera-Posen aus der Raum-BBox skaliert
+   (`presetKamera`), OrbitControls-Ziel = Raumzentrum, Draufsicht mit winzigem
+   z-Versatz gegen die Gimbal-Entartung. **Zwei Begehungsmodi**: 🌀 Orbit (wie
+   bisher) und 🚶 Begehung = First-Person (Augenhöhe 1.6 m, WASD/Pfeile gehen,
+   Drag umsehen, Doppeltipp = Schritt vorwärts – Maus **und** Touch, ohne
+   PointerLock; **keine** Wandkollision, POC-bewusst). **Direkte Objekt-
+   Interaktion wie im 2D**: gewähltes Möbel per Drag auf der y=0-Ebene
+   verschieben (Raycast → 5-cm-Raster, `verschiebeNach`-Constraints), Doppelklick
+   = +90° (`rotiereNach`); Klick öffnet weiterhin die Elementkarte. Nur in
+   Schritt 4 (`interaktiv`), Vorschau read-only. **Ebenen-Toggles** Ampel
+   (Statusfarben an/aus) + Wände (ausblendbar für freie Sicht von aussen).
+   **Oberflächen als wählbare Objekte**: Klick auf Boden/Wand (kein Möbel
+   getroffen) wählt die Fläche → Elementkarte-Ersatz «Oberfläche» in
+   `SchrittAnpassen.tsx` mit 3 vordefinierten Boden-/Wandvarianten je Raumtyp
+   (`variantenFuer`); die Wahl überschreibt lokal die stilabgeleitete Spez
+   (`wendeVariantenAn`, **rein visuell, kein Schema-/API-Eingriff**) und **bleibt
+   beim «Variante würfeln» erhalten** (eigener State, `loesen` fasst ihn nicht
+   an; nur Raumwechsel setzt zurück). Reine Logik in `viewer3d-logik.ts`
+   (getestet: BBox, Preset-Posen, Begehungs-Schrittvektor, Blickrichtung). Im
+   Begehungsmodus ruhen die Möbel-Pfeiltasten (`viewer3dModus` in App, Konflikt
+   vermeiden). Bewusst weggelassen: Wandkollision (POC), 3D-Labels/Beschriftungs-
+   Ebene (der 3D-Viewer trägt keine Text-Labels), PointerLock (Drag-Look ist
+   robuster + mobiltauglich). Suite: **Web +19 (viewer3d-logik 13 · oberflaechen
+   +6) → 120**, Gates lint/typecheck/test/build grün.
    · ✅ **UI-Redesign Etappe A: Designsystem + App-Rahmen (2026-07-07,
    Bryan-Konzept):** Fundament, das die 5 Schritt-Ansichten (Etappe B) nur noch
    konsumieren. **Designsystem** – globales Stylesheet `apps/web/src/fp.css`

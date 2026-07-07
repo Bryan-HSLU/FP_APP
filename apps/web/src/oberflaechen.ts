@@ -121,6 +121,135 @@ function fuge(hex: string): string {
  * - kueche → Steinboden bei natürlicher Materialität, sonst Fliesen; Uni-Wand.
  * - sonst (flur/…) → schlichter Uni-Boden + Uni-Wand.
  */
+// ── Wählbare Oberflächen-Varianten (3D-Viewer, Bryan-Wunsch «Flächen als
+//    wählbare Objekte») ─────────────────────────────────────────────────────
+// Rein visuelle Overrides der stilabgeleiteten Spez: der Nutzer klickt Boden
+// bzw. Wand im 3D an und wählt eine vordefinierte Variante. KEIN Schema-/API-
+// Eingriff – die Wahl lebt nur im Frontend-State und überschreibt lokal die
+// `OberflaechenSpez`. Deterministisch & testbar (keine DOM-Abhängigkeit).
+
+export interface BodenVariante {
+  id: string;
+  label: string;
+  spez: BodenSpez;
+}
+
+export interface WandVariante {
+  id: string;
+  label: string;
+  spez: WandSpez;
+}
+
+export interface OberflaechenVarianten {
+  boden: BodenVariante[];
+  wand: WandVariante[];
+}
+
+const B = (id: string, label: string, spez: BodenSpez): BodenVariante => ({ id, label, spez });
+const W = (id: string, label: string, spez: WandSpez): WandVariante => ({ id, label, spez });
+
+// Gemeinsamer Bausatz – je Raumtyp wird eine passende Teilmenge angeboten.
+// `satisfies` statt Record-Annotation: so bleiben die Keys exakt und der Zugriff
+// liefert `BodenVariante` (nicht `| undefined`) trotz noUncheckedIndexedAccess.
+const BODEN = {
+  fliesenHell: B("fliesen-hell", "Fliesen hell", {
+    muster: "fliesen",
+    grundfarbe: "#e8e2d6",
+    fugenfarbe: fuge("#e8e2d6"),
+    masse_m: 0.3,
+  }),
+  fliesenDunkel: B("fliesen-dunkel", "Fliesen dunkel", {
+    muster: "fliesen",
+    grundfarbe: "#5a554d",
+    fugenfarbe: "#3a352f",
+    masse_m: 0.3,
+  }),
+  parkettHell: B("parkett-hell", "Parkett hell", {
+    muster: "parkett",
+    grundfarbe: "#d9c3a0",
+    fugenfarbe: fuge("#d9c3a0"),
+    masse_m: 0.15,
+  }),
+  parkettWarm: B("parkett-warm", "Parkett warm", {
+    muster: "parkett",
+    grundfarbe: "#a9784f",
+    fugenfarbe: fuge("#a9784f"),
+    masse_m: 0.15,
+  }),
+  stein: B("stein", "Stein", {
+    muster: "stein",
+    grundfarbe: "#b7b2a7",
+    fugenfarbe: fuge("#b7b2a7"),
+    masse_m: 0.6,
+  }),
+} satisfies Record<string, BodenVariante>;
+
+const WAND = {
+  uniWeiss: W("uni-weiss", "Uni weiss", { muster: "uni", farbe: "#eceae4" }),
+  uniWarm: W("uni-warm", "Uni warm", { muster: "uni", farbe: "#d8cfbf" }),
+  uniSalbei: W("uni-salbei", "Uni salbei", { muster: "uni", farbe: "#c2c9ba" }),
+  fliesenHell: W("wandfliesen-hell", "Wandfliesen hell", {
+    muster: "fliesen",
+    farbe: "#dfe3e6",
+    fliesenHoehe_m: 1.2,
+  }),
+  fliesenDunkel: W("wandfliesen-dunkel", "Wandfliesen dunkel", {
+    muster: "fliesen",
+    farbe: "#8b9095",
+    fliesenHoehe_m: 1.2,
+  }),
+} satisfies Record<string, WandVariante>;
+
+/** Angebotene Boden-/Wandvarianten je Raumtyp (3-4 pro Fläche, POC-Auswahl). */
+export function variantenFuer(roomType: string): OberflaechenVarianten {
+  const rt = roomType.toLowerCase();
+  if (rt === "bad") {
+    return {
+      boden: [BODEN.fliesenHell, BODEN.fliesenDunkel, BODEN.stein],
+      wand: [WAND.fliesenHell, WAND.fliesenDunkel, WAND.uniWeiss],
+    };
+  }
+  if (rt === "wohnen" || rt === "schlafen" || rt === "essen") {
+    return {
+      boden: [BODEN.parkettHell, BODEN.parkettWarm, BODEN.fliesenHell],
+      wand: [WAND.uniWeiss, WAND.uniWarm, WAND.uniSalbei],
+    };
+  }
+  if (rt === "kueche") {
+    return {
+      boden: [BODEN.fliesenHell, BODEN.stein, BODEN.parkettWarm],
+      wand: [WAND.uniWeiss, WAND.uniWarm, WAND.fliesenHell],
+    };
+  }
+  return {
+    boden: [BODEN.parkettHell, BODEN.fliesenHell, BODEN.stein],
+    wand: [WAND.uniWeiss, WAND.uniWarm, WAND.uniSalbei],
+  };
+}
+
+/** Getroffene Variantenwahl (Variant-IDs; `null` = stilabgeleitete Default-Spez). */
+export interface OberflaechenWahl {
+  boden: string | null;
+  wand: string | null;
+}
+
+/**
+ * Wendet die Nutzerwahl auf die stilabgeleitete Basis-Spez an: eine gewählte
+ * Boden-/Wandvariante überschreibt die Basis, sonst bleibt sie unverändert.
+ * Rein & deterministisch – die Wahl bleibt so beim «Variante würfeln» erhalten.
+ */
+export function wendeVariantenAn(
+  basis: OberflaechenSpez,
+  roomType: string,
+  wahl: OberflaechenWahl | null | undefined,
+): OberflaechenSpez {
+  if (!wahl) return basis;
+  const satz = variantenFuer(roomType);
+  const b = wahl.boden ? satz.boden.find((v) => v.id === wahl.boden) : undefined;
+  const w = wahl.wand ? satz.wand.find((v) => v.id === wahl.wand) : undefined;
+  return { boden: b?.spez ?? basis.boden, wand: w?.spez ?? basis.wand };
+}
+
 export function leiteOberflaechen(
   stilprofil: StilprofilSicht | null | undefined,
   roomType: string,

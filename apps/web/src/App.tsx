@@ -30,7 +30,14 @@ import { SchrittVorschlag } from "./SchrittVorschlag";
 import { type Achse, type BildItem, type Stilprofil } from "./Stil";
 import { CSS, THEME } from "./theme";
 import { Viewer2D } from "./Viewer2D";
-import { Viewer3D } from "./Viewer3D";
+import { Viewer3D, type FlaechenWahl } from "./Viewer3D";
+import {
+  leiteOberflaechen,
+  variantenFuer,
+  wendeVariantenAn,
+  type OberflaechenWahl,
+} from "./oberflaechen";
+import type { Begehungsmodus } from "./viewer3d-logik";
 
 // UI-Redesign Etappe B: Die fünf Schritt-Inhalte leben jetzt in eigenen
 // Schritt*-Komponenten (SchrittProjekt/Stil/Vorschlag/Anpassen/Auswertung).
@@ -63,6 +70,17 @@ export function App() {
   const [planRoom, setPlanRoom] = useState<Room | null>(null);
   // Ansicht: 2D-Grundriss (normgerecht beurteilbar) oder 3D-Box-Platzhalter.
   const [ansicht, setAnsicht] = useState<"2d" | "3d">("2d");
+  // 3D-Viewer: Begehungsmodus (in App gehalten, damit die Möbel-Pfeiltasten im
+  // Begehungsmodus ruhen und nicht mit der WASD-Kamera kollidieren).
+  const [viewer3dModus, setViewer3dModus] = useState<Begehungsmodus>("orbit");
+  // 3D-Viewer: gewählte Oberfläche (Boden/Wand) + rein visuelle Variantenwahl.
+  // `oberflaechenWahl` bleibt bewusst über «Variante würfeln» hinweg erhalten
+  // (loesen fasst sie nicht an) – nur ein Raumwechsel setzt sie zurück.
+  const [flaeche, setFlaeche] = useState<FlaechenWahl | null>(null);
+  const [oberflaechenWahl, setOberflaechenWahl] = useState<OberflaechenWahl>({
+    boden: null,
+    wand: null,
+  });
   // Scan-Upload (M7 Schritt 4): Raumtyp des hochgeladenen Scan-Bundles.
   const [scanRoomType, setScanRoomType] = useState("bad");
   // Scan-Korrektur-Modus (M7 Schritt 6): geladener Scan wartet auf Korrektur.
@@ -108,6 +126,8 @@ export function App() {
       setForm(null);
       setPlanRoom(null);
       setDreieck(null);
+      setFlaeche(null);
+      setOberflaechenWahl({ boden: null, wand: null });
       // Für Küchen den Katalog/Regeln des effektiven Raumtyps laden.
       const istKueche =
         r.roomType === "kueche" ||
@@ -338,8 +358,26 @@ export function App() {
     );
   }, []);
 
+  // Auswahl Möbel ↔ Oberfläche schliessen sich gegenseitig aus (eine Karte).
+  // Möbelwahl UND Abwählen (id=null) beenden immer die Oberflächen-Auswahl.
+  const waehleItem = useCallback((id: string | null) => {
+    setGewaehltId(id);
+    setFlaeche(null);
+  }, []);
+  const waehleFlaeche = useCallback((f: FlaechenWahl | null) => {
+    setFlaeche(f);
+    if (f !== null) setGewaehltId(null);
+  }, []);
+  // Oberflächen-Variante wählen (rein visuell, kein Schema-/API-Eingriff).
+  const flaecheVariante = useCallback((art: FlaechenWahl, id: string) => {
+    setOberflaechenWahl((prev) => ({ ...prev, [art]: id }));
+  }, []);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Im 3D-Begehungsmodus steuert WASD/Pfeile die Kamera – dann keine
+      // Möbel-Pfeiltasten (Konflikt vermeiden).
+      if (ansicht === "3d" && viewer3dModus === "begehung") return;
       const schrittW = 0.05;
       if (e.key === "ArrowLeft") bewege(-schrittW, 0);
       if (e.key === "ArrowRight") bewege(schrittW, 0);
@@ -349,7 +387,7 @@ export function App() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [bewege]);
+  }, [bewege, ansicht, viewer3dModus]);
 
   const auswerten = useCallback(async () => {
     if (!room || !plan) return;
@@ -437,6 +475,17 @@ export function App() {
       )
     : [];
 
+  // Oberflächen-Karte (Schritt 4): angebotene Varianten + effektive Spez des
+  // aktuellen Raums (Stil-Ableitung, lokal von der Nutzerwahl überschrieben).
+  const oberflaechenVarianten = aktuellerRaum ? variantenFuer(aktuellerRaum.roomType) : null;
+  const aktuelleSpez = aktuellerRaum
+    ? wendeVariantenAn(
+        leiteOberflaechen(stilprofil ?? null, aktuellerRaum.roomType),
+        aktuellerRaum.roomType,
+        oberflaechenWahl,
+      )
+    : null;
+
   // Gesperrt-/Normstatus des aktuell gewählten Placements (Schritt 4).
   const gesperrt = !!(plan && gewaehltId
     ? plan.placements.find((p) => p.id === gewaehltId)?.locked
@@ -469,7 +518,10 @@ export function App() {
         <button
           type="button"
           className={CSS.button}
-          onClick={() => setAnsicht((a) => (a === "2d" ? "3d" : "2d"))}
+          onClick={() => {
+            setAnsicht((a) => (a === "2d" ? "3d" : "2d"));
+            setFlaeche(null); // Oberflächen-Karte gehört zum 3D-Kontext.
+          }}
           style={{
             borderRadius: 999,
             padding: "7px 14px",
@@ -496,7 +548,7 @@ export function App() {
               catalog={catalog}
               gewaehltId={gewaehltId}
               statusById={statusById}
-              onSelect={setGewaehltId}
+              onSelect={waehleItem}
               onMove={verschiebeNach}
               onRotate={rotiereNach}
               interaktiv
@@ -508,8 +560,16 @@ export function App() {
               catalog={catalog}
               gewaehltId={gewaehltId}
               statusById={statusById}
-              onSelect={setGewaehltId}
+              onSelect={waehleItem}
               stilprofil={stilprofil}
+              interaktiv
+              onMove={verschiebeNach}
+              onRotate={rotiereNach}
+              gewaehlteFlaeche={flaeche}
+              onSelectFlaeche={waehleFlaeche}
+              oberflaechenWahl={oberflaechenWahl}
+              modus={viewer3dModus}
+              onModus={setViewer3dModus}
             />
           ))}
       </div>
@@ -612,6 +672,11 @@ export function App() {
               onWuerfeln={() => void loesen(seed + 1)}
               report={report}
               begruendung={begruendung}
+              flaeche={flaeche}
+              oberflaechenVarianten={oberflaechenVarianten}
+              oberflaechenWahl={oberflaechenWahl}
+              aktuelleSpez={aktuelleSpez}
+              onFlaecheVariante={flaecheVariante}
             />
           </div>
         )}
