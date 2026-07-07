@@ -344,16 +344,36 @@ export function App() {
     if (schritt === 5 && plan && !kv && !ladenDokumente) void auswerten();
   }, [schritt, plan, kv, ladenDokumente, auswerten]);
 
-  // Stilprofil berechnen (Schritt 2, nach der letzten Bewertung / Preset).
+  // Stilprofil FINAL berechnen (Schritt 2: «Weiter mit diesem Profil», letztes
+  // Bild oder Preset). Danach automatisch weiter zu Schritt 3 «Vorschlag» –
+  // das Profil steht dann fest, der Nutzer hat es bestätigt.
   const stilBerechnen = useCallback(
     (likes: string[], dislikes: string[], presetId: string | null) => {
       if (!room) return;
       setLadenStil(true);
       api
         .styleProfile(room.roomType, likes, dislikes, presetId)
-        .then(setStilprofil)
+        .then((p) => {
+          setStilprofil(p);
+          setSchritt(3);
+        })
         .catch(() => setMeldung("Stilprofil konnte nicht berechnet werden."))
         .finally(() => setLadenStil(false));
+    },
+    [room],
+  );
+
+  // Live-Zwischenprofil (Schritt 2, nach JEDER Bewertung): nur das Profil neu
+  // rechnen und anzeigen – KEIN Ladezustand (der würde die Swipe-Karte
+  // verdecken) und KEIN Schrittwechsel. api.styleProfile ist deterministisch
+  // und billig; Fehler bleiben still (Live-Feedback, kein Blocker).
+  const stilZwischenprofil = useCallback(
+    (likes: string[], dislikes: string[]) => {
+      if (!room) return;
+      api
+        .styleProfile(room.roomType, likes, dislikes, null)
+        .then(setStilprofil)
+        .catch(() => {});
     },
     [room],
   );
@@ -515,6 +535,7 @@ export function App() {
               achsen={achsen}
               stilprofil={stilprofil}
               onProfil={stilBerechnen}
+              onZwischenProfil={stilZwischenprofil}
               onUeberspringen={() => setSchritt(3)}
               ladenStil={ladenStil}
             />

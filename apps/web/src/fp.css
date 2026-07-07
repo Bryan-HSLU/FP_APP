@@ -137,6 +137,32 @@ body {
   animation: fp-einblenden 200ms ease-out both;
 }
 
+/* ---------- Stil-Swipe: Karte gleitet weg (Like rechts, Dislike links) ------ */
+@keyframes fp-swipe-like {
+  to {
+    transform: translateX(60%) rotate(4deg);
+    opacity: 0;
+  }
+}
+@keyframes fp-swipe-dislike {
+  to {
+    transform: translateX(-60%) rotate(-4deg);
+    opacity: 0;
+  }
+}
+/* Like = oranger Akzent, Dislike = neutrales Dunkelgrün. ~220 ms, dann kommt
+   per State das nächste Bild frisch (ohne Animation). */
+.fp-swipe-like {
+  border-radius: 8px;
+  box-shadow: 0 0 0 3px rgba(214, 145, 79, 0.9);
+  animation: fp-swipe-like 220ms ease-in both;
+}
+.fp-swipe-dislike {
+  border-radius: 8px;
+  box-shadow: 0 0 0 3px rgba(36, 61, 53, 0.55);
+  animation: fp-swipe-dislike 220ms ease-in both;
+}
+
 /* ---------- Ladezustand: sanft pulsierendes Piktogramm ---------- */
 @keyframes fp-puls {
   0%,
@@ -183,6 +209,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .fp-schritt-neu,
   .fp-piktogramm-puls,
+  .fp-swipe-like,
+  .fp-swipe-dislike,
   .fp-button,
   .fp-auswahl {
     animation: none;

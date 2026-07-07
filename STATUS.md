@@ -505,6 +505,22 @@
    brach am Session-Limit ab – Splice-Reparatur (verwaistes </div>, TS-Narrowing
    Stil-Bild, Prettier) durch die Hauptsession. **Web 79 Tests grün**,
    lint/typecheck/build sauber.
+   · ✅ **Stil-Schritt v2: Live-Profil pro Swipe, Swipe-Animation,
+   Konvergenz-Stopp, Bildhöhe fix (2026-07-07, Bryan):** Swipe-Bild auf
+   `min(46vh,420px)` begrenzt (kein Scrollen) · Stil-Analyse steht jetzt IMMER
+   neben dem Bild (fp-two-column immer aktiv; Neutralzustand «Bewerte Bilder,
+   dein Profil entsteht live.») und aktualisiert LIVE nach jeder Bewertung
+   (neuer Prop `onZwischenProfil` → `api.styleProfile`, nur Profil-State, kein
+   Schrittwechsel/Ladezustand; Balken re-animieren via `fp-schritt-neu`) ·
+   Swipe-Animation (Like gleitet rechts + oranger Akzent, Dislike links +
+   dunkel, ~220 ms, reduce-motion respektiert, Überspringen ohne Animation) ·
+   Konvergenz-Stopp: neues getestetes Modul `stilkonvergenz.ts`
+   (`istStabil(verlauf, minBewertungen=8, delta=0.06, fenster=2)`) stoppt das
+   Bewerten sobald das Profil stabil ist («Weiter mit diesem Profil» / «Weiter
+   verfeinern»), statt alle 30 Bilder zu erzwingen. Kleine, dokumentierte
+   Abweichung: finales `onProfil` springt nun automatisch zu Schritt 3
+   (bestätigtes Profil → «weiter»). **Web 86 Tests grün** (79 + 7 neue),
+   lint/typecheck/build sauber.
    **Als Nächstes:** Presets optional kuratieren · ⚠️ 90 PNG (~180 MB) blähen
    Repo + Space-Deploy – ggf. Bildgrösse reduzieren/auslagern ·
    Schritt 5 E2E gegen R1 auf Colab (braucht AR-App-Aufnahmen) ·

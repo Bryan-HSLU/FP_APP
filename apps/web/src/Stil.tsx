@@ -16,13 +16,18 @@ export interface BildItem {
 
 /** Bild-Kachel mit Fallback: fehlt/lädt das Foto nicht (echte PNGs kommen von
  *  Bryan separat), zeigen wir die getaggte Farbpalette als Vorschau statt eines
- *  kaputten Bild-Icons – der Swipe bleibt so schon vor den Fotos benutzbar. */
-export function BildKachel({ bild }: { bild: BildItem }) {
+ *  kaputten Bild-Icons – der Swipe bleibt so schon vor den Fotos benutzbar.
+ *
+ *  `maxHoehe` begrenzt die Bildhöhe (CSS-Wert, z. B. "min(46vh, 420px)"), damit
+ *  die Swipe-Karte ohne Scrollen komplett sichtbar bleibt (Bryan). Das Foto
+ *  füllt den Rahmen dann per `object-fit: cover`; ohne `maxHoehe` bleibt das
+ *  bisherige Verhalten (volle Breite, freie Höhe). */
+export function BildKachel({ bild, maxHoehe }: { bild: BildItem; maxHoehe?: number | string }) {
   const [fehler, setFehler] = useState(false);
   if (fehler || !bild.bildRef) {
     return (
       <div style={{ borderRadius: 8, overflow: "hidden", border: `1px solid ${THEME.salbei}` }}>
-        <div style={{ display: "flex", height: 200 }}>
+        <div style={{ display: "flex", height: maxHoehe ?? 200 }}>
           {(bild.palette.length ? bild.palette : [THEME.salbei]).map((c, i) => (
             <div key={i} style={{ flex: 1, background: c }} />
           ))}
@@ -30,6 +35,25 @@ export function BildKachel({ bild }: { bild: BildItem }) {
         <div style={{ padding: 6, fontSize: 12, textAlign: "center", color: THEME.gruen }}>
           Farbpalette · Foto folgt
         </div>
+      </div>
+    );
+  }
+  if (maxHoehe !== undefined) {
+    return (
+      <div
+        style={{
+          height: maxHoehe,
+          borderRadius: 8,
+          overflow: "hidden",
+          border: `1px solid ${THEME.salbei}`,
+        }}
+      >
+        <img
+          src={`/api/bilder/${bild.bildRef}`}
+          alt="Stil-Beispiel"
+          onError={() => setFehler(true)}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        />
       </div>
     );
   }
