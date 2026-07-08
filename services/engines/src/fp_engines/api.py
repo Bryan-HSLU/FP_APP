@@ -352,6 +352,7 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
                 seed=req.seed,
                 norm_profile=req.normProfile,
                 stilprofil_ref=req.stilprofilRef,
+                style_profile=req.stilprofil,
                 created_at=created,
             )
     except NoFeasiblePlacement as e:

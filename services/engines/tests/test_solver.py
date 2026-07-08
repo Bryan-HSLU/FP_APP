@@ -156,6 +156,122 @@ def test_wohnen_freie_platzierung_findet_statt() -> None:
     assert wandabstand > 0.3 or center_dist <= 1.3
 
 
+# --- Erweiterte Relations-Grammatik (weiche Constraints) --------------------
+
+_WOHNEN_ROOM = _load(FIXTURES / "raummodell.wohnen-sample.json")
+_WOHNEN_RULES = _rules("wohnen")
+_SOFA = "bbbbbbbb-0001-4000-8000-000000000001"  # P1, boden
+_COUCHTISCH = "bbbbbbbb-0009-4000-8000-000000000009"  # P2, boden
+_SIDEBOARD = "bbbbbbbb-0015-4000-8000-000000000015"  # P2, boden, d 0.42
+
+
+def _solve_wohnen(
+    auswahl: list[str], absichten: list[dict[str, Any]], seed: int
+) -> dict[str, Any]:
+    return solve(
+        _WOHNEN_ROOM,
+        auswahl,
+        absichten,
+        WOHNEN_CATALOG,
+        _WOHNEN_RULES,
+        seed=seed,
+        created_at="2026-06-11T12:00:00Z",
+    )
+
+
+def _pos(plan: dict[str, Any], item_id: str) -> tuple[float, float]:
+    pl = next(p for p in plan["placements"] if p["catalogItemId"] == item_id)
+    return (pl["pose"]["pos"][0], pl["pose"]["pos"][1])
+
+
+def _yaw(plan: dict[str, Any], item_id: str) -> float:
+    pl = next(p for p in plan["placements"] if p["catalogItemId"] == item_id)
+    return float(pl["pose"]["yawDeg"])
+
+
+def test_against_wall_platziert_an_wand() -> None:
+    """against-wall ⇒ das Boden-Item steht mit dem Rücken an einer Wand."""
+    from fp_engines.rules.geometry import dist_point_to_polygon_boundary
+
+    plan = _solve_wohnen([_SIDEBOARD], [{"itemId": _SIDEBOARD, "relation": "against-wall"}], 1)
+    assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+    pos = _pos(plan, _SIDEBOARD)
+    floor = [tuple(p) for p in _WOHNEN_ROOM["shell"]["floor"]["polygon"]]
+    tiefe = next(c["masse"]["d"] for c in WOHNEN_CATALOG if c["id"] == _SIDEBOARD)
+    # Wand-Kandidat: Zentrum liegt halbe Tiefe von der Wand (+ Snap-Toleranz).
+    assert dist_point_to_polygon_boundary(pos, floor) <= tiefe / 2 + 0.06
+
+
+def test_facing_richtet_front_zum_ziel() -> None:
+    """facing:sofa ⇒ die Front (lokal +z) des Couchtischs zeigt zum Sofa."""
+    from fp_engines.rules.geometry import front_dir
+
+    plan = _solve_wohnen(
+        [_SOFA, _COUCHTISCH], [{"itemId": _COUCHTISCH, "relation": "facing:sofa"}], 1
+    )
+    assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+    ct = _pos(plan, _COUCHTISCH)
+    sofa = _pos(plan, _SOFA)
+    f = front_dir(_yaw(plan, _COUCHTISCH))
+    laenge = ((sofa[0] - ct[0]) ** 2 + (sofa[1] - ct[1]) ** 2) ** 0.5
+    richtung = ((sofa[0] - ct[0]) / laenge, (sofa[1] - ct[1]) / laenge)
+    # Front zeigt zum Sofa: Skalarprodukt deutlich positiv (best-orientierte Pose).
+    assert f[0] * richtung[0] + f[1] * richtung[1] > 0.5
+
+
+def test_group_bringt_mitglieder_nah_zusammen() -> None:
+    """group:<id> ⇒ Objekte gleicher Gruppe landen nah beieinander (Sitzgruppe)."""
+    absichten = [
+        {"itemId": _SOFA, "relation": "group:sitzgruppe"},
+        {"itemId": _COUCHTISCH, "relation": "group:sitzgruppe"},
+    ]
+    plan = _solve_wohnen([_SOFA, _COUCHTISCH], absichten, 4)
+    assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+    sofa = _pos(plan, _SOFA)
+    ct = _pos(plan, _COUCHTISCH)
+    abstand = ((sofa[0] - ct[0]) ** 2 + (sofa[1] - ct[1]) ** 2) ** 0.5
+    assert abstand <= 2.0
+
+
+def test_relationen_erhalten_invariante_ueber_seeds() -> None:
+    """Alle neuen Relationen kombiniert: 0 ❌ über viele Seeds (Solver-Invariante)."""
+    absichten = [
+        {"itemId": _SOFA, "relation": "against-wall"},
+        {"itemId": _SOFA, "relation": "facing:couchtisch"},
+        {"itemId": _COUCHTISCH, "relation": "group:sitzgruppe"},
+        {"itemId": _SIDEBOARD, "relation": "corner"},
+        {"itemId": _SIDEBOARD, "relation": "group:sitzgruppe"},
+    ]
+    for seed in range(8):
+        plan = _solve_wohnen([_SOFA, _COUCHTISCH, _SIDEBOARD], absichten, seed)
+        assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+        assert plan["constraintReport"]["hard"]["ok"] is True
+
+
+def test_kaputte_relation_wird_ignoriert_nicht_fatal() -> None:
+    """Unbekannte/kaputte Relation ⇒ kein Fehler, gültiger Plan (robuste Ebene)."""
+    plan = _solve_wohnen(
+        [_SOFA, _COUCHTISCH], [{"itemId": _COUCHTISCH, "relation": "voll-kaputt:???"}], 1
+    )
+    assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+
+
+def test_stil_score_durchgereicht_erhaelt_invariante() -> None:
+    """styleVector durchgereicht ⇒ Stil ordnet nur, Plan bleibt normkonform."""
+    style = {"styleVector": {"raumgefuehl": 0.9}}
+    plan = solve(
+        _WOHNEN_ROOM,
+        [_SOFA, _COUCHTISCH, _SIDEBOARD],
+        [],
+        WOHNEN_CATALOG,
+        _WOHNEN_RULES,
+        seed=2,
+        style_profile=style,
+        created_at="2026-06-11T12:00:00Z",
+    )
+    assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+
+
 def test_tuer_korridor_frei_von_optionalen() -> None:
     """Verkehrsweg: optionale (P2/P3) Objekte stehen nicht im Tür-Zugangsstreifen."""
     room = _load(FIXTURES / "raummodell.bad-sample.json")

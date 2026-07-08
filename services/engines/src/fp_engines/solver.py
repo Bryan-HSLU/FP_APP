@@ -14,8 +14,10 @@ v0-Vereinfachungen (bewusst, dokumentiert in STATUS.md):
   (Sofa, Esstisch …) müssen nicht an einer Wand kleben.
 - Zulässigkeit = Regel-Interpreter-Urteil über die TEIL-Szene
   (summary.verletzt == 0) – exakt dieselbe Logik wie Live-Check und CI.
-- Soft-Score v0 = Wandstreuung (Objekte verteilen) + Nähe zu relationalen
-  Ankern; Stil-Score kommt mit M4 (Kurator).
+- Soft-Score v0 = relationale Absichten (near/against-wall/corner/facing/
+  opposite/group/pair-with, siehe fp_engines.relationen) + stil-abhängige
+  Platzierung – beides NUR auf der weichen Ebene: sie ordnen die zulässigen
+  Kandidaten, sie erweitern die zulässige Menge nie (harte Regeln unberührt).
 """
 
 from __future__ import annotations
@@ -26,9 +28,22 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
+from fp_engines.relationen import (
+    AgainstWall,
+    Corner,
+    Facing,
+    Group,
+    Near,
+    Opposite,
+    PairWith,
+    Relation,
+    parse_relation,
+)
 from fp_engines.rules.geometry import (
     Quad,
+    Vec2,
     containment_violation,
+    dist_point_to_polygon_boundary,
     footprint,
     front_dir,
     overlap_depth,
@@ -289,6 +304,157 @@ def _streuung_score(placements: list[dict[str, Any]]) -> float:
     return s
 
 
+# --- Weiche Anordnungs-Ebene: Relationen + Stil als Soft-Score --------------
+# Gewichte ordnen NUR die zulässigen Kandidaten (nie Zulässigkeit). `near`
+# dominiert bewusst (×100 auf −Distanz in Metern): so bleibt das etablierte
+# «closest-first» der near-Relation die Leitgrösse, die übrigen Terme justieren
+# nur innerhalb praktisch gleich naher Posen. Werte v0, im POC kalibrierbar.
+_NEAR_W = 100.0
+_FACE_W = 1.0
+_OPP_W = 1.0
+_GROUP_W = 2.0
+_PAIR_W = 2.0
+_CORNER_W = 1.5
+_STYLE_W = 0.5
+# Referenz-Wandabstand (m) für die Stil-Normierung: ab hier gilt eine Pose als
+# «raummittig». Grob halbe Tiefe eines typischen Raums.
+_STIL_WAND_REF = 2.0
+
+
+@dataclass
+class _PlatzKontext:
+    """Laufender Zustand für die Soft-Score-Bewertung der Kandidaten.
+
+    Wird nach jeder Platzierung fortgeschrieben (typ_pos/id_pos/gruppen_pos),
+    damit spätere Objekte relational auf frühere ausgerichtet werden können.
+    """
+
+    floor: list[Vec2]
+    style_vector: dict[str, float]
+    typ_pos: dict[str, Vec2]
+    id_pos: dict[str, Vec2]
+    gruppen_pos: dict[str, list[Vec2]]
+
+
+def _dist(a: Vec2, b: Vec2) -> float:
+    return math.hypot(a[0] - b[0], a[1] - b[1])
+
+
+def _norm(v: Vec2) -> Vec2:
+    laenge = math.hypot(v[0], v[1])
+    return (v[0] / laenge, v[1] / laenge) if laenge > 0 else (0.0, 0.0)
+
+
+def _centroid(punkte: list[Vec2]) -> Vec2:
+    n = len(punkte)
+    return (sum(p[0] for p in punkte) / n, sum(p[1] for p in punkte) / n)
+
+
+def _min_ecken_dist(pos: Vec2, floor: list[Vec2]) -> float:
+    """Distanz zur nächsten Polygon-Ecke (Basis des corner-Scores)."""
+    return min(_dist(pos, v) for v in floor)
+
+
+def _stil_score(ctx: _PlatzKontext, pos: Vec2) -> float:
+    """Stil-abhängige Platzierung: Achse `raumgefuehl` steuert Wand-Nähe.
+
+    Design-Entscheid v0 (dokumentiert als offene Frage): ein hoher
+    `raumgefuehl`-Wert (Wunsch nach Weite/Offenheit) belohnt wandnahe Posen –
+    sie halten die Raummitte frei und wirken grosszügiger; negative Werte kehren
+    die Präferenz um. Ohne styleVector trägt der Term 0 → Alt-Verhalten bleibt.
+    """
+    rg = ctx.style_vector.get("raumgefuehl", 0.0)
+    if not rg:
+        return 0.0
+    wanddist = dist_point_to_polygon_boundary(pos, ctx.floor)
+    naehe = max(0.0, 1.0 - wanddist / _STIL_WAND_REF)  # 1 an der Wand, 0 mittig
+    return _STYLE_W * rg * naehe
+
+
+def _kandidat_score(kandidat: _Kandidat, rels: list[Relation], ctx: _PlatzKontext) -> float:
+    """Summe der weichen Präferenzen für eine Kandidaten-Pose (höher = besser)."""
+    pos = kandidat.pos
+    score = 0.0
+    for r in rels:
+        if isinstance(r, Near):
+            anker = ctx.typ_pos.get(r.funktions_typ)
+            if anker is not None:
+                score += _NEAR_W * -_dist(pos, anker)
+        elif isinstance(r, Facing):
+            ziel = ctx.typ_pos.get(r.funktions_typ)
+            if ziel is not None:
+                f = front_dir(kandidat.yaw_deg)
+                v = _norm((ziel[0] - pos[0], ziel[1] - pos[1]))
+                score += _FACE_W * (f[0] * v[0] + f[1] * v[1])
+        elif isinstance(r, Opposite):
+            anker = ctx.typ_pos.get(r.funktions_typ)
+            if anker is not None:
+                score += _OPP_W * _dist(pos, anker)  # gegenüber = weit weg vom Anker
+        elif isinstance(r, Group):
+            mitglieder = ctx.gruppen_pos.get(r.group_id)
+            if mitglieder:
+                score += _GROUP_W * -_dist(pos, _centroid(mitglieder))
+        elif isinstance(r, PairWith):
+            anker = ctx.id_pos.get(r.item_id)
+            if anker is not None:
+                score += _PAIR_W * -_dist(pos, anker)
+        elif isinstance(r, Corner):
+            score += _CORNER_W * -_min_ecken_dist(pos, ctx.floor)
+    return score + _stil_score(ctx, pos)
+
+
+def _filter_kandidaten(
+    kandidaten: list[_Kandidat], rels: list[Relation], ctx: _PlatzKontext
+) -> list[_Kandidat]:
+    """Harte Reduktion der (bereits zulässigen) Kandidaten aus Relationen.
+
+    `against-wall` erzwingt Wand-Posen (Fallback auf alle, falls es keine gäbe –
+    Feasibility geht vor Präferenz). `near` behält die etablierte harte
+    Distanzschranke (kein Fallback: findet sich nichts, bleibt das optionale
+    Objekt weg). Unbekannte Relationen wurden schon beim Parsen verworfen.
+    """
+    if any(isinstance(r, AgainstWall) for r in rels):
+        wand = [k for k in kandidaten if k.wall_index >= 0]
+        if wand:
+            kandidaten = wand
+    for r in rels:
+        if isinstance(r, Near) and r.max_dist != math.inf:
+            anker = ctx.typ_pos.get(r.funktions_typ)
+            if anker is not None:
+                kandidaten = [k for k in kandidaten if _dist(k.pos, anker) <= r.max_dist]
+    return kandidaten
+
+
+def _ordne_kandidaten(
+    kandidaten: list[_Kandidat],
+    rels: list[Relation],
+    ctx: _PlatzKontext,
+    rnd: random.Random,
+) -> list[_Kandidat]:
+    """Kandidaten filtern + nach Soft-Score ordnen; seed bricht Gleichstände.
+
+    Reihenfolge: erst mischen (seed = Variation), dann filtern, dann STABIL nach
+    −Score sortieren. Ohne Relationen/Stil ist der Score 0 → die Mischung bleibt
+    unverändert (byte-identisch zum relationslosen Alt-Verhalten).
+    """
+    kandidaten = list(kandidaten)
+    rnd.shuffle(kandidaten)
+    kandidaten = _filter_kandidaten(kandidaten, rels, ctx)
+    kandidaten.sort(key=lambda k: -_kandidat_score(k, rels, ctx))
+    return kandidaten
+
+
+def _merke_platzierung(
+    ctx: _PlatzKontext, item: dict[str, Any], rels: list[Relation], pos: Vec2
+) -> None:
+    """Platzierte Pose in den Kontext eintragen (Anker für spätere Objekte)."""
+    ctx.typ_pos[item["funktionsTyp"]] = pos
+    ctx.id_pos[item["id"]] = pos
+    for r in rels:
+        if isinstance(r, Group):
+            ctx.gruppen_pos.setdefault(r.group_id, []).append(pos)
+
+
 def solve(
     room: dict[str, Any],
     auswahl_ids: list[str],
@@ -299,6 +465,7 @@ def solve(
     seed: int,
     norm_profile: str = "ch",
     stilprofil_ref: str | None = None,
+    style_profile: dict[str, Any] | None = None,
     created_at: str = "1970-01-01T00:00:00Z",
 ) -> dict[str, Any]:
     """Raummodell + Auswahl + Regeln + seed → normkonformes Plan-Objekt.
@@ -312,7 +479,22 @@ def solve(
     p1 = [i for i in items if i["priorityClass"] == "P1"]
     p2 = [i for i in items if i["priorityClass"] == "P2"]
     p3 = [i for i in items if i["priorityClass"] == "P3"]
-    relation_von = {a["itemId"]: a["relation"] for a in relationale_absichten}
+    # Ein Item kann MEHRERE Absichten tragen (z.B. Sofa = group + facing) → Liste
+    # je itemId. Kaputte/unbekannte Relationen filtert der Parser weg (ignoriert).
+    rel_map: dict[str, list[Relation]] = {}
+    for a in relationale_absichten:
+        rel = parse_relation(a.get("relation"))
+        if rel is not None:
+            rel_map.setdefault(a["itemId"], []).append(rel)
+
+    floor: list[Vec2] = [(float(p[0]), float(p[1])) for p in room["shell"]["floor"]["polygon"]]
+    ctx = _PlatzKontext(
+        floor=floor,
+        style_vector=(style_profile or {}).get("styleVector", {}) or {},
+        typ_pos={},
+        id_pos={},
+        gruppen_pos={},
+    )
 
     placements: list[dict[str, Any]] = []
 
@@ -326,6 +508,15 @@ def solve(
         item, *uebrige = rest
         kandidaten = _candidates(room, item)
         rnd.shuffle(kandidaten)
+        # P1 bleibt anschluss-/backtracking-getrieben; nur against-wall/corner
+        # dürfen die Reihenfolge lenken (Zulässigkeit unberührt). Ohne solche
+        # Relation ist das ein No-op → identisch zur reinen seed-Mischung.
+        p1_rels: list[Relation] = [
+            r for r in rel_map.get(item["id"], []) if isinstance(r, AgainstWall | Corner)
+        ]
+        if p1_rels:
+            kandidaten = _filter_kandidaten(kandidaten, p1_rels, ctx)
+            kandidaten.sort(key=lambda k: -_kandidat_score(k, p1_rels, ctx))
         for kandidat in kandidaten[:P1_CAP]:
             placement = _als_placement(item, kandidat, rnd)
             placements.append(placement)
@@ -357,64 +548,43 @@ def solve(
                 raise NoFeasiblePlacement(item["funktionsTyp"])
         raise NoFeasiblePlacement(p1[-1]["funktionsTyp"] if p1 else "unbekannt")
 
-    # Pass 2 – P2: greedy, relational gefiltert (near:<typ>:<maxDist>).
-    typ_pos: dict[str, tuple[float, float]] = {}
+    # Kontext mit den fixierten P1-Posen erden (Anker für P2/P3-Relationen).
     for pl in placements:
-        typ_pos[by_id[pl["catalogItemId"]]["funktionsTyp"]] = (
-            pl["pose"]["pos"][0],
-            pl["pose"]["pos"][1],
+        it = by_id[pl["catalogItemId"]]
+        _merke_platzierung(
+            ctx, it, rel_map.get(it["id"], []), (pl["pose"]["pos"][0], pl["pose"]["pos"][1])
         )
     # Verkehrsweg: Tür-Zugänge für optionale (P2/P3) Objekte freihalten.
     korridore = _tuer_korridore(room)
-    for item in p2:
-        anker: tuple[float, float] | None = None
-        max_dist = math.inf
-        rel = relation_von.get(item["id"])
-        if rel:
-            teile = rel.split(":")
-            if teile[0] == "near" and teile[1] in typ_pos:
-                anker = typ_pos[teile[1]]
-                max_dist = float(teile[2]) if len(teile) > 2 else math.inf
-        kandidaten = _candidates(room, item)
-        if anker is not None:
-            kandidaten = [
-                k
-                for k in kandidaten
-                if math.hypot(k.pos[0] - anker[0], k.pos[1] - anker[1]) <= max_dist
-            ]
-            kandidaten.sort(key=lambda k: math.hypot(k.pos[0] - anker[0], k.pos[1] - anker[1]))
-        else:
-            rnd.shuffle(kandidaten)
-        for kandidat in kandidaten[:300]:
-            if _blockiert_korridor(item, kandidat, korridore):
-                continue
-            placement = _als_placement(item, kandidat, rnd)
-            placements.append(placement)
-            if not _schnell_unzulaessig(room, placements, by_id, placement) and (
-                _zulaessig(room, placements, catalog, rules, norm_profile, nur_hart=True)
-                is not None
-            ):
-                typ_pos[item["funktionsTyp"]] = kandidat.pos
-                break
-            placements.pop()
-        # P2 ist optional: kein Platz → weglassen (kein Abbruch).
 
-    # Pass 3 – P3 (Dekor): randomisiert auf zulässigen Restplätzen – hier
-    # entsteht die Seed-Variation, ohne harte Regeln zu berühren.
-    for item in p3:
-        kandidaten = _candidates(room, item)
-        rnd.shuffle(kandidaten)
-        for kandidat in kandidaten[:200]:
-            if _blockiert_korridor(item, kandidat, korridore):
-                continue
-            placement = _als_placement(item, kandidat, rnd)
-            placements.append(placement)
-            if not _schnell_unzulaessig(room, placements, by_id, placement) and (
-                _zulaessig(room, placements, catalog, rules, norm_profile, nur_hart=True)
-                is not None
-            ):
-                break
-            placements.pop()
+    def platziere_optional(items: list[dict[str, Any]], cap: int) -> None:
+        """Greedy-Platzierung von P2/P3: relational gefiltert + Soft-Score-geordnet.
+
+        Jedes Objekt ist optional – findet sich kein zulässiger Platz, bleibt es
+        weg (kein Abbruch). Nach jedem Treffer wird der Kontext fortgeschrieben,
+        damit Gruppen/Paare/Ausrichtungen auf schon Platziertes zielen können.
+        """
+        for item in items:
+            rels = rel_map.get(item["id"], [])
+            kandidaten = _ordne_kandidaten(_candidates(room, item), rels, ctx, rnd)
+            for kandidat in kandidaten[:cap]:
+                if _blockiert_korridor(item, kandidat, korridore):
+                    continue
+                placement = _als_placement(item, kandidat, rnd)
+                placements.append(placement)
+                if not _schnell_unzulaessig(room, placements, by_id, placement) and (
+                    _zulaessig(room, placements, catalog, rules, norm_profile, nur_hart=True)
+                    is not None
+                ):
+                    _merke_platzierung(ctx, item, rels, kandidat.pos)
+                    break
+                placements.pop()
+
+    # Pass 2 – P2: funktional sekundär, relational zu den P1-Ankern.
+    platziere_optional(p2, 300)
+    # Pass 3 – P3 (Dekor): dieselbe Mechanik auf den Restflächen; die Seed-
+    # Mischung liefert hier die «Würfel»-Variation, ohne harte Regeln zu berühren.
+    platziere_optional(p3, 200)
 
     report = _zulaessig(room, placements, catalog, rules, norm_profile)
     assert report is not None  # per Konstruktion – Solver-Invariante
