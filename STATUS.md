@@ -494,6 +494,25 @@
    Titelseite**: «Zurück» auf Schritt 1 führt zurück ins Startmenü
    (`setPhase("menue")`, Label «← Zur Startseite»); AppRahmen um `zurueckLabel`
    erweitert. Gates grün, 120 Tests.
+   · ✅ **Space-Deploy entschlackt + HF-Build-Fix (2026-07-07, Bryan):** Der HF-
+   Space bekam bei jedem Deploy ~233 MB Bilder (wahrscheinliche Build-Fehler-
+   Ursache). Fotos `data/images` von **PNG 941×1672 (1.7–2.8 MB)** → **JPEG q82,
+   max 1400px** (197 MB → 19 MB), `bildRef` in bad/kueche/wohnen.json auf `.jpg`
+   (StaticFiles serviert weiter). 43 ungenutzte Piktogramm-Originale (35 MB, teils
+   Umlaut-Dateinamen) entfernt – die App lädt nur die 25 ASCII-Registry-Kopien.
+   Deploy-Bilder gesamt **233 → 37 MB**. Engines 205 + Web 120 Tests grün.
+   · ✅ **2D Layer-System v2 + Wand-/Fenster-Look (2026-07-07, Bryan):** Die vier
+   «Ebenen»-Checkboxen ersetzt durch ein **Layer-Panel** (`layer2d.ts`): 8
+   **Darstellungs-Layer** (Wände/Öffnungen/Objekte/Bounding-Boxen/**Platzbedarf**/
+   Beschriftung/Masse/Ampel, Defaults: Boxen/Platzbedarf/Masse aus) + **Objekt-
+   Layer** (jedes Möbel einzeln ein-/ausblendbar, CAD-artig, `versteckteObjekte`).
+   **Platzbedarf-Layer**: Clearance-Zonen aus den `type:"clearance"`-Regeln
+   (`clearanceRect` in plan2d) als Bewegungsflächen vor den Objekten (halbtransp.
+   + gestrichelt, Tooltip = `hinweis`). **Fenster jetzt IN der Wandstärke** (echte
+   Aussparung via `wandLuecken`, Glas über volle Wandstärke) statt Linie obenauf;
+   **Wand-Look nach Referenzbild** (helle graue Füllung `#d3d3d3` + dünne Kante).
+   `rules` von App an Viewer2D durchgereicht; Planlook (Ampel aus) bleibt.
+   +11 Tests (plan2d clearance/wandLuecken, layer2d) → **Web 131**, Gates grün.
    · ✅ **UI-Redesign Etappe A: Designsystem + App-Rahmen (2026-07-07,
    Bryan-Konzept):** Fundament, das die 5 Schritt-Ansichten (Etappe B) nur noch
    konsumieren. **Designsystem** – globales Stylesheet `apps/web/src/fp.css`

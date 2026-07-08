@@ -5,7 +5,7 @@
  *  spiegelfrei. Footprints kommen aus `footprint()` von @fp/shared/rules, also
  *  exakt der Solver-/Interpreter-Konvention (keine eigene Rotationsmathematik).
  */
-import { footprint, pointInPolygon, type Vec2 } from "@fp/shared/rules";
+import { footprint, frontDir, pointInPolygon, type Vec2 } from "@fp/shared/rules";
 
 export interface PlanTransform {
   scale: number;
@@ -98,6 +98,86 @@ export function wallQuad(start: Vec2, end: Vec2, thickness: number): Vec2[] {
 /** Euklidische Distanz (Meter) zwischen zwei Weltpunkten – für das Messwerkzeug. */
 export function distanz(a: Vec2, b: Vec2): number {
   return Math.hypot(b[0] - a[0], b[1] - a[1]);
+}
+
+/**
+ * Bewegungsflächen-Rechteck (Clearance) vor einem Objekt, in Weltkoordinaten.
+ *
+ * ⚠️ Deckungsgleich mit `frontZone()` im Regel-Interpreter (@fp/shared/rules) –
+ * dieselbe Zone, die die Ampel für `type:"clearance"`-Regeln prüft. Die Front
+ * ist lokal +z (= `frontDir(yaw)`), die Zone liegt bündig an der Objekt-Front,
+ * `breite` breit (um die Front zentriert) und `tiefe` tief nach vorn. Wird die
+ * Interpreter-Zone geändert, muss diese Funktion mitgezogen werden.
+ *
+ * @param center Objektzentrum (Welt, x/z)
+ * @param d      Objekttiefe (m) – die Front sitzt bei center + frontDir·d/2
+ * @param yawDeg Objekt-Yaw (Grad)
+ * @param tiefe  Zonentiefe nach vorn (m, = clearance-param `depth`)
+ * @param breite Zonenbreite (m, = param `width`; fehlt er, Objektbreite `w`)
+ * @returns 4 Welt-Eckpunkte (c1,c2,c3,c4) gegen den Uhrzeigersinn wie footprint
+ */
+export function clearanceRect(
+  center: Vec2,
+  d: number,
+  yawDeg: number,
+  tiefe: number,
+  breite: number,
+): [Vec2, Vec2, Vec2, Vec2] {
+  const f = frontDir(yawDeg);
+  // Rechtsvektor = Front um −90° gedreht: (f.z, −f.x) – exakt wie im Interpreter.
+  const rx = f[1];
+  const rz = -f[0];
+  const frontCenter: Vec2 = [center[0] + (f[0] * d) / 2, center[1] + (f[1] * d) / 2];
+  const hw = breite / 2;
+  const c1: Vec2 = [frontCenter[0] - rx * hw, frontCenter[1] - rz * hw];
+  const c2: Vec2 = [frontCenter[0] + rx * hw, frontCenter[1] + rz * hw];
+  const c3: Vec2 = [c2[0] + f[0] * tiefe, c2[1] + f[1] * tiefe];
+  const c4: Vec2 = [c1[0] + f[0] * tiefe, c1[1] + f[1] * tiefe];
+  return [c1, c2, c3, c4];
+}
+
+/** Öffnungs-Intervall entlang der Wandachse (Meter ab Wand-Start). */
+export interface Luecke {
+  a: number;
+  b: number;
+}
+
+/**
+ * Zerlegt eine Wand (Achslänge `laenge`) an ihren Öffnungen in Teilstücke.
+ *
+ * Für die 2D-Darstellung: die Wandfüllung wird NUR über den `segmente`-Intervallen
+ * gezeichnet, in den `luecken` bleibt sie ausgespart (echte Öffnung in der
+ * Wandstärke, keine Linie obendrauf). Robust bei mehreren/überlappenden
+ * Öffnungen: Intervalle werden auf [0, laenge] geclampt, überlappende gemerged,
+ * degenerierte (≤1 mm) verworfen. Analog zu `wandSegmente` in `raum3d.ts`, aber
+ * rein auf die Wandachse projiziert (2D).
+ */
+export function wandLuecken(
+  laenge: number,
+  oeffnungen: { offset: number; width: number }[],
+): { segmente: Luecke[]; luecken: Luecke[] } {
+  const EPS = 1e-3;
+  const clamp = (v: number): number => Math.min(laenge, Math.max(0, v));
+  const roh = oeffnungen
+    .map((o) => ({ a: clamp(o.offset), b: clamp(o.offset + o.width) }))
+    .filter((o) => o.b - o.a > EPS)
+    .sort((x, y) => x.a - y.a);
+
+  const luecken: Luecke[] = [];
+  for (const o of roh) {
+    const last = luecken[luecken.length - 1];
+    if (last && o.a <= last.b + 1e-9) last.b = Math.max(last.b, o.b);
+    else luecken.push({ ...o });
+  }
+
+  const segmente: Luecke[] = [];
+  let cursor = 0;
+  for (const o of luecken) {
+    if (o.a - cursor > EPS) segmente.push({ a: cursor, b: o.a });
+    cursor = o.b;
+  }
+  if (laenge - cursor > EPS) segmente.push({ a: cursor, b: laenge });
+  return { segmente, luecken };
 }
 
 /** Alle Wand-Endpunkte (Ecken) als Snap-Kandidaten fürs Messwerkzeug. */

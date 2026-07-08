@@ -3,8 +3,14 @@
  *  Macht Pläne normgerecht beurteilbar. Gegenüber v1 neu:
  *  - **Objektsymbole** (Architekten-Draufsicht) statt nur beschrifteter Boxen
  *    (`symbole2d`), gefärbt nach Norm-Ampel bzw. Materialfarbe.
- *  - **Wände mit echter Wandstärke** (gefüllte Polygone, `wallQuad`).
- *  - **Ebenen-Umschalter** (Beschriftung/Boxen/Masse/Ampel).
+ *  - **Wände mit echter Wandstärke** (gefüllte Polygone, `wallQuad`) im
+ *    Referenz-Look: helle graue Füllung + dünne dunklere Kante. Öffnungen sind
+ *    **echte Aussparungen in der Wandstärke** (Segmentierung via `wandLuecken`),
+ *    nicht bloss Linien auf der Wandoberfläche.
+ *  - **Layer-System v2** (`layer2d`): Darstellungs-Layer (globale Toggles) +
+ *    Objekt-Layer (jedes Möbel einzeln ein-/ausblendbar, CAD-artig).
+ *  - **Platzbedarf-Layer**: Clearance-Zonen (`type:"clearance"`-Regeln) als
+ *    Bewegungsflächen vor den Objekten – deckungsgleich mit der Ampel.
  *  - **Messwerkzeug** (zwei Klicks → Distanz, Snap auf Wand-Ecken).
  *  - **Direkte Interaktion**: gewähltes Objekt per Drag verschieben (5-cm-Raster)
  *    und über einen Rotations-Griff in 15°-Schritten drehen.
@@ -12,22 +18,29 @@
  *  Footprint-Geometrie kommt aus `plan2d` (= `footprint()` von @fp/shared/rules),
  *  also exakt deckungsgleich mit Solver, Interpreter, Symbolen und 3D-Viewer.
  *  `interaktiv=false` (z.B. Schritt 3, Vorschau) rendert reine Anzeige ohne
- *  Werkzeugleiste und ohne Editier-Interaktion.
+ *  Layer-Panel und ohne Editier-Interaktion (Platzbedarf-Layer bleibt aus).
  */
 import {
   useEffect,
   useRef,
   useState,
   type CSSProperties,
-  type Dispatch,
   type MouseEvent,
   type PointerEvent,
-  type SetStateAction,
 } from "react";
-import { frontDir, type Vec2 } from "@fp/shared/rules";
+import { frontDir, type Rule, type Vec2 } from "@fp/shared/rules";
 import type { KatalogItem, Placement, Room } from "./api";
+import {
+  DARSTELLUNGS_LAYER,
+  defaultLayers,
+  objektSichtbar,
+  toggleLayer,
+  toggleObjekt,
+  type LayerId,
+} from "./layer2d";
 import { materialFarbe } from "./moebel3d";
 import {
+  clearanceRect,
   computeTransform,
   distanz,
   footprintPoints,
@@ -38,6 +51,7 @@ import {
   toWorld,
   wallQuad,
   wandEcken,
+  wandLuecken,
   yawAusZeiger,
 } from "./plan2d.ts";
 import { symbolScreenPrims } from "./symbole2d.ts";
@@ -53,17 +67,16 @@ const FARBE_KNAPP = "#e67e22";
 const FARBE_GESPERRT = "#7a7a7a";
 const FARBE_GEWAEHLT = THEME.orange;
 const FARBE_NEUTRAL = "#2c2c28";
-/** Reiner Planlook (Ampel-Ebene aus): schwarzer Stift, weisse Schraffur. */
+/** Reiner Planlook (Ampel-Layer aus): schwarzer Stift, weisse Schraffur. */
 const FARBE_PLAN = "#1a1a1a";
+// Wand-Look nach Referenzbild – unabhängig von der Ampel (Wände sind kein
+// Ampel-Objekt): helle Füllung + dünne dunklere Kante.
+const WAND_FUELLUNG_MASSIV = "#d3d3d3";
+const WAND_FUELLUNG_LEICHT = "#e2e2e2";
+const WAND_KANTE = "#9a9a9a";
+const FENSTER_GLAS = "#6f8aa0";
 
 type Status = "verletzt" | "knapp";
-
-interface Ebenen {
-  beschriftung: boolean;
-  boxen: boolean;
-  masse: boolean;
-  ampel: boolean;
-}
 
 /** Strichfarbe eines Symbols: Materialfarbe, von der Ampel überstimmt. */
 function strichfarbe(
@@ -78,7 +91,7 @@ function strichfarbe(
     if (placement.locked) return FARBE_GESPERRT;
     return materialFarbe(item.funktionsTyp);
   }
-  // Ampel-Ebene aus → reiner Planlook mit schwarzem Stift (Bryan 2026-07-07).
+  // Ampel-Layer aus → reiner Planlook mit schwarzem Stift (Bryan 2026-07-07).
   return FARBE_PLAN;
 }
 
@@ -105,6 +118,10 @@ function schwenkPunkte(
   return pts.join(" ");
 }
 
+/** Eine Öffnung IN der Wandstärke (die Wandfüllung ist an dieser Stelle bereits
+ *  ausgespart – hier kommt nur die Tür/Fenster-Signatur in die Lücke).
+ *  - Tür: Schwelle + Türblatt-Radius + Viertelkreis-Schwenk ins Rauminnere.
+ *  - Fenster: Glas über die volle Wandstärke (Rahmen innen/aussen + Mittellinie). */
 function Oeffnung({
   opening,
   room,
@@ -120,15 +137,44 @@ function Oeffnung({
   const dz = wall.end[1] - wall.start[1];
   const len = Math.hypot(dx, dz) || 1;
   const u: Vec2 = [dx / len, dz / len];
+  // Geometrische Wand-Normale (Dickenrichtung), Einheit.
+  const nWand: Vec2 = [-dz / len, dx / len];
+  const dicke = (wall as { thickness?: number }).thickness ?? WANDDICKE_FALLBACK;
+  const h = dicke / 2;
   const a: Vec2 = [wall.start[0] + u[0] * opening.offset, wall.start[1] + u[1] * opening.offset];
   const b: Vec2 = [a[0] + u[0] * opening.width, a[1] + u[1] * opening.width];
   const [ax, ay] = toScreen(a, t);
   const [bx, by] = toScreen(b, t);
+
   if (opening.type === "door") {
-    const n = innwardNormal(wall.start, wall.end, room.shell.floor.polygon);
+    const n = innwardNormal(
+      wall.start as Vec2,
+      wall.end as Vec2,
+      room.shell.floor.polygon as Vec2[],
+    );
+    // Türblatt-Endpunkt (90° offen, ins Rauminnere) für die Radiuslinie.
+    const [lx, ly] = toScreen([a[0] + n[0] * opening.width, a[1] + n[1] * opening.width], t);
     return (
       <g>
-        <line x1={ax} y1={ay} x2={bx} y2={by} stroke={THEME.offwhite} strokeWidth={7} />
+        {/* Schwelle: dünne Linie über die Wandstärke an beiden Laibungen */}
+        <line
+          x1={ax + nWand[0] * h * t.scale}
+          y1={ay + nWand[1] * h * t.scale}
+          x2={ax - nWand[0] * h * t.scale}
+          y2={ay - nWand[1] * h * t.scale}
+          stroke={WAND_KANTE}
+          strokeWidth={1}
+        />
+        <line
+          x1={bx + nWand[0] * h * t.scale}
+          y1={by + nWand[1] * h * t.scale}
+          x2={bx - nWand[0] * h * t.scale}
+          y2={by - nWand[1] * h * t.scale}
+          stroke={WAND_KANTE}
+          strokeWidth={1}
+        />
+        {/* Türblatt (Radius) + Viertelkreis-Schwenk */}
+        <line x1={ax} y1={ay} x2={lx} y2={ly} stroke="#9aa6a0" strokeWidth={1.5} />
         <polyline
           points={schwenkPunkte(a, opening.width, n, u, t)}
           fill="none"
@@ -138,27 +184,38 @@ function Oeffnung({
       </g>
     );
   }
-  // Fenster: Lücke + dünne Doppellinie (Brüstung).
-  const n = innwardNormal(wall.start, wall.end, room.shell.floor.polygon);
-  const off = 4;
+
+  // Fenster: Glas IN der Wand – zwei Rahmenlinien bündig mit den Wandflächen
+  // (±halbe Wandstärke entlang der Normale) + Mittellinie, alle entlang der Achse.
+  const rahmen = (seite: number) => ({
+    x1: ax + nWand[0] * h * t.scale * seite,
+    y1: ay + nWand[1] * h * t.scale * seite,
+    x2: bx + nWand[0] * h * t.scale * seite,
+    y2: by + nWand[1] * h * t.scale * seite,
+  });
+  const aussen = rahmen(1);
+  const innen = rahmen(-1);
   return (
     <g>
-      <line x1={ax} y1={ay} x2={bx} y2={by} stroke={THEME.offwhite} strokeWidth={7} />
+      <line {...aussen} stroke={FENSTER_GLAS} strokeWidth={1.6} />
+      <line {...innen} stroke={FENSTER_GLAS} strokeWidth={1.6} />
+      <line x1={ax} y1={ay} x2={bx} y2={by} stroke={FENSTER_GLAS} strokeWidth={1.2} />
+      {/* Laibungskanten (schmale Querlinien) schliessen die Lücke sauber ab */}
       <line
-        x1={ax + n[0] * off}
-        y1={ay + n[1] * off}
-        x2={bx + n[0] * off}
-        y2={by + n[1] * off}
-        stroke="#6f8aa0"
-        strokeWidth={2}
+        x1={aussen.x1}
+        y1={aussen.y1}
+        x2={innen.x1}
+        y2={innen.y1}
+        stroke={WAND_KANTE}
+        strokeWidth={0.8}
       />
       <line
-        x1={ax - n[0] * off}
-        y1={ay - n[1] * off}
-        x2={bx - n[0] * off}
-        y2={by - n[1] * off}
-        stroke="#6f8aa0"
-        strokeWidth={2}
+        x1={aussen.x2}
+        y1={aussen.y2}
+        x2={innen.x2}
+        y2={innen.y2}
+        stroke={WAND_KANTE}
+        strokeWidth={0.8}
       />
     </g>
   );
@@ -198,10 +255,16 @@ function ObjektSymbol({
   );
 }
 
+/** Erste passende Clearance-Regel eines Funktionstyps (Bewegungsfläche vorn). */
+function clearanceRegel(rules: readonly Rule[], funktionsTyp: string): Rule | undefined {
+  return rules.find((r) => r.type === "clearance" && r.appliesTo === funktionsTyp);
+}
+
 export function Viewer2D({
   room,
   placements,
   catalog,
+  rules = [],
   gewaehltId,
   statusById,
   onSelect,
@@ -212,6 +275,8 @@ export function Viewer2D({
   room: Room;
   placements: Placement[];
   catalog: KatalogItem[];
+  /** Norm-Regeln (für den Platzbedarf-Layer: `type:"clearance"`). Optional. */
+  rules?: readonly Rule[];
   gewaehltId: string | null;
   statusById: Map<string, Status>;
   onSelect: (id: string | null) => void;
@@ -219,7 +284,7 @@ export function Viewer2D({
   onMove?: (id: string, world: [number, number]) => void;
   /** Item per Rotations-Griff drehen (absoluter Yaw in Grad). Fehlt → kein Griff. */
   onRotate?: (id: string, yawDeg: number) => void;
-  /** Werkzeugleiste + Editier-Interaktion (Drag/Rotate/Messen). Default: aus. */
+  /** Layer-Panel + Editier-Interaktion (Drag/Rotate/Messen). Default: aus. */
   interaktiv?: boolean;
 }) {
   const byId = new Map(catalog.map((c) => [c.id, c]));
@@ -234,12 +299,10 @@ export function Viewer2D({
 
   const [messModus, setMessModus] = useState(false);
   const [messPunkte, setMessPunkte] = useState<Vec2[]>([]);
-  const [ebenen, setEbenen] = useState<Ebenen>({
-    beschriftung: true,
-    boxen: false,
-    masse: true,
-    ampel: true,
-  });
+  // Layer-System v2: globale Darstellungs-Layer + einzeln versteckte Objekte.
+  const [sichtbareLayer, setSichtbareLayer] = useState<Record<LayerId, boolean>>(defaultLayers);
+  const [versteckteObjekte, setVersteckteObjekte] = useState<Set<string>>(() => new Set());
+  const [layerPanelOffen, setLayerPanelOffen] = useState(false);
 
   // Messwerkzeug/Interaktion enden bei Escape (und beim Verlassen von interaktiv).
   useEffect(() => {
@@ -307,12 +370,17 @@ export function Viewer2D({
     setRotId(null);
   };
 
+  const ampelAn = sichtbareLayer.ampel;
+  // Sichtbare Placements (Objekt-Layer): einzeln versteckte fliegen ganz raus –
+  // inkl. ihres Platzbedarfs.
+  const sichtbarePlacements = placements.filter((p) => objektSichtbar(versteckteObjekte, p.id));
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%" }}>
       {interaktiv && (
         <Werkzeugleiste
-          ebenen={ebenen}
-          setEbenen={setEbenen}
+          layerOffen={layerPanelOffen}
+          onLayer={() => setLayerPanelOffen((o) => !o)}
           messModus={messModus}
           onMessen={() => {
             setMessModus((m) => !m);
@@ -320,7 +388,20 @@ export function Viewer2D({
           }}
         />
       )}
-      <div style={{ flex: 1, minHeight: 0 }}>
+      <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
+        {interaktiv && layerPanelOffen && (
+          <LayerPanel
+            sichtbareLayer={sichtbareLayer}
+            onLayer={(id) => setSichtbareLayer((s) => toggleLayer(s, id))}
+            placements={placements}
+            byId={byId}
+            versteckteObjekte={versteckteObjekte}
+            gewaehltId={gewaehltId}
+            onObjekt={(id) => setVersteckteObjekte((v) => toggleObjekt(v, id))}
+            onSelect={onSelect}
+            onSchliessen={() => setLayerPanelOffen(false)}
+          />
+        )}
         <svg
           ref={svgRef}
           viewBox={`0 0 ${SIZE} ${SIZE}`}
@@ -354,33 +435,85 @@ export function Viewer2D({
             </pattern>
           </defs>
           {/* Boden: beige normal, im Planlook (Ampel aus) reinweiss. */}
-          <polygon points={floorPts} fill={ebenen.ampel ? "#efe9dc" : "#ffffff"} stroke="none" />
+          <polygon points={floorPts} fill={ampelAn ? "#efe9dc" : "#ffffff"} stroke="none" />
 
-          {/* Wände als gefüllte Polygone mit echter Wandstärke */}
-          {room.shell.walls.map((w) => {
-            const massiv = w.kind === "massiv";
-            const dicke = (w as { thickness?: number }).thickness ?? WANDDICKE_FALLBACK;
-            const pts = wallQuad(w.start as Vec2, w.end as Vec2, dicke)
-              .map((p) => toScreen(p, t).join(","))
-              .join(" ");
-            return (
-              <polygon
-                key={w.id}
-                points={pts}
-                fill={massiv ? "#3a3a33" : "#c8c2b3"}
-                stroke={massiv ? "#2c2c28" : "#b9b3a4"}
-                strokeWidth={0.5}
-                fillOpacity={massiv ? 1 : 0.6}
-              />
-            );
-          })}
+          {/* Wände als gefüllte Polygone mit echter Wandstärke – pro Wand an den
+              Öffnungen segmentiert (echte Aussparung in der Wandstärke). */}
+          {sichtbareLayer.waende &&
+            room.shell.walls.map((w) => {
+              const massiv = w.kind === "massiv";
+              const dicke = (w as { thickness?: number }).thickness ?? WANDDICKE_FALLBACK;
+              const dx = w.end[0] - w.start[0];
+              const dz = w.end[1] - w.start[1];
+              const len = Math.hypot(dx, dz) || 1;
+              const u: Vec2 = [dx / len, dz / len];
+              const eigene = room.openings
+                .filter((o) => o.hostWall === w.id)
+                .map((o) => ({ offset: o.offset, width: o.width }));
+              const { segmente } = wandLuecken(len, eigene);
+              return (
+                <g key={w.id}>
+                  {segmente.map((s, i) => {
+                    const p0: Vec2 = [w.start[0] + u[0] * s.a, w.start[1] + u[1] * s.a];
+                    const p1: Vec2 = [w.start[0] + u[0] * s.b, w.start[1] + u[1] * s.b];
+                    const pts = wallQuad(p0, p1, dicke)
+                      .map((p) => toScreen(p, t).join(","))
+                      .join(" ");
+                    return (
+                      <polygon
+                        key={i}
+                        points={pts}
+                        fill={massiv ? WAND_FUELLUNG_MASSIV : WAND_FUELLUNG_LEICHT}
+                        stroke={WAND_KANTE}
+                        strokeWidth={0.8}
+                        fillOpacity={massiv ? 1 : 0.85}
+                      />
+                    );
+                  })}
+                </g>
+              );
+            })}
 
-          {room.openings.map((o) => (
-            <Oeffnung key={o.id} opening={o} room={room} t={t} />
-          ))}
+          {sichtbareLayer.oeffnungen &&
+            room.openings.map((o) => <Oeffnung key={o.id} opening={o} room={room} t={t} />)}
 
-          {/* Wandlängen-Beschriftung (Ebene «Masse») */}
-          {ebenen.masse &&
+          {/* Platzbedarf-Layer: Bewegungsflächen (Clearance) vor den Objekten –
+              deckungsgleich mit der Ampel; nur visualisieren, nicht prüfen. */}
+          {sichtbareLayer.platzbedarf &&
+            sichtbarePlacements.map((p) => {
+              const item = byId.get(p.catalogItemId);
+              if (!item) return null;
+              const regel = clearanceRegel(rules, item.funktionsTyp);
+              if (!regel) return null;
+              const tiefe = Number(regel.params?.depth ?? 0.6);
+              const breite = Number(regel.params?.width ?? item.masse.w);
+              const rect = clearanceRect(
+                p.pose.pos as Vec2,
+                item.masse.d,
+                p.pose.yawDeg,
+                tiefe,
+                breite,
+              )
+                .map((pt) => toScreen(pt, t).join(","))
+                .join(" ");
+              return (
+                <polygon
+                  key={`cl-${p.id}`}
+                  points={rect}
+                  fill={THEME.orange}
+                  fillOpacity={0.1}
+                  stroke={THEME.orange}
+                  strokeWidth={1.2}
+                  strokeDasharray="6 4"
+                  style={{ pointerEvents: "none" }}
+                >
+                  <title>{regel.hinweis ?? "Bewegungsfläche (Platzbedarf)"}</title>
+                </polygon>
+              );
+            })}
+
+          {/* Wandlängen-Beschriftung (Layer «Masse») */}
+          {sichtbareLayer.masse &&
             room.shell.walls.map((w) => {
               const laenge = distanz(w.start as Vec2, w.end as Vec2);
               if (laenge < 0.2) return null;
@@ -408,7 +541,7 @@ export function Viewer2D({
 
           {/* Placements: Statusfüllung, Symbol/Box, Rahmen, Beschriftung */}
           <g style={{ pointerEvents: messModus ? "none" : "auto" }}>
-            {placements.map((p) => {
+            {sichtbarePlacements.map((p) => {
               const item = byId.get(p.catalogItemId);
               if (!item) return null;
               const gewaehlt = p.id === gewaehltId;
@@ -423,12 +556,12 @@ export function Viewer2D({
                 t,
               );
               const tint =
-                ebenen.ampel && status === "verletzt"
+                ampelAn && status === "verletzt"
                   ? FARBE_VERLETZT
-                  : ebenen.ampel && status === "knapp"
+                  : ampelAn && status === "knapp"
                     ? FARBE_KNAPP
                     : "none";
-              const zeigeRahmen = gewaehlt || ebenen.boxen;
+              const zeigeRahmen = gewaehlt || sichtbareLayer.boxen;
               const prims = symbolScreenPrims(
                 item.funktionsTyp,
                 p.pose.pos as Vec2,
@@ -454,7 +587,7 @@ export function Viewer2D({
                   }}
                   style={{ cursor: interaktiv && !p.locked ? "grab" : "pointer" }}
                 >
-                  {/* Statusfüllung (Ampel) – auch ohne Boxen-Ebene sichtbar */}
+                  {/* Statusfüllung (Ampel) – auch ohne Boxen-Layer sichtbar */}
                   <polygon
                     points={fp}
                     fill={tint}
@@ -463,30 +596,31 @@ export function Viewer2D({
                     strokeWidth={gewaehlt ? 3 : 1.2}
                     strokeDasharray={wandobjekt && zeigeRahmen ? "5 4" : undefined}
                   />
-                  {prims ? (
-                    <ObjektSymbol
-                      prims={prims}
-                      farbe={strichfarbe(item, p, status, ebenen.ampel)}
-                      schraffur={!ebenen.ampel}
-                    />
-                  ) : !ebenen.ampel ? (
-                    // Fallback im Planlook: weisse Schraffur + schwarzer Rahmen.
-                    <polygon
-                      points={fp}
-                      fill="url(#fp-schraffur)"
-                      stroke={FARBE_PLAN}
-                      strokeWidth={1.2}
-                    />
-                  ) : (
-                    // Fallback: bisherige beschriftete Box
-                    <polygon
-                      points={fp}
-                      fill={strichfarbe(item, p, status, ebenen.ampel)}
-                      fillOpacity={wandobjekt ? 0.4 : 0.75}
-                      stroke="none"
-                    />
-                  )}
-                  {ebenen.beschriftung && (
+                  {sichtbareLayer.objekte &&
+                    (prims ? (
+                      <ObjektSymbol
+                        prims={prims}
+                        farbe={strichfarbe(item, p, status, ampelAn)}
+                        schraffur={!ampelAn}
+                      />
+                    ) : !ampelAn ? (
+                      // Fallback im Planlook: weisse Schraffur + schwarzer Rahmen.
+                      <polygon
+                        points={fp}
+                        fill="url(#fp-schraffur)"
+                        stroke={FARBE_PLAN}
+                        strokeWidth={1.2}
+                      />
+                    ) : (
+                      // Fallback: bisherige beschriftete Box
+                      <polygon
+                        points={fp}
+                        fill={strichfarbe(item, p, status, ampelAn)}
+                        fillOpacity={wandobjekt ? 0.4 : 0.75}
+                        stroke="none"
+                      />
+                    ))}
+                  {sichtbareLayer.beschriftung && (
                     <text
                       x={lx}
                       y={ly}
@@ -510,7 +644,7 @@ export function Viewer2D({
           {/* Rotations-Griff am gewählten Objekt */}
           {interaktiv && onRotate && !messModus && (
             <RotationsGriff
-              placements={placements}
+              placements={sichtbarePlacements}
               byId={byId}
               gewaehltId={gewaehltId}
               t={t}
@@ -526,7 +660,7 @@ export function Viewer2D({
           {/* Messwerkzeug-Overlay */}
           {messModus && <MessOverlay punkte={messPunkte} t={t} />}
 
-          {ebenen.ampel && <Legende />}
+          {ampelAn && <Legende />}
         </svg>
       </div>
     </div>
@@ -632,69 +766,242 @@ function MessOverlay({ punkte, t }: { punkte: Vec2[]; t: ReturnType<typeof compu
   );
 }
 
+/** Minimale Werkzeugleiste über dem Plan: Layer-Panel öffnen + Messen. */
 function Werkzeugleiste({
-  ebenen,
-  setEbenen,
+  layerOffen,
+  onLayer,
   messModus,
   onMessen,
 }: {
-  ebenen: Ebenen;
-  setEbenen: Dispatch<SetStateAction<Ebenen>>;
+  layerOffen: boolean;
+  onLayer: () => void;
   messModus: boolean;
   onMessen: () => void;
 }) {
-  const toggles: [keyof Ebenen, string][] = [
-    ["beschriftung", "Beschriftung"],
-    ["boxen", "Boxen"],
-    ["masse", "Masse"],
-    ["ampel", "Ampel"],
-  ];
-  const knopf = (aktiv: boolean): CSSProperties => ({
+  const knopf = (aktiv: boolean, farbe: string): CSSProperties => ({
     borderRadius: 999,
     padding: "5px 12px",
     fontSize: 12,
     cursor: "pointer",
-    border: `1px solid ${aktiv ? THEME.gruen : THEME.salbei}`,
-    background: aktiv ? THEME.gruen : "#fff",
+    border: `1px solid ${aktiv ? farbe : THEME.salbei}`,
+    background: aktiv ? farbe : "#fff",
     color: aktiv ? "#fff" : THEME.salbei,
   });
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: 6,
-        flexWrap: "wrap",
-        padding: "0 0 8px",
-        alignItems: "center",
-      }}
-    >
-      {toggles.map(([key, label]) => (
-        <button
-          key={key}
-          type="button"
-          onClick={() => setEbenen((e) => ({ ...e, [key]: !e[key] }))}
-          style={knopf(ebenen[key])}
-          aria-pressed={ebenen[key]}
-        >
-          {label}
-        </button>
-      ))}
-      <span
-        style={{ width: 1, height: 20, background: THEME.salbei, opacity: 0.4, margin: "0 2px" }}
-      />
+    <div style={{ display: "flex", gap: 6, padding: "0 0 8px", alignItems: "center" }}>
+      <button
+        type="button"
+        onClick={onLayer}
+        style={knopf(layerOffen, THEME.gruen)}
+        aria-pressed={layerOffen}
+      >
+        ⧉ Layer
+      </button>
       <button
         type="button"
         onClick={onMessen}
-        style={{
-          ...knopf(messModus),
-          border: `1px solid ${messModus ? THEME.orange : THEME.salbei}`,
-          background: messModus ? THEME.orange : "#fff",
-          color: messModus ? "#fff" : THEME.salbei,
-        }}
+        style={knopf(messModus, THEME.orange)}
         aria-pressed={messModus}
       >
         📏 Messen
       </button>
+    </div>
+  );
+}
+
+/** CAD-artiges Layer-Panel (Overlay oben rechts über dem Plan). Zwei Gruppen:
+ *  Darstellungs-Layer (globale Toggles) und Objekt-Layer (jedes Möbel einzeln
+ *  ein-/ausblendbar; Klick auf die Zeile wählt das Objekt). */
+function LayerPanel({
+  sichtbareLayer,
+  onLayer,
+  placements,
+  byId,
+  versteckteObjekte,
+  gewaehltId,
+  onObjekt,
+  onSelect,
+  onSchliessen,
+}: {
+  sichtbareLayer: Record<LayerId, boolean>;
+  onLayer: (id: LayerId) => void;
+  placements: Placement[];
+  byId: Map<string, KatalogItem>;
+  versteckteObjekte: Set<string>;
+  gewaehltId: string | null;
+  onObjekt: (id: string) => void;
+  onSelect: (id: string | null) => void;
+  onSchliessen: () => void;
+}) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 8,
+        right: 8,
+        zIndex: 2,
+        width: 210,
+        maxHeight: "calc(100% - 16px)",
+        display: "flex",
+        flexDirection: "column",
+        background: "#fff",
+        border: `1px solid ${THEME.salbei}`,
+        borderRadius: 10,
+        boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+        overflow: "hidden",
+        fontSize: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "8px 10px",
+          borderBottom: `1px solid ${THEME.offwhite}`,
+        }}
+      >
+        <strong style={{ color: THEME.gruen }}>Layer</strong>
+        <button
+          type="button"
+          onClick={onSchliessen}
+          aria-label="Layer-Panel schliessen"
+          style={{
+            border: "none",
+            background: "none",
+            cursor: "pointer",
+            color: THEME.salbei,
+            fontSize: 16,
+            lineHeight: 1,
+          }}
+        >
+          ×
+        </button>
+      </div>
+
+      <div style={{ overflowY: "auto" }}>
+        {/* Darstellungs-Layer */}
+        <div style={{ padding: "8px 10px" }}>
+          <p style={{ margin: "0 0 6px", color: THEME.salbei, fontSize: 11 }}>Darstellung</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {DARSTELLUNGS_LAYER.map((l) => {
+              const an = sichtbareLayer[l.id];
+              return (
+                <button
+                  key={l.id}
+                  type="button"
+                  onClick={() => onLayer(l.id)}
+                  aria-pressed={an}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "5px 8px",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    textAlign: "left",
+                    border: `1px solid ${an ? THEME.gruen : THEME.salbei}`,
+                    background: an ? THEME.offwhite : "#fff",
+                    color: an ? THEME.gruen : THEME.salbei,
+                    opacity: an ? 1 : 0.7,
+                  }}
+                >
+                  <span aria-hidden>{l.icon}</span>
+                  <span style={{ flex: 1 }}>{l.label}</span>
+                  <span aria-hidden>{an ? "👁" : "🚫"}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Objekt-Layer */}
+        {placements.length > 0 && (
+          <div style={{ padding: "8px 10px", borderTop: `1px solid ${THEME.offwhite}` }}>
+            <p style={{ margin: "0 0 6px", color: THEME.salbei, fontSize: 11 }}>
+              Objekte ({placements.length})
+            </p>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 3,
+                maxHeight: 200,
+                overflowY: "auto",
+              }}
+            >
+              {placements.map((p) => {
+                const item = byId.get(p.catalogItemId);
+                const sichtbar = !versteckteObjekte.has(p.id);
+                const gewaehlt = p.id === gewaehltId;
+                return (
+                  <div
+                    key={p.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "3px 4px",
+                      borderRadius: 6,
+                      background: gewaehlt ? THEME.offwhite : "transparent",
+                      border: `1px solid ${gewaehlt ? THEME.orange : "transparent"}`,
+                    }}
+                  >
+                    <span
+                      aria-hidden
+                      style={{
+                        width: 11,
+                        height: 11,
+                        borderRadius: 3,
+                        flexShrink: 0,
+                        background: item ? materialFarbe(item.funktionsTyp) : THEME.salbei,
+                        border: `1px solid ${THEME.salbei}`,
+                        opacity: sichtbar ? 1 : 0.35,
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => onSelect(p.id)}
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        textAlign: "left",
+                        border: "none",
+                        background: "none",
+                        cursor: "pointer",
+                        color: sichtbar ? THEME.gruen : THEME.salbei,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        opacity: sichtbar ? 1 : 0.5,
+                      }}
+                    >
+                      {item?.funktionsTyp ?? p.catalogItemId}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onObjekt(p.id)}
+                      aria-pressed={sichtbar}
+                      aria-label={sichtbar ? "Objekt ausblenden" : "Objekt einblenden"}
+                      title={sichtbar ? "Ausblenden" : "Einblenden"}
+                      style={{
+                        border: "none",
+                        background: "none",
+                        cursor: "pointer",
+                        fontSize: 13,
+                        lineHeight: 1,
+                        opacity: sichtbar ? 1 : 0.4,
+                      }}
+                    >
+                      {sichtbar ? "👁" : "🚫"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

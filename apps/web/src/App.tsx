@@ -546,6 +546,7 @@ export function App() {
               room={aktuellerRaum}
               placements={plan?.placements ?? []}
               catalog={catalog}
+              rules={rules}
               gewaehltId={gewaehltId}
               statusById={statusById}
               onSelect={waehleItem}

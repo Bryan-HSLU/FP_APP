@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { footprint, type Vec2 } from "@fp/shared/rules";
 import {
+  clearanceRect,
   computeTransform,
   distanz,
   footprintPoints,
@@ -11,6 +12,7 @@ import {
   toWorld,
   wallQuad,
   wandEcken,
+  wandLuecken,
   yawAusZeiger,
 } from "./plan2d.ts";
 
@@ -169,5 +171,76 @@ describe("rasten", () => {
   it("rundet auf 5-cm-Raster (Default)", () => {
     expect(rasten(1.23)).toBeCloseTo(1.25, 9);
     expect(rasten(1.21)).toBeCloseTo(1.2, 9);
+  });
+});
+
+describe("clearanceRect", () => {
+  it("yaw 0: Rechteck vor der Objekt-Front (+z), richtige Breite/Tiefe", () => {
+    // Objekt bei [1,1], Tiefe d=0.6 → Front bei z=1.3; Zone 0.6 breit × 0.6 tief.
+    const [c1, c2, c3, c4] = clearanceRect([1, 1], 0.6, 0, 0.6, 0.6);
+    expect(c1).toEqual([0.7, 1.3]); // linke vordere Kante an der Front
+    expect(c2).toEqual([1.3, 1.3]); // rechte vordere Kante an der Front
+    expect(c3).toEqual([1.3, 1.9]); // rechte ferne Kante (0.6 m tief nach +z)
+    expect(c4).toEqual([0.7, 1.9]);
+    const xs = [c1, c2, c3, c4].map((p) => p[0]);
+    const zs = [c1, c2, c3, c4].map((p) => p[1]);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(0.6, 9); // Breite
+    expect(Math.max(...zs) - Math.min(...zs)).toBeCloseTo(0.6, 9); // Tiefe
+    expect(Math.min(...zs)).toBeGreaterThan(1); // liegt vor dem Zentrum (+z)
+  });
+
+  it("yaw 90: Front zeigt +x, die Zone ist entsprechend rotiert", () => {
+    const [c1, c2, c3, c4] = clearanceRect([1, 1], 0.6, 90, 0.6, 0.6);
+    // Front bei x=1.3; Tiefe erstreckt sich nach +x, Breite entlang z.
+    expect(c1).toEqual([1.3, 1.3]);
+    expect(c2).toEqual([1.3, 0.7]);
+    expect(c3).toEqual([1.9, 0.7]);
+    expect(c4).toEqual([1.9, 1.3]);
+    const xs = [c1, c2, c3, c4].map((p) => p[0]);
+    expect(Math.min(...xs)).toBeGreaterThan(1); // Zone vor dem Zentrum (+x)
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(0.6, 9); // Tiefe in x
+  });
+
+  it("breite ≠ tiefe wird korrekt zugeordnet (Lavabo 0.7×0.6)", () => {
+    const pts = clearanceRect([0, 0], 0.5, 0, 0.6, 0.7);
+    const xs = pts.map((p) => p[0]);
+    const zs = pts.map((p) => p[1]);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(0.7, 9); // Breite
+    expect(Math.max(...zs) - Math.min(...zs)).toBeCloseTo(0.6, 9); // Tiefe
+  });
+});
+
+describe("wandLuecken", () => {
+  it("ohne Öffnung: ein Vollsegment über die ganze Wand", () => {
+    const { segmente, luecken } = wandLuecken(3, []);
+    expect(luecken).toEqual([]);
+    expect(segmente).toEqual([{ a: 0, b: 3 }]);
+  });
+
+  it("eine Öffnung: zwei Segmente links/rechts der Lücke", () => {
+    const { segmente, luecken } = wandLuecken(3, [{ offset: 1, width: 0.8 }]);
+    expect(luecken).toEqual([{ a: 1, b: 1.8 }]);
+    expect(segmente).toEqual([
+      { a: 0, b: 1 },
+      { a: 1.8, b: 3 },
+    ]);
+  });
+
+  it("überlappende Öffnungen werden zu einer Lücke gemerged", () => {
+    const { segmente, luecken } = wandLuecken(3, [
+      { offset: 0.5, width: 0.5 },
+      { offset: 0.8, width: 0.5 },
+    ]);
+    expect(luecken).toEqual([{ a: 0.5, b: 1.3 }]);
+    expect(segmente).toEqual([
+      { a: 0, b: 0.5 },
+      { a: 1.3, b: 3 },
+    ]);
+  });
+
+  it("clampt auf die Wandlänge (Öffnung ragt über das Wandende hinaus)", () => {
+    const { segmente, luecken } = wandLuecken(3, [{ offset: 2.8, width: 0.5 }]);
+    expect(luecken).toEqual([{ a: 2.8, b: 3 }]);
+    expect(segmente).toEqual([{ a: 0, b: 2.8 }]);
   });
 });
