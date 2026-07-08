@@ -6,7 +6,27 @@
 > Abweichungen gibt es. Meilenstein-Definitionen: Brain →
 > `vault/50_Umsetzung/Bauplan-Meilensteine.md`.
 
-**Stand: 2026-07-06**
+**Stand: 2026-07-08**
+
+### Zuletzt (2026-07-08, diese Session)
+- **UI-Feinschliff:** Schein nach innen stärker & überall, mehr CI-Grün,
+  Piktogramme überall grösser (`fp.css`/`theme.ts`/`Piktogramm.tsx` + Ansichten).
+- **Solver/Kurator «Stufe 1»:** reiche Anordnungs-Grammatik (`near`,
+  `against-wall`, `corner`, `facing:<typ>`, `opposite:<typ>`, `group:<id>`,
+  `pair-with:<itemId>`) als weiche Constraints in P2/P3 + **stil-abhängige
+  Platzierung** (v0: Achse `raumgefuehl` → Wand-Nähe, kleines Gewicht). Harter
+  Norm-Filter/Interpreter/Parität unangetastet → 0 ❌ bleibt beweisbar. Neu:
+  `services/engines/src/fp_engines/relationen.py`; `solve()` um `style_profile`
+  additiv erweitert; `kurator-rolle.md` lehrt die Grammatik; `wohnen.json` demo.
+  **Offen (Kalibrierung):** welche Stilachsen welchen Platzierungs-Bias steuern →
+  Brain-Learning `vault/10_Learnings/Learning-Solver-Stufe1-Anordnung-Stil.md`.
+- **2D-Grundriss CAD-Look:** Wand-Aussenkante liegt auf der Raumlinie, Stärke
+  wächst nach innen, Gehrungs-Ecken (`innenPolygon`/`wandBaender` in `plan2d.ts`);
+  Öffnungen sitzen im Band.
+- **Objekt-Panel erweitert:** `ObjektInfoPanel.tsx` – Kosten + Wechsel-Alternativen
+  (Thumbnail = 2D-Symbol, Preis, Masse, Stil-Match). Produktfotos je Item fehlen
+  noch (Asset-Pipeline-Thema) → Thumbnail als Austauschpunkt vorbereitet.
+- **(läuft)** mehr Beispielräume (`packages/shared/fixtures/artefakte/raummodell.*`).
 
 ## Meilensteine
 
