@@ -1,0 +1,86 @@
+{
+  "id": "b67940e9-c347-4b85-96f5-1a9a394fc92f",
+  "schemaVersion": "0.1.0",
+  "name": "Sample-Wohnzimmer länglich 5.5 × 3.0 m",
+  "roomType": "wohnen",
+  "source": "sample",
+  "units": "m",
+  "shell": {
+    "walls": [
+      {
+        "id": "cccccccc-8001-4000-8000-000000008001",
+        "start": [0, 0],
+        "end": [5.5, 0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv"
+      },
+      {
+        "id": "cccccccc-8002-4000-8000-000000008002",
+        "start": [5.5, 0],
+        "end": [5.5, 3.0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv",
+        "openings": ["dddddddd-8001-4000-8000-000000008001"]
+      },
+      {
+        "id": "cccccccc-8003-4000-8000-000000008003",
+        "start": [5.5, 3.0],
+        "end": [0, 3.0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv",
+        "openings": ["dddddddd-8002-4000-8000-000000008002"]
+      },
+      {
+        "id": "cccccccc-8004-4000-8000-000000008004",
+        "start": [0, 3.0],
+        "end": [0, 0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv"
+      }
+    ],
+    "floor": {
+      "polygon": [
+        [0, 0],
+        [5.5, 0],
+        [5.5, 3.0],
+        [0, 3.0]
+      ],
+      "area": 16.5
+    },
+    "ceiling": { "height": 2.5 }
+  },
+  "openings": [
+    {
+      "id": "dddddddd-8001-4000-8000-000000008001",
+      "type": "door",
+      "hostWall": "cccccccc-8002-4000-8000-000000008002",
+      "offset": 0.3,
+      "width": 0.9,
+      "height": 2.0,
+      "sill": 0
+    },
+    {
+      "id": "dddddddd-8002-4000-8000-000000008002",
+      "type": "window",
+      "hostWall": "cccccccc-8003-4000-8000-000000008003",
+      "offset": 1.8,
+      "width": 2.0,
+      "height": 1.4,
+      "sill": 0.8
+    }
+  ],
+  "zones": [],
+  "fixpoints": [],
+  "objects": [],
+  "meta": {
+    "captureMethod": "sample",
+    "coverageScore": 1,
+    "estimatedError_cm": 2,
+    "geometryConfirmed": false,
+    "geometryRef": "sample"
+  }
+}

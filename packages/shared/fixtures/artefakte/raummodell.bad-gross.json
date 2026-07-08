@@ -1,0 +1,126 @@
+{
+  "id": "2192e8e9-1d5c-4298-bcbe-b623c05eddc7",
+  "schemaVersion": "0.1.0",
+  "name": "Sample-Bad gross 3.4 × 2.8 m (Walk-in-Dusche)",
+  "roomType": "bad",
+  "source": "sample",
+  "units": "m",
+  "shell": {
+    "walls": [
+      {
+        "id": "cccccccc-6001-4000-8000-000000006001",
+        "start": [0, 0],
+        "end": [3.4, 0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv",
+        "openings": ["dddddddd-6001-4000-8000-000000006001"]
+      },
+      {
+        "id": "cccccccc-6002-4000-8000-000000006002",
+        "start": [3.4, 0],
+        "end": [3.4, 2.8],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv"
+      },
+      {
+        "id": "cccccccc-6003-4000-8000-000000006003",
+        "start": [3.4, 2.8],
+        "end": [0, 2.8],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv",
+        "openings": ["dddddddd-6002-4000-8000-000000006002"]
+      },
+      {
+        "id": "cccccccc-6004-4000-8000-000000006004",
+        "start": [0, 2.8],
+        "end": [0, 0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv"
+      }
+    ],
+    "floor": {
+      "polygon": [
+        [0, 0],
+        [3.4, 0],
+        [3.4, 2.8],
+        [0, 2.8]
+      ],
+      "area": 9.52
+    },
+    "ceiling": { "height": 2.5 }
+  },
+  "openings": [
+    {
+      "id": "dddddddd-6001-4000-8000-000000006001",
+      "type": "door",
+      "hostWall": "cccccccc-6001-4000-8000-000000006001",
+      "offset": 2.4,
+      "width": 0.9,
+      "height": 2.0,
+      "sill": 0
+    },
+    {
+      "id": "dddddddd-6002-4000-8000-000000006002",
+      "type": "window",
+      "hostWall": "cccccccc-6003-4000-8000-000000006003",
+      "offset": 1.4,
+      "width": 1.2,
+      "height": 1.3,
+      "sill": 0.9
+    }
+  ],
+  "zones": [],
+  "fixpoints": [
+    {
+      "id": "eeeeeeee-6001-4000-8000-000000006001",
+      "type": "abwasser",
+      "position": [3.4, 1.6],
+      "wall": "cccccccc-6002-4000-8000-000000006002",
+      "heightFromFloor": 0.2,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": null
+    },
+    {
+      "id": "eeeeeeee-6002-4000-8000-000000006002",
+      "type": "wasser",
+      "position": [0.8, 2.8],
+      "wall": "cccccccc-6003-4000-8000-000000006003",
+      "heightFromFloor": 0.55,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": null
+    },
+    {
+      "id": "eeeeeeee-6003-4000-8000-000000006003",
+      "type": "abwasser",
+      "position": [0.6, 0.5],
+      "heightFromFloor": 0,
+      "mount": "boden",
+      "origin": "bestand",
+      "zone": null
+    },
+    {
+      "id": "eeeeeeee-6004-4000-8000-000000006004",
+      "type": "wasser",
+      "position": [0.8, 2.8],
+      "wall": "cccccccc-6003-4000-8000-000000006003",
+      "heightFromFloor": 1.1,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": null
+    }
+  ],
+  "objects": [],
+  "meta": {
+    "captureMethod": "sample",
+    "coverageScore": 1,
+    "estimatedError_cm": 2,
+    "geometryConfirmed": false,
+    "geometryRef": "sample"
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "id": "46ce876d-3219-47c4-9cff-68434310158e",
+  "schemaVersion": "0.1.0",
+  "name": "Sample-Wohnzimmer L-förmig 5.0 × 3.5 m",
+  "roomType": "wohnen",
+  "source": "sample",
+  "units": "m",
+  "shell": {
+    "walls": [
+      {
+        "id": "cccccccc-9001-4000-8000-000000009001",
+        "start": [0, 0],
+        "end": [5.0, 0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv",
+        "openings": ["dddddddd-9001-4000-8000-000000009001"]
+      },
+      {
+        "id": "cccccccc-9002-4000-8000-000000009002",
+        "start": [5.0, 0],
+        "end": [5.0, 3.5],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv",
+        "openings": ["dddddddd-9002-4000-8000-000000009002"]
+      },
+      {
+        "id": "cccccccc-9003-4000-8000-000000009003",
+        "start": [5.0, 3.5],
+        "end": [2.8, 3.5],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv"
+      },
+      {
+        "id": "cccccccc-9004-4000-8000-000000009004",
+        "start": [2.8, 3.5],
+        "end": [2.8, 2.2],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv"
+      },
+      {
+        "id": "cccccccc-9005-4000-8000-000000009005",
+        "start": [2.8, 2.2],
+        "end": [0, 2.2],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv"
+      },
+      {
+        "id": "cccccccc-9006-4000-8000-000000009006",
+        "start": [0, 2.2],
+        "end": [0, 0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv"
+      }
+    ],
+    "floor": {
+      "polygon": [
+        [0, 0],
+        [5.0, 0],
+        [5.0, 3.5],
+        [2.8, 3.5],
+        [2.8, 2.2],
+        [0, 2.2]
+      ],
+      "area": 13.84
+    },
+    "ceiling": { "height": 2.5 }
+  },
+  "openings": [
+    {
+      "id": "dddddddd-9001-4000-8000-000000009001",
+      "type": "door",
+      "hostWall": "cccccccc-9001-4000-8000-000000009001",
+      "offset": 0.4,
+      "width": 0.9,
+      "height": 2.0,
+      "sill": 0
+    },
+    {
+      "id": "dddddddd-9002-4000-8000-000000009002",
+      "type": "window",
+      "hostWall": "cccccccc-9002-4000-8000-000000009002",
+      "offset": 1.0,
+      "width": 1.6,
+      "height": 1.4,
+      "sill": 0.8
+    }
+  ],
+  "zones": [],
+  "fixpoints": [],
+  "objects": [],
+  "meta": {
+    "captureMethod": "sample",
+    "coverageScore": 1,
+    "estimatedError_cm": 2,
+    "geometryConfirmed": false,
+    "geometryRef": "sample"
+  }
+}

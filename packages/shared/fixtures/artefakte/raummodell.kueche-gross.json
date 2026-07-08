@@ -1,0 +1,147 @@
+{
+  "id": "1b4523e4-7222-40dd-b235-3a0c8f97c6fe",
+  "schemaVersion": "0.1.0",
+  "name": "Sample-Küche gross 3.8 × 3.0 m (Zeile + Kühlschrank-Wand)",
+  "roomType": "kueche",
+  "source": "sample",
+  "units": "m",
+  "shell": {
+    "walls": [
+      {
+        "id": "cccccccc-a001-4000-8000-00000000a001",
+        "start": [0, 0],
+        "end": [3.8, 0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv",
+        "openings": ["dddddddd-a001-4000-8000-00000000a001"]
+      },
+      {
+        "id": "cccccccc-a002-4000-8000-00000000a002",
+        "start": [3.8, 0],
+        "end": [3.8, 3.0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv",
+        "openings": ["dddddddd-a002-4000-8000-00000000a002"]
+      },
+      {
+        "id": "cccccccc-a003-4000-8000-00000000a003",
+        "start": [3.8, 3.0],
+        "end": [0, 3.0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv"
+      },
+      {
+        "id": "cccccccc-a004-4000-8000-00000000a004",
+        "start": [0, 3.0],
+        "end": [0, 0],
+        "height": 2.5,
+        "thickness": 0.12,
+        "kind": "massiv"
+      }
+    ],
+    "floor": {
+      "polygon": [
+        [0, 0],
+        [3.8, 0],
+        [3.8, 3.0],
+        [0, 3.0]
+      ],
+      "area": 11.4
+    },
+    "ceiling": { "height": 2.5 }
+  },
+  "openings": [
+    {
+      "id": "dddddddd-a001-4000-8000-00000000a001",
+      "type": "door",
+      "hostWall": "cccccccc-a001-4000-8000-00000000a001",
+      "offset": 0.3,
+      "width": 0.9,
+      "height": 2.0,
+      "sill": 0
+    },
+    {
+      "id": "dddddddd-a002-4000-8000-00000000a002",
+      "type": "window",
+      "hostWall": "cccccccc-a002-4000-8000-00000000a002",
+      "offset": 1.0,
+      "width": 1.2,
+      "height": 1.2,
+      "sill": 0.9
+    }
+  ],
+  "zones": [],
+  "fixpoints": [
+    {
+      "id": "eeeeeeee-a001-4000-8000-00000000a001",
+      "type": "wasser",
+      "position": [1.5, 3.0],
+      "wall": "cccccccc-a003-4000-8000-00000000a003",
+      "heightFromFloor": 0.55,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": null
+    },
+    {
+      "id": "eeeeeeee-a002-4000-8000-00000000a002",
+      "type": "abwasser",
+      "position": [1.9, 3.0],
+      "wall": "cccccccc-a003-4000-8000-00000000a003",
+      "heightFromFloor": 0.3,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": null
+    },
+    {
+      "id": "eeeeeeee-a003-4000-8000-00000000a003",
+      "type": "starkstrom",
+      "position": [2.9, 3.0],
+      "wall": "cccccccc-a003-4000-8000-00000000a003",
+      "heightFromFloor": 0.5,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": null
+    },
+    {
+      "id": "eeeeeeee-a004-4000-8000-00000000a004",
+      "type": "lueftung",
+      "position": [2.9, 3.0],
+      "wall": "cccccccc-a003-4000-8000-00000000a003",
+      "heightFromFloor": 2.1,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": null
+    },
+    {
+      "id": "eeeeeeee-a005-4000-8000-00000000a005",
+      "type": "elektro",
+      "position": [2.5, 3.0],
+      "wall": "cccccccc-a003-4000-8000-00000000a003",
+      "heightFromFloor": 0.5,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": null
+    },
+    {
+      "id": "eeeeeeee-a006-4000-8000-00000000a006",
+      "type": "elektro",
+      "position": [0, 2.4],
+      "wall": "cccccccc-a004-4000-8000-00000000a004",
+      "heightFromFloor": 1.1,
+      "mount": "wand",
+      "origin": "bestand",
+      "zone": null
+    }
+  ],
+  "objects": [],
+  "meta": {
+    "captureMethod": "sample",
+    "coverageScore": 1,
+    "estimatedError_cm": 2,
+    "geometryConfirmed": false,
+    "geometryRef": "sample"
+  }
+}
