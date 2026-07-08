@@ -2,7 +2,7 @@
   {
     "id": "5a11ae8d-5409-5c4b-a211-989d36fd6deb",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (1).png",
+    "bildRef": "wohnen/Bild Wohnen (1).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.4,
@@ -77,7 +77,7 @@
   {
     "id": "3afa507a-ea2f-536e-b4b4-9c7250ca1aca",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (2).png",
+    "bildRef": "wohnen/Bild Wohnen (2).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.3,
@@ -152,7 +152,7 @@
   {
     "id": "760e1cbd-bc1f-52e0-a40a-eb3275f4b32b",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (3).png",
+    "bildRef": "wohnen/Bild Wohnen (3).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.4,
@@ -227,7 +227,7 @@
   {
     "id": "c8b5a6fa-6590-5f09-954d-fba4142b9112",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (4).png",
+    "bildRef": "wohnen/Bild Wohnen (4).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": -0.3,
@@ -302,7 +302,7 @@
   {
     "id": "5172baf6-496e-5fd3-8305-435f05c2fc2e",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (5).png",
+    "bildRef": "wohnen/Bild Wohnen (5).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.9,
@@ -377,7 +377,7 @@
   {
     "id": "1a2a0f6a-fd14-5985-94cb-8acca6d6c43f",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (6).png",
+    "bildRef": "wohnen/Bild Wohnen (6).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.7,
@@ -452,7 +452,7 @@
   {
     "id": "099d73f5-74bf-5571-b3f7-ce5821700819",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (7).png",
+    "bildRef": "wohnen/Bild Wohnen (7).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.5,
@@ -527,7 +527,7 @@
   {
     "id": "80f649ae-0a7d-5203-876b-f9a82c80b81f",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (8).png",
+    "bildRef": "wohnen/Bild Wohnen (8).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.1,
@@ -602,7 +602,7 @@
   {
     "id": "335495db-2399-561d-b9ee-42e74bfc2985",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (9).png",
+    "bildRef": "wohnen/Bild Wohnen (9).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.7,
@@ -677,7 +677,7 @@
   {
     "id": "a1633d2a-901d-5188-bf8b-8c940ad6611f",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (10).png",
+    "bildRef": "wohnen/Bild Wohnen (10).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.7,
@@ -752,7 +752,7 @@
   {
     "id": "bb948982-39a4-5e9d-b64c-4e13ba1b009e",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (11).png",
+    "bildRef": "wohnen/Bild Wohnen (11).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.5,
@@ -827,7 +827,7 @@
   {
     "id": "fa8f3edd-0dc4-53f6-bfb6-1eaf7723e6d8",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (12).png",
+    "bildRef": "wohnen/Bild Wohnen (12).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.4,
@@ -902,7 +902,7 @@
   {
     "id": "ec0563e9-3232-5747-9eaa-0b87c1f3d9d7",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (13).png",
+    "bildRef": "wohnen/Bild Wohnen (13).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.3,
@@ -977,7 +977,7 @@
   {
     "id": "75c5a44c-77ff-5e50-b68b-3f0cb2b29a49",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (14).png",
+    "bildRef": "wohnen/Bild Wohnen (14).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.5,
@@ -1052,7 +1052,7 @@
   {
     "id": "2fddcff0-fed3-50c7-a926-ca382af6b1dc",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (15).png",
+    "bildRef": "wohnen/Bild Wohnen (15).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": -0.5,
@@ -1127,7 +1127,7 @@
   {
     "id": "10549d3e-431a-5a12-b347-794ce6a2f559",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (16).png",
+    "bildRef": "wohnen/Bild Wohnen (16).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.5,
@@ -1203,7 +1203,7 @@
   {
     "id": "2ef171bc-bf6d-5d26-b0c8-65890492763a",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (17).png",
+    "bildRef": "wohnen/Bild Wohnen (17).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.8,
@@ -1278,7 +1278,7 @@
   {
     "id": "b5b6fd38-4162-5fbd-90cb-21f7c4eabdd0",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (18).png",
+    "bildRef": "wohnen/Bild Wohnen (18).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.6,
@@ -1354,7 +1354,7 @@
   {
     "id": "a293eac0-789a-53f1-a197-8f72bf93d2c6",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (19).png",
+    "bildRef": "wohnen/Bild Wohnen (19).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.9,
@@ -1429,7 +1429,7 @@
   {
     "id": "75575cfc-621e-5235-8e91-69f3e448db73",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (20).png",
+    "bildRef": "wohnen/Bild Wohnen (20).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": -0.2,
@@ -1504,7 +1504,7 @@
   {
     "id": "ce1d9bd7-79da-58fd-bda7-509c6a3c143d",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (21).png",
+    "bildRef": "wohnen/Bild Wohnen (21).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.9,
@@ -1579,7 +1579,7 @@
   {
     "id": "3b79c1d2-8180-554b-8016-fed151f5c3d6",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (22).png",
+    "bildRef": "wohnen/Bild Wohnen (22).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.6,
@@ -1654,7 +1654,7 @@
   {
     "id": "e3b3a4f6-05e3-5a9d-aed5-0eb6955d1c29",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (23).png",
+    "bildRef": "wohnen/Bild Wohnen (23).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.9,
@@ -1730,7 +1730,7 @@
   {
     "id": "f5db157a-45f0-5378-9d78-82f12bca117c",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (24).png",
+    "bildRef": "wohnen/Bild Wohnen (24).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.3,
@@ -1806,7 +1806,7 @@
   {
     "id": "948aa598-7ddd-58b3-8666-ede4671694db",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (25).png",
+    "bildRef": "wohnen/Bild Wohnen (25).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": -0.1,
@@ -1881,7 +1881,7 @@
   {
     "id": "7077f63a-1845-5205-ac4d-ec181bc77da8",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (26).png",
+    "bildRef": "wohnen/Bild Wohnen (26).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.9,
@@ -1956,7 +1956,7 @@
   {
     "id": "ed1684b1-a179-5c34-aa75-a6e25c0759da",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (27).png",
+    "bildRef": "wohnen/Bild Wohnen (27).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": -0.2,
@@ -2032,7 +2032,7 @@
   {
     "id": "b28805b4-02d9-533d-84e7-23ad57c15a9e",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (28).png",
+    "bildRef": "wohnen/Bild Wohnen (28).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.8,
@@ -2108,7 +2108,7 @@
   {
     "id": "5f9cbfe4-0a4f-5e72-a96e-35a912a67f5d",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (29).png",
+    "bildRef": "wohnen/Bild Wohnen (29).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 0.2,
@@ -2184,7 +2184,7 @@
   {
     "id": "d95603e9-2240-5349-b307-9ccc33cb10b0",
     "schemaVersion": "0.1.0",
-    "bildRef": "wohnen/Bild Wohnen (30).png",
+    "bildRef": "wohnen/Bild Wohnen (30).jpg",
     "roomType": "wohnen",
     "achsenTags": {
       "temperatur": 1.0,

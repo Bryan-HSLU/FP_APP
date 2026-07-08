@@ -2,7 +2,7 @@
   {
     "id": "325a396f-2ca4-4568-97c8-6e181e10c18a",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (1).png",
+    "bildRef": "kueche/Bild Küche (1).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": -0.1,
@@ -85,7 +85,7 @@
   {
     "id": "53e67abc-ca5b-45ee-9bb5-bd98583581dc",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (2).png",
+    "bildRef": "kueche/Bild Küche (2).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.4,
@@ -169,7 +169,7 @@
   {
     "id": "c806b471-d43a-4291-835f-743064e62172",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (3).png",
+    "bildRef": "kueche/Bild Küche (3).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.1,
@@ -254,7 +254,7 @@
   {
     "id": "946eaeae-1c63-4e60-acbd-4d55fd67442d",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (4).png",
+    "bildRef": "kueche/Bild Küche (4).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.5,
@@ -338,7 +338,7 @@
   {
     "id": "35a11dd0-0afc-4071-8332-bfa929bd8927",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (5).png",
+    "bildRef": "kueche/Bild Küche (5).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": -0.3,
@@ -423,7 +423,7 @@
   {
     "id": "d2b368ee-94ef-469b-8e78-fde379ee8167",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (6).png",
+    "bildRef": "kueche/Bild Küche (6).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.9,
@@ -508,7 +508,7 @@
   {
     "id": "9958269d-f9b1-4f34-bb8b-7c739508a4be",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (7).png",
+    "bildRef": "kueche/Bild Küche (7).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.6,
@@ -593,7 +593,7 @@
   {
     "id": "a4cb43da-f9be-46d8-805f-161173ab0ff0",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (8).png",
+    "bildRef": "kueche/Bild Küche (8).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.4,
@@ -677,7 +677,7 @@
   {
     "id": "789a98be-dfaf-4cc5-9cd4-3a7bc5e00c61",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (9).png",
+    "bildRef": "kueche/Bild Küche (9).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.6,
@@ -762,7 +762,7 @@
   {
     "id": "d20ef470-685b-4183-b064-a9d60777061d",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (10).png",
+    "bildRef": "kueche/Bild Küche (10).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.0,
@@ -846,7 +846,7 @@
   {
     "id": "a2d006ce-0da6-4549-8d1b-24f269ed37d2",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (11).png",
+    "bildRef": "kueche/Bild Küche (11).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.3,
@@ -931,7 +931,7 @@
   {
     "id": "6bb2fb14-8827-4537-aa02-b97408ce46a0",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (12).png",
+    "bildRef": "kueche/Bild Küche (12).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.6,
@@ -1015,7 +1015,7 @@
   {
     "id": "f5b4f654-6c43-49e5-b316-29106b25ebde",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (13).png",
+    "bildRef": "kueche/Bild Küche (13).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.8,
@@ -1100,7 +1100,7 @@
   {
     "id": "8c365632-4170-4593-b5e9-1192c4b2802c",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (14).png",
+    "bildRef": "kueche/Bild Küche (14).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": -0.8,
@@ -1186,7 +1186,7 @@
   {
     "id": "2d2fc957-60d8-4112-9900-21b4a675f721",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (15).png",
+    "bildRef": "kueche/Bild Küche (15).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.6,
@@ -1271,7 +1271,7 @@
   {
     "id": "d1e1120c-b84e-4292-92ec-d9b97db7caf5",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (16).png",
+    "bildRef": "kueche/Bild Küche (16).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": -0.4,
@@ -1353,7 +1353,7 @@
   {
     "id": "45e85702-2d38-4cda-8d73-9cd8f697e98a",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (17).png",
+    "bildRef": "kueche/Bild Küche (17).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.6,
@@ -1438,7 +1438,7 @@
   {
     "id": "a38e30cb-37b6-4dfa-a1e2-26892cfa7cd0",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (18).png",
+    "bildRef": "kueche/Bild Küche (18).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.5,
@@ -1524,7 +1524,7 @@
   {
     "id": "ea8652c9-1302-4ffe-8f02-cdbfc03dd70b",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (19).png",
+    "bildRef": "kueche/Bild Küche (19).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.5,
@@ -1608,7 +1608,7 @@
   {
     "id": "86005723-7e81-40b9-b52c-92a00e4481c0",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (20).png",
+    "bildRef": "kueche/Bild Küche (20).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": -0.4,
@@ -1694,7 +1694,7 @@
   {
     "id": "0047cdcf-a8dd-405e-8353-9601e17d3a35",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (21).png",
+    "bildRef": "kueche/Bild Küche (21).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.5,
@@ -1778,7 +1778,7 @@
   {
     "id": "c1bae20a-0659-4ec5-a51a-00b1803de467",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (22).png",
+    "bildRef": "kueche/Bild Küche (22).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.5,
@@ -1862,7 +1862,7 @@
   {
     "id": "b875911f-e166-4deb-984a-b7d01abfe9fd",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (23).png",
+    "bildRef": "kueche/Bild Küche (23).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.9,
@@ -1947,7 +1947,7 @@
   {
     "id": "edc84c28-4090-4ab2-987e-cf63b91b1f43",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (24).png",
+    "bildRef": "kueche/Bild Küche (24).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.1,
@@ -2032,7 +2032,7 @@
   {
     "id": "d692cb26-a162-457a-b95d-d8e7249997ab",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (25).png",
+    "bildRef": "kueche/Bild Küche (25).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.9,
@@ -2117,7 +2117,7 @@
   {
     "id": "b0a30103-72a1-43d1-89f5-3c8bed7c40a7",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (26).png",
+    "bildRef": "kueche/Bild Küche (26).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.1,
@@ -2202,7 +2202,7 @@
   {
     "id": "1398d09b-d966-4725-b310-0b3a6714f232",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (27).png",
+    "bildRef": "kueche/Bild Küche (27).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.7,
@@ -2286,7 +2286,7 @@
   {
     "id": "f3fdab95-df49-4c62-81d3-b0a5dfdc393f",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (28).png",
+    "bildRef": "kueche/Bild Küche (28).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": -0.3,
@@ -2372,7 +2372,7 @@
   {
     "id": "f8b481ab-2b01-43b4-bbc5-2231f83603d8",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (29).png",
+    "bildRef": "kueche/Bild Küche (29).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.8,
@@ -2456,7 +2456,7 @@
   {
     "id": "1657eba6-9d73-4e8c-9e6d-d7db0cd7393c",
     "schemaVersion": "0.1.0",
-    "bildRef": "kueche/Bild Küche (30).png",
+    "bildRef": "kueche/Bild Küche (30).jpg",
     "roomType": "kueche",
     "achsenTags": {
       "temperatur": 0.4,
