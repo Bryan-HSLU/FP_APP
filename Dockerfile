@@ -34,4 +34,8 @@ ENV UV_CACHE_DIR=/tmp/uv-cache
 RUN uv --project services/engines sync --frozen --no-dev
 
 EXPOSE 7860
-CMD ["uv", "--project", "services/engines", "run", "uvicorn", "fp_engines.space:app", "--host", "0.0.0.0", "--port", "7860"]
+# WICHTIG: --no-sync + --frozen, damit `uv run` beim CONTAINERSTART die beim Build
+# fertig installierte Umgebung NICHT neu auflöst (kein Netzwerk/Index-Zugriff).
+# Ohne das versucht uv run bei jedem Start zu syncen → auf HF flakiger Start
+# ("Runtime error"/Startup-Hang). So ist der Start deterministisch und schnell.
+CMD ["uv", "--project", "services/engines", "run", "--no-sync", "--frozen", "uvicorn", "fp_engines.space:app", "--host", "0.0.0.0", "--port", "7860"]
