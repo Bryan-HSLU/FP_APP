@@ -11,7 +11,9 @@ import type { ConstraintReport } from "@fp/shared/rules";
 import type { KatalogItem } from "./api";
 import { materialFarbe } from "./moebel3d";
 import type { OberflaechenSpez, OberflaechenVarianten, OberflaechenWahl } from "./oberflaechen";
+import { ObjektInfoPanel } from "./ObjektInfoPanel";
 import { Piktogramm } from "./Piktogramm";
+import type { Stilprofil } from "./Stil";
 import { CSS, FP_VAR, THEME, titel } from "./theme";
 import type { FlaechenWahl } from "./Viewer3D";
 
@@ -21,6 +23,8 @@ export interface SchrittAnpassenProps {
   elementStatus?: "verletzt" | "knapp";
   gesperrt: boolean;
   alternativen: KatalogItem[];
+  /** Stilprofil für den Stil-Näheindikator der Wechsel-Alternativen (optional). */
+  stilprofil?: Stilprofil | null;
   onTausch: (neueId: string) => void;
   onSperren: () => void;
   onWuerfeln: () => void;
@@ -165,6 +169,7 @@ export function SchrittAnpassen({
   elementStatus,
   gesperrt,
   alternativen,
+  stilprofil,
   onTausch,
   onSperren,
   onWuerfeln,
@@ -263,51 +268,15 @@ export function SchrittAnpassen({
               <span style={{ color: st.farbe, fontWeight: 600 }}>{st.text}</span>
             </div>
 
-            {/* Austausch-Alternativen aus der Produktdatenbank (kleine Karten) */}
-            {alternativen.length > 0 && (
-              <div style={{ marginBottom: 12 }}>
-                <p style={{ fontSize: 12.5, margin: "0 0 6px", color: THEME.gruen }}>
-                  Aus der Produktdatenbank ({alternativen.length}):
-                </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {alternativen.map((a) => (
-                    <button
-                      key={a.id}
-                      type="button"
-                      className={CSS.card}
-                      onClick={() => onTausch(a.id)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        padding: "7px 10px",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        background: "#fff",
-                        border: `1px solid ${THEME.salbei}`,
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: 14,
-                          height: 14,
-                          borderRadius: 4,
-                          flexShrink: 0,
-                          background: materialFarbe(a.funktionsTyp),
-                          border: `1px solid ${THEME.salbei}`,
-                        }}
-                      />
-                      <span style={{ fontSize: 12.5, color: THEME.gruen, minWidth: 0, flex: 1 }}>
-                        {a.name}
-                      </span>
-                      <span style={{ fontSize: 11, color: THEME.salbei, whiteSpace: "nowrap" }}>
-                        {a.masse.w} × {a.masse.d} m
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Kosten + Wechsel-Alternativen (Thumbnail, Preis, Massen, Stil-Match) */}
+            <div style={{ marginBottom: 12 }}>
+              <ObjektInfoPanel
+                item={gewaehltesItem}
+                alternativen={alternativen}
+                stilprofil={stilprofil}
+                onTausch={onTausch}
+              />
+            </div>
             <button
               type="button"
               className={CSS.button}

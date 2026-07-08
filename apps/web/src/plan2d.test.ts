@@ -5,12 +5,14 @@ import {
   computeTransform,
   distanz,
   footprintPoints,
+  innenPolygon,
   innwardNormal,
   naechsteEcke,
   rasten,
   toScreen,
   toWorld,
   wallQuad,
+  wandBaender,
   wandEcken,
   wandLuecken,
   yawAusZeiger,
@@ -119,6 +121,113 @@ describe("wallQuad", () => {
     const q = wallQuad([0, 0], [0, 2], 0.2);
     // Wand entlang +z → Dicke entlang x (±0.1)
     for (const p of q) expect(Math.abs(p[0])).toBeCloseTo(0.1, 9);
+  });
+});
+
+describe("innenPolygon (CAD-Wände: Aussenkante = Linie, Stärke nach innen)", () => {
+  it("versetzt jede Ecke gehrungsgenau nach innen (Rechteck)", () => {
+    const inner = innenPolygon(RAUM, 0.12);
+    expect(inner).toHaveLength(4);
+    // 3.0×2.4-Raum minus 0.12 rundum → [0.12,0.12] … [2.88,2.28]
+    const erwartet: Vec2[] = [
+      [0.12, 0.12],
+      [2.88, 0.12],
+      [2.88, 2.28],
+      [0.12, 2.28],
+    ];
+    inner.forEach((p, i) => {
+      const e = erwartet[i] as Vec2;
+      expect(p[0]).toBeCloseTo(e[0], 9);
+      expect(p[1]).toBeCloseTo(e[1], 9);
+    });
+  });
+
+  it("das Innenpolygon liegt vollständig innerhalb der Kontur (jede Ecke näher an der Mitte)", () => {
+    const inner = innenPolygon(RAUM, 0.2);
+    const mitte: Vec2 = [1.5, 1.2];
+    inner.forEach((p, i) => {
+      const a = RAUM[i] as Vec2;
+      const dInnen = Math.hypot(p[0] - mitte[0], p[1] - mitte[1]);
+      const dAussen = Math.hypot(a[0] - mitte[0], a[1] - mitte[1]);
+      expect(dInnen).toBeLessThan(dAussen);
+    });
+  });
+
+  it("L-Form: eine einspringende (konkave) Ecke wird ebenfalls sauber versetzt", () => {
+    // 6-Eck L-Form; nur prüfen, dass alle Ecken echt versetzt sind (kein NaN).
+    const L: Vec2[] = [
+      [0, 0],
+      [3, 0],
+      [3, 1.5],
+      [1.5, 1.5],
+      [1.5, 3],
+      [0, 3],
+    ];
+    const inner = innenPolygon(L, 0.1);
+    expect(inner).toHaveLength(6);
+    for (const p of inner) {
+      expect(Number.isFinite(p[0])).toBe(true);
+      expect(Number.isFinite(p[1])).toBe(true);
+    }
+  });
+});
+
+describe("wandBaender (Wand-Band mit Aussenkante auf der Linie)", () => {
+  const inner = innenPolygon(RAUM, 0.12);
+  const eck = new Map(RAUM.map((p, i) => [`${p[0]},${p[1]}`, inner[i]]));
+
+  it("volle Wand: ein Band, Aussenkante exakt auf der Wandachse", () => {
+    // untere Wand [0,0]→[3,0]; innen = +z
+    const baender = wandBaender([0, 0], [3, 0], [0, 1], 0.12, [], eck.get("0,0"), eck.get("3,0"));
+    expect(baender).toHaveLength(1);
+    // Reihenfolge [aussenA, aussenB, innenB, innenA]
+    const [aA, aB, iB, iA] = baender[0] as [Vec2, Vec2, Vec2, Vec2];
+    expect(aA).toEqual([0, 0]); // Aussenkante auf der Linie z=0
+    expect(aB).toEqual([3, 0]);
+    // Innenkante = Gehrungs-Ecken (nach innen versetzt)
+    expect(iB[1]).toBeCloseTo(0.12, 9);
+    expect(iA[1]).toBeCloseTo(0.12, 9);
+    // Ecken teilen sich die Innenpunkte mit dem Innenpolygon
+    expect(iA).toEqual(inner[0]);
+    expect(iB).toEqual(inner[1]);
+  });
+
+  it("mit Öffnung: zwei Bänder, Laibung senkrecht auf die Innenkante versetzt", () => {
+    const baender = wandBaender(
+      [0, 0],
+      [3, 0],
+      [0, 1],
+      0.12,
+      [{ offset: 1, width: 0.8 }],
+      eck.get("0,0"),
+      eck.get("3,0"),
+    );
+    expect(baender).toHaveLength(2);
+    const b0 = baender[0] as [Vec2, Vec2, Vec2, Vec2];
+    const b1 = baender[1] as [Vec2, Vec2, Vec2, Vec2];
+    // erstes Band bis zur Laibung x=1
+    expect(b0[1]).toEqual([1, 0]); // Aussenkante an der Laibung
+    expect(b0[2]).toEqual([1, 0.12]); // Innenkante = reiner Normalversatz
+    // zweites Band ab x=1.8
+    expect(b1[0]).toEqual([1.8, 0]);
+    expect(b1[3]).toEqual([1.8, 0.12]);
+  });
+
+  it("benachbarte Wände teilen sich exakt denselben Eckpunkt (keine Lücke)", () => {
+    const unten = wandBaender([0, 0], [3, 0], [0, 1], 0.12, [], eck.get("0,0"), eck.get("3,0"));
+    const rechts = wandBaender(
+      [3, 0],
+      [3, 2.4],
+      [-1, 0],
+      0.12,
+      [],
+      eck.get("3,0"),
+      eck.get("3,2.4"),
+    );
+    // Innenpunkt der unteren Wand am Eck [3,0] == Innenpunkt der rechten Wand dort
+    const u0 = unten[0] as [Vec2, Vec2, Vec2, Vec2];
+    const r0 = rechts[0] as [Vec2, Vec2, Vec2, Vec2];
+    expect(u0[2]).toEqual(r0[3]);
   });
 });
 

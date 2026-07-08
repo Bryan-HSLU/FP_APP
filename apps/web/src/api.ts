@@ -26,6 +26,16 @@ export interface KatalogItem extends CatalogItemInput {
   priorityClass: "P1" | "P2" | "P3";
   /** Optionale 3D-Bausatz-Variante für den Viewer (Katalog-Feld modell3d). */
   modell3d?: string;
+  /** Stil-Achsen-Ausprägungen des Items (für Stil-Match/Kurator). */
+  achsenTags?: Record<string, number>;
+  /** Preis-Stammdaten (für Kostenanzeige & LV). Provenance liegt im Schema. */
+  preis?: {
+    value: number;
+    currency: "CHF";
+    stand?: string;
+    quelle?: string;
+    bandbreitePct?: number;
+  };
 }
 
 export interface Room extends RoomInput {

@@ -670,6 +670,7 @@ export function App() {
               elementStatus={elementStatus}
               gesperrt={gesperrt}
               alternativen={alternativen}
+              stilprofil={stilprofil}
               onTausch={tauscheItem}
               onSperren={sperren}
               onWuerfeln={() => void loesen(seed + 1)}

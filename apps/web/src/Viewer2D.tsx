@@ -3,10 +3,11 @@
  *  Macht Pläne normgerecht beurteilbar. Gegenüber v1 neu:
  *  - **Objektsymbole** (Architekten-Draufsicht) statt nur beschrifteter Boxen
  *    (`symbole2d`), gefärbt nach Norm-Ampel bzw. Materialfarbe.
- *  - **Wände mit echter Wandstärke** (gefüllte Polygone, `wallQuad`) im
- *    Referenz-Look: helle graue Füllung + dünne dunklere Kante. Öffnungen sind
- *    **echte Aussparungen in der Wandstärke** (Segmentierung via `wandLuecken`),
- *    nicht bloss Linien auf der Wandoberfläche.
+ *  - **Wände wie im CAD-Plan** (`wandBaender`/`innenPolygon`): die Raumkontur
+ *    ist die **Aussenkante**, die Wandstärke wächst nach **innen**; Ecken sind
+ *    gehrungs-verbunden (geteilte Innenpunkte). Öffnungen sind **echte
+ *    Aussparungen in der Wandstärke** (Segmentierung via `wandLuecken`), nicht
+ *    bloss Linien auf der Wandoberfläche.
  *  - **Layer-System v2** (`layer2d`): Darstellungs-Layer (globale Toggles) +
  *    Objekt-Layer (jedes Möbel einzeln ein-/ausblendbar, CAD-artig).
  *  - **Platzbedarf-Layer**: Clearance-Zonen (`type:"clearance"`-Regeln) als
@@ -44,14 +45,14 @@ import {
   computeTransform,
   distanz,
   footprintPoints,
+  innenPolygon,
   innwardNormal,
   naechsteEcke,
   rasten,
   toScreen,
   toWorld,
-  wallQuad,
+  wandBaender,
   wandEcken,
-  wandLuecken,
   yawAusZeiger,
 } from "./plan2d.ts";
 import { symbolScreenPrims } from "./symbole2d.ts";
@@ -137,46 +138,39 @@ function Oeffnung({
   const dz = wall.end[1] - wall.start[1];
   const len = Math.hypot(dx, dz) || 1;
   const u: Vec2 = [dx / len, dz / len];
-  // Geometrische Wand-Normale (Dickenrichtung), Einheit.
-  const nWand: Vec2 = [-dz / len, dx / len];
   const dicke = (wall as { thickness?: number }).thickness ?? WANDDICKE_FALLBACK;
-  const h = dicke / 2;
+  // Normale ins Rauminnere: die Wand wächst von der Aussenkante (Achse, f=0) um
+  // die volle Wandstärke nach innen (f=1) – deckungsgleich mit `wandBaender`.
+  const nIn = innwardNormal(
+    wall.start as Vec2,
+    wall.end as Vec2,
+    room.shell.floor.polygon as Vec2[],
+  );
   const a: Vec2 = [wall.start[0] + u[0] * opening.offset, wall.start[1] + u[1] * opening.offset];
   const b: Vec2 = [a[0] + u[0] * opening.width, a[1] + u[1] * opening.width];
-  const [ax, ay] = toScreen(a, t);
-  const [bx, by] = toScreen(b, t);
+  // Punkt an Laibung `p`, um Anteil `f` der Wandstärke nach innen versetzt.
+  const bandPunkt = (p: Vec2, f: number): Vec2 => [
+    p[0] + nIn[0] * dicke * f,
+    p[1] + nIn[1] * dicke * f,
+  ];
+  const scr = (p: Vec2, f: number): [number, number] => toScreen(bandPunkt(p, f), t);
+  const [aOx, aOy] = scr(a, 0); // Aussenkante an Laibung a
+  const [aIx, aIy] = scr(a, 1); // Innenkante an Laibung a
+  const [bOx, bOy] = scr(b, 0);
+  const [bIx, bIy] = scr(b, 1);
 
   if (opening.type === "door") {
-    const n = innwardNormal(
-      wall.start as Vec2,
-      wall.end as Vec2,
-      room.shell.floor.polygon as Vec2[],
-    );
     // Türblatt-Endpunkt (90° offen, ins Rauminnere) für die Radiuslinie.
-    const [lx, ly] = toScreen([a[0] + n[0] * opening.width, a[1] + n[1] * opening.width], t);
+    const [lx, ly] = toScreen([a[0] + nIn[0] * opening.width, a[1] + nIn[1] * opening.width], t);
     return (
       <g>
-        {/* Schwelle: dünne Linie über die Wandstärke an beiden Laibungen */}
-        <line
-          x1={ax + nWand[0] * h * t.scale}
-          y1={ay + nWand[1] * h * t.scale}
-          x2={ax - nWand[0] * h * t.scale}
-          y2={ay - nWand[1] * h * t.scale}
-          stroke={WAND_KANTE}
-          strokeWidth={1}
-        />
-        <line
-          x1={bx + nWand[0] * h * t.scale}
-          y1={by + nWand[1] * h * t.scale}
-          x2={bx - nWand[0] * h * t.scale}
-          y2={by - nWand[1] * h * t.scale}
-          stroke={WAND_KANTE}
-          strokeWidth={1}
-        />
-        {/* Türblatt (Radius) + Viertelkreis-Schwenk */}
-        <line x1={ax} y1={ay} x2={lx} y2={ly} stroke="#9aa6a0" strokeWidth={1.5} />
+        {/* Schwelle: dünne Linie über die Wandstärke (aussen→innen) je Laibung */}
+        <line x1={aOx} y1={aOy} x2={aIx} y2={aIy} stroke={WAND_KANTE} strokeWidth={1} />
+        <line x1={bOx} y1={bOy} x2={bIx} y2={bIy} stroke={WAND_KANTE} strokeWidth={1} />
+        {/* Türblatt (Radius) + Viertelkreis-Schwenk, ab der Aussenkante */}
+        <line x1={aOx} y1={aOy} x2={lx} y2={ly} stroke="#9aa6a0" strokeWidth={1.5} />
         <polyline
-          points={schwenkPunkte(a, opening.width, n, u, t)}
+          points={schwenkPunkte(a, opening.width, nIn, u, t)}
           fill="none"
           stroke="#9aa6a0"
           strokeWidth={1.5}
@@ -185,38 +179,18 @@ function Oeffnung({
     );
   }
 
-  // Fenster: Glas IN der Wand – zwei Rahmenlinien bündig mit den Wandflächen
-  // (±halbe Wandstärke entlang der Normale) + Mittellinie, alle entlang der Achse.
-  const rahmen = (seite: number) => ({
-    x1: ax + nWand[0] * h * t.scale * seite,
-    y1: ay + nWand[1] * h * t.scale * seite,
-    x2: bx + nWand[0] * h * t.scale * seite,
-    y2: by + nWand[1] * h * t.scale * seite,
-  });
-  const aussen = rahmen(1);
-  const innen = rahmen(-1);
+  // Fenster: Glas IN der Wand – Rahmenlinie an Aussen- und Innenkante (0 / volle
+  // Wandstärke) + Mittellinie, alle entlang der Achse; Laibungen schliessen ab.
+  const [mAx, mAy] = scr(a, 0.5);
+  const [mBx, mBy] = scr(b, 0.5);
   return (
     <g>
-      <line {...aussen} stroke={FENSTER_GLAS} strokeWidth={1.6} />
-      <line {...innen} stroke={FENSTER_GLAS} strokeWidth={1.6} />
-      <line x1={ax} y1={ay} x2={bx} y2={by} stroke={FENSTER_GLAS} strokeWidth={1.2} />
+      <line x1={aOx} y1={aOy} x2={bOx} y2={bOy} stroke={FENSTER_GLAS} strokeWidth={1.6} />
+      <line x1={aIx} y1={aIy} x2={bIx} y2={bIy} stroke={FENSTER_GLAS} strokeWidth={1.6} />
+      <line x1={mAx} y1={mAy} x2={mBx} y2={mBy} stroke={FENSTER_GLAS} strokeWidth={1.2} />
       {/* Laibungskanten (schmale Querlinien) schliessen die Lücke sauber ab */}
-      <line
-        x1={aussen.x1}
-        y1={aussen.y1}
-        x2={innen.x1}
-        y2={innen.y1}
-        stroke={WAND_KANTE}
-        strokeWidth={0.8}
-      />
-      <line
-        x1={aussen.x2}
-        y1={aussen.y2}
-        x2={innen.x2}
-        y2={innen.y2}
-        stroke={WAND_KANTE}
-        strokeWidth={0.8}
-      />
+      <line x1={aOx} y1={aOy} x2={aIx} y2={aIy} stroke={WAND_KANTE} strokeWidth={0.8} />
+      <line x1={bOx} y1={bOy} x2={bIx} y2={bIy} stroke={WAND_KANTE} strokeWidth={0.8} />
     </g>
   );
 }
@@ -260,6 +234,22 @@ function clearanceRegel(rules: readonly Rule[], funktionsTyp: string): Rule | un
   return rules.find((r) => r.type === "clearance" && r.appliesTo === funktionsTyp);
 }
 
+/** Häufigster Wert einer Zahlenliste (für die Referenz-Wandstärke der Gehrung). */
+function haeufigste(werte: number[]): number | undefined {
+  if (werte.length === 0) return undefined;
+  const zaehler = new Map<number, number>();
+  for (const v of werte) zaehler.set(v, (zaehler.get(v) ?? 0) + 1);
+  let beste = werte[0];
+  let max = 0;
+  for (const [v, n] of zaehler) {
+    if (n > max) {
+      max = n;
+      beste = v;
+    }
+  }
+  return beste;
+}
+
 export function Viewer2D({
   room,
   placements,
@@ -291,6 +281,19 @@ export function Viewer2D({
   const floor = room.shell.floor.polygon as Vec2[];
   const t = computeTransform(floor, SIZE, PAD);
   const floorPts = floor.map((p) => toScreen(p, t).join(",")).join(" ");
+
+  // CAD-Wände: die Raumkontur ist die AUSSENKANTE, die Wandstärke wächst nach
+  // innen. Für saubere (gehrungsverbundene) Ecken wird das nach innen versetzte
+  // Innenpolygon einmal berechnet und je Eckpunkt der Wände nachgeschlagen. Die
+  // Wandstärke ist im POC pro Raum einheitlich; als Referenz für die Gehrung
+  // dient die häufigste Stärke (offene 0-Wände zählen nicht).
+  const wandDicken = room.shell.walls
+    .map((w) => (w as { thickness?: number }).thickness ?? WANDDICKE_FALLBACK)
+    .filter((d) => d > 1e-6);
+  const refDicke = haeufigste(wandDicken) ?? WANDDICKE_FALLBACK;
+  const innen = innenPolygon(floor, refDicke);
+  const eckKey = (p: Vec2 | readonly [number, number]) => `${p[0].toFixed(4)},${p[1].toFixed(4)}`;
+  const innenKarte = new Map(floor.map((p, i) => [eckKey(p), innen[i]]));
 
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -441,35 +444,34 @@ export function Viewer2D({
               Öffnungen segmentiert (echte Aussparung in der Wandstärke). */}
           {sichtbareLayer.waende &&
             room.shell.walls.map((w) => {
-              const massiv = w.kind === "massiv";
               const dicke = (w as { thickness?: number }).thickness ?? WANDDICKE_FALLBACK;
-              const dx = w.end[0] - w.start[0];
-              const dz = w.end[1] - w.start[1];
-              const len = Math.hypot(dx, dz) || 1;
-              const u: Vec2 = [dx / len, dz / len];
+              if (dicke <= 1e-6) return null; // offene Seite (Grossraum): keine Wand
+              const massiv = w.kind === "massiv";
+              const nIn = innwardNormal(w.start as Vec2, w.end as Vec2, floor);
               const eigene = room.openings
                 .filter((o) => o.hostWall === w.id)
                 .map((o) => ({ offset: o.offset, width: o.width }));
-              const { segmente } = wandLuecken(len, eigene);
+              const baender = wandBaender(
+                w.start as Vec2,
+                w.end as Vec2,
+                nIn,
+                dicke,
+                eigene,
+                innenKarte.get(eckKey(w.start)),
+                innenKarte.get(eckKey(w.end)),
+              );
               return (
                 <g key={w.id}>
-                  {segmente.map((s, i) => {
-                    const p0: Vec2 = [w.start[0] + u[0] * s.a, w.start[1] + u[1] * s.a];
-                    const p1: Vec2 = [w.start[0] + u[0] * s.b, w.start[1] + u[1] * s.b];
-                    const pts = wallQuad(p0, p1, dicke)
-                      .map((p) => toScreen(p, t).join(","))
-                      .join(" ");
-                    return (
-                      <polygon
-                        key={i}
-                        points={pts}
-                        fill={massiv ? WAND_FUELLUNG_MASSIV : WAND_FUELLUNG_LEICHT}
-                        stroke={WAND_KANTE}
-                        strokeWidth={0.8}
-                        fillOpacity={massiv ? 1 : 0.85}
-                      />
-                    );
-                  })}
+                  {baender.map((band, i) => (
+                    <polygon
+                      key={i}
+                      points={band.map((p) => toScreen(p, t).join(",")).join(" ")}
+                      fill={massiv ? WAND_FUELLUNG_MASSIV : WAND_FUELLUNG_LEICHT}
+                      stroke={WAND_KANTE}
+                      strokeWidth={0.8}
+                      fillOpacity={massiv ? 1 : 0.85}
+                    />
+                  ))}
                 </g>
               );
             })}

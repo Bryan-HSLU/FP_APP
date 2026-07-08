@@ -95,6 +95,91 @@ export function wallQuad(start: Vec2, end: Vec2, thickness: number): Vec2[] {
   ];
 }
 
+/** Schnittpunkt zweier Geraden (Punkt + Richtung). `null` bei (nahezu) parallel. */
+function schnittGeraden(p1: Vec2, d1: Vec2, p2: Vec2, d2: Vec2): Vec2 | null {
+  const denom = d1[0] * d2[1] - d1[1] * d2[0];
+  if (Math.abs(denom) < 1e-9) return null;
+  const wx = p2[0] - p1[0];
+  const wz = p2[1] - p1[1];
+  const s = (wx * d2[1] - wz * d2[0]) / denom;
+  return [p1[0] + d1[0] * s, p1[1] + d1[1] * s];
+}
+
+/**
+ * Nach innen versetztes Polygon (CAD-Wand-Innenkante): jeder Eckpunkt wird
+ * entlang der **Winkelhalbierenden** um `thickness` ins Rauminnere versetzt
+ * (Gehrung/Miter über den Schnitt der beiden versetzten Kanten-Geraden). Das
+ * Aussenpolygon (= Raumkontur) bleibt die Wand-AUSSENKANTE; die Wandstärke
+ * wächst von dort nach innen. Ergebnis-Index i gehört zu `polygon[i]`, sodass
+ * benachbarte Wände sich denselben Eckpunkt teilen (keine Lücke/Überlappung).
+ * Kollineare Ecken (180°, kein echter Knick) fallen auf den reinen Normalen-
+ * versatz zurück.
+ */
+export function innenPolygon(polygon: Vec2[], thickness: number): Vec2[] {
+  const n = polygon.length;
+  return polygon.map((curr, i) => {
+    const prev = polygon[(i - 1 + n) % n] as Vec2;
+    const next = polygon[(i + 1) % n] as Vec2;
+    const nPrev = innwardNormal(prev, curr, polygon);
+    const nNext = innwardNormal(curr, next, polygon);
+    const p1: Vec2 = [curr[0] + nPrev[0] * thickness, curr[1] + nPrev[1] * thickness];
+    const d1: Vec2 = [curr[0] - prev[0], curr[1] - prev[1]];
+    const p2: Vec2 = [curr[0] + nNext[0] * thickness, curr[1] + nNext[1] * thickness];
+    const d2: Vec2 = [next[0] - curr[0], next[1] - curr[1]];
+    return schnittGeraden(p1, d1, p2, d2) ?? p1;
+  });
+}
+
+/**
+ * Wand-«Bänder» einer Wand als gefüllte Polygone (Welt) im CAD-Look: die
+ * Aussenkante liegt exakt auf der Wandachse (= Raumpolygon-Linie), die Stärke
+ * wächst per `nInnen` nach innen. Pro Öffnung wird das Band ausgespart
+ * (Segmentierung via `wandLuecken`) – ein Band je Voll-Segment.
+ *
+ * An den Wand-Enden (Raumecken) werden – falls übergeben – die gehrungs-
+ * versetzten Innenpunkte `innerStart`/`innerEnd` aus {@link innenPolygon}
+ * verwendet, damit die Ecken sauber schliessen. Für Öffnungs-Laibungen mitten
+ * in der Wand (kein Eck) genügt der senkrechte Normalenversatz – er liegt auf
+ * derselben Innenkanten-Geraden wie die Gehrungsecke.
+ *
+ * @param start   Wand-Startpunkt (Welt, auf der Aussenkante)
+ * @param end     Wand-Endpunkt (Welt, auf der Aussenkante)
+ * @param nInnen  Einheits-Normale ins Rauminnere (siehe innwardNormal)
+ * @param thickness Wandstärke (m)
+ * @param oeffnungen Öffnungen dieser Wand (offset/width entlang der Achse)
+ * @param innerStart optionaler Gehrungs-Innenpunkt am Start (sonst Normalversatz)
+ * @param innerEnd   optionaler Gehrungs-Innenpunkt am Ende (sonst Normalversatz)
+ * @returns je Voll-Segment ein Polygon [aussenA, aussenB, innenB, innenA]
+ */
+export function wandBaender(
+  start: Vec2,
+  end: Vec2,
+  nInnen: Vec2,
+  thickness: number,
+  oeffnungen: { offset: number; width: number }[],
+  innerStart?: Vec2,
+  innerEnd?: Vec2,
+): Vec2[][] {
+  const dx = end[0] - start[0];
+  const dz = end[1] - start[1];
+  const len = Math.hypot(dx, dz) || 1;
+  const u: Vec2 = [dx / len, dz / len];
+  const EPS = 1e-6;
+  const innenVersatz = (p: Vec2): Vec2 => [
+    p[0] + nInnen[0] * thickness,
+    p[1] + nInnen[1] * thickness,
+  ];
+  const { segmente } = wandLuecken(len, oeffnungen);
+  return segmente.map(({ a, b }) => {
+    const aussenA: Vec2 = [start[0] + u[0] * a, start[1] + u[1] * a];
+    const aussenB: Vec2 = [start[0] + u[0] * b, start[1] + u[1] * b];
+    const innenA: Vec2 = a <= EPS ? (innerStart ?? innenVersatz(aussenA)) : innenVersatz(aussenA);
+    const innenB: Vec2 =
+      b >= len - EPS ? (innerEnd ?? innenVersatz(aussenB)) : innenVersatz(aussenB);
+    return [aussenA, aussenB, innenB, innenA];
+  });
+}
+
 /** Euklidische Distanz (Meter) zwischen zwei Weltpunkten – für das Messwerkzeug. */
 export function distanz(a: Vec2, b: Vec2): number {
   return Math.hypot(b[0] - a[0], b[1] - a[1]);
