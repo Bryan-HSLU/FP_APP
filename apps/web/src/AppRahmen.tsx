@@ -110,7 +110,7 @@ export function AppRahmen({
                 cursor: "not-allowed",
               }}
             >
-              <Piktogramm name="hilfe" groesse={22} titel="Menü" />
+              <Piktogramm name="hilfe" groesse={28} titel="Menü" />
             </button>
           )}
         </div>

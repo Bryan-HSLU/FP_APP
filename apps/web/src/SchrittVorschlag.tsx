@@ -84,7 +84,7 @@ function Ausloeser({
         <p style={{ fontSize: 13, color: THEME.gruen }}>
           <Piktogramm
             name="stilprofil"
-            groesse={14}
+            groesse={18}
             style={{ display: "inline-block", verticalAlign: "middle" }}
           />{" "}
           Stilprofil aktiv – der Vorschlag folgt deinen Vorlieben.
@@ -187,7 +187,7 @@ function Ausloeser({
           alignItems: "center",
         }}
       >
-        <Piktogramm name="vorschlag" groesse={20} style={{ filter: "brightness(0) invert(1)" }} />
+        <Piktogramm name="vorschlag" groesse={26} style={{ filter: "brightness(0) invert(1)" }} />
         Vorschlag erstellen
       </button>
     </div>
@@ -253,7 +253,7 @@ function Ergebnis({
               marginBottom: 12,
             }}
           >
-            <Piktogramm name="norm" aktiv={!status.ok} groesse={26} />
+            <Piktogramm name="norm" aktiv={!status.ok} groesse={34} />
             <span style={{ color: status.farbe, fontWeight: 600 }}>
               {status.ok ? "✓ " : "⚠ "}
               {status.text}
@@ -313,7 +313,7 @@ function Ergebnis({
             >
               <Piktogramm
                 name="moebel"
-                groesse={18}
+                groesse={24}
                 style={{ filter: "brightness(0) invert(1)" }}
               />
               Ansehen &amp; anpassen
@@ -334,7 +334,7 @@ function Ergebnis({
                 alignItems: "center",
               }}
             >
-              <Piktogramm name="varianten" groesse={18} /> Neue Variante
+              <Piktogramm name="varianten" groesse={24} /> Neue Variante
             </button>
           </div>
 

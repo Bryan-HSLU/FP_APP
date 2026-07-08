@@ -89,18 +89,21 @@ export function Fortschrittsweg({
             >
               <span
                 style={{
-                  width: 26,
-                  height: 26,
+                  width: 34,
+                  height: 34,
                   borderRadius: 999,
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
                   color: "#fff",
                   fontWeight: 600,
-                  fontSize: 13,
+                  fontSize: 15,
                   flex: "0 0 auto",
                   background: KREIS_FARBE[zustand],
-                  boxShadow: zustand === "aktiv" ? "0 0 0 3px rgba(214,145,79,0.28)" : "none",
+                  boxShadow:
+                    zustand === "aktiv"
+                      ? "0 0 0 3px rgba(214,145,79,0.28)"
+                      : "inset 0 0 8px rgba(255,255,255,0.35)",
                 }}
               >
                 {zustand === "erledigt" ? "✓" : nr}

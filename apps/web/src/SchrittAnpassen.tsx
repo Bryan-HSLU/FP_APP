@@ -73,7 +73,7 @@ function OberflaecheKarte({
   return (
     <div className={`${CSS.card} ${CSS.cardAktiv}`} style={{ padding: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-        <Piktogramm name="material" groesse={28} />
+        <Piktogramm name="material" groesse={36} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <h3 style={{ ...titel, margin: 0, fontSize: 16 }}>Oberfläche</h3>
           <span style={{ fontSize: 12, color: THEME.salbei }}>{istBoden ? "Boden" : "Wände"}</span>
@@ -201,7 +201,7 @@ export function SchrittAnpassen({
         ) : gewaehltesItem ? (
           <div className={`${CSS.card} ${CSS.cardAktiv}`} style={{ padding: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-              <Piktogramm name="moebel" groesse={28} />
+              <Piktogramm name="moebel" groesse={36} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <h3 style={{ ...titel, margin: 0, fontSize: 16 }}>{gewaehltesItem.name}</h3>
                 <span style={{ fontSize: 12, color: THEME.salbei }}>
@@ -259,7 +259,7 @@ export function SchrittAnpassen({
                 marginBottom: 12,
               }}
             >
-              <Piktogramm name="norm" aktiv={st.aktiv} groesse={20} />
+              <Piktogramm name="norm" aktiv={st.aktiv} groesse={26} />
               <span style={{ color: st.farbe, fontWeight: 600 }}>{st.text}</span>
             </div>
 
@@ -329,7 +329,7 @@ export function SchrittAnpassen({
               <Piktogramm
                 name={gesperrt ? "norm" : "material"}
                 aktiv={false}
-                groesse={16}
+                groesse={22}
                 style={gesperrt ? { filter: "brightness(0) invert(1)" } : undefined}
               />
               {gesperrt ? "Entsperren" : "Sperren"}
@@ -367,7 +367,7 @@ export function SchrittAnpassen({
                 justifyContent: "center",
               }}
             >
-              <Piktogramm name="varianten" groesse={18} /> Andere Variante würfeln
+              <Piktogramm name="varianten" groesse={24} /> Andere Variante würfeln
             </button>
 
             {begruendung && (

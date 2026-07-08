@@ -32,10 +32,18 @@
   --fp-font-body: "GeosansLight", "Century Gothic", "Futura", system-ui, sans-serif;
 
   /* Vereinheitlichter Kartenstil: harter Schlagschatten OHNE Blur (gleiche
-     Richtung/Stärke überall) + weisser Innenschein. */
-  --fp-card-border: 1px solid rgba(36, 61, 53, 0.22);
+     Richtung/Stärke überall) + weisser Innenschein. Der Innenschein (inset)
+     ist bewusst kräftiger als der Schlagschatten – Bryan: «Schein nach innen
+     überall UND stärker» (2026-07-08). Rand etwas kräftiger grün eingefärbt,
+     damit die CI-Farbe auch im Ruhezustand sichtbar bleibt. */
+  --fp-card-border: 1px solid rgba(36, 61, 53, 0.3);
   --fp-card-radius: 12px;
-  --fp-card-shadow: 7px 7px 0 rgba(36, 61, 53, 0.15), inset 0 0 18px rgba(240, 247, 242, 0.85);
+  --fp-card-shadow:
+    7px 7px 0 rgba(36, 61, 53, 0.18), inset 0 0 30px rgba(240, 247, 242, 0.95),
+    inset 0 0 8px rgba(255, 255, 255, 0.7);
+  /* Innenschein allein (für Flächen ohne Schlagschatten, z. B. .fp-card-flach,
+     .fp-soft). */
+  --fp-inner-glow: inset 0 0 26px rgba(240, 247, 242, 0.95), inset 0 0 8px rgba(255, 255, 255, 0.7);
 }
 
 * {
@@ -66,25 +74,32 @@ body {
   border-radius: var(--fp-card-radius);
   box-shadow: var(--fp-card-shadow);
 }
-/* Unterelemente flacher: nur Rahmen + Radius, kein Schlagschatten. */
+/* Unterelemente flacher: Rahmen + Radius + Innenschein, aber kein
+   Schlagschatten (bewusst flacher als .fp-card). */
 .fp-card-flach {
   background: #fff;
   border: var(--fp-card-border);
   border-radius: var(--fp-card-radius);
-  box-shadow: none;
+  box-shadow: var(--fp-inner-glow);
 }
-/* Aktive/ausgewählte Karte: oranger Rand (gleiche Schattenrichtung). */
+/* Aktive/ausgewählte Karte: oranger Rand (gleiche Schattenrichtung), Innenschein
+   ebenfalls verstärkt. */
 .fp-card-aktiv {
   border-color: var(--fp-accent);
   box-shadow:
-    7px 7px 0 rgba(214, 145, 79, 0.2),
-    inset 0 0 18px rgba(240, 247, 242, 0.85);
+    7px 7px 0 rgba(214, 145, 79, 0.22),
+    inset 0 0 30px rgba(240, 247, 242, 0.95),
+    inset 0 0 8px rgba(255, 255, 255, 0.7);
 }
 
-/* Sekundärfläche/Infobox/Ladefläche – Off-White ist hier erlaubt. */
+/* Sekundärfläche/Infobox/Ladefläche – Off-White ist hier erlaubt. Innenschein
+   in Weiss, damit er auf dem Off-White-Grund sichtbar bleibt. */
 .fp-soft {
   background: var(--fp-soft);
   border-radius: var(--fp-card-radius);
+  box-shadow:
+    inset 0 0 22px rgba(255, 255, 255, 0.85),
+    inset 0 0 0 1px rgba(36, 61, 53, 0.08);
 }
 
 /* ---------- Buttons ---------- */
@@ -92,8 +107,9 @@ body {
    sprache: harter Schlagschatten (kleiner als Karten) + Schein nach innen. */
 .fp-farbig {
   box-shadow:
-    4px 4px 0 rgba(36, 61, 53, 0.18),
-    inset 0 0 10px rgba(255, 255, 255, 0.35);
+    4px 4px 0 rgba(36, 61, 53, 0.22),
+    inset 0 0 18px rgba(255, 255, 255, 0.55),
+    inset 0 0 5px rgba(255, 255, 255, 0.8);
 }
 
 .fp-button {
@@ -111,15 +127,32 @@ body {
 }
 
 /* Auswählbare Karte: hebt leicht an; der orange Rand kommt über
-   .fp-card-aktiv dazu. */
+   .fp-card-aktiv dazu. Im Hover/Fokus wird der Rand kräftig CI-grün, damit
+   Interaktion klar als «unsere Farbe» erkennbar ist (Bryan: mehr Grüntöne). */
 .fp-auswahl {
   transition:
     transform 140ms ease,
     box-shadow 140ms ease,
     border-color 140ms ease;
 }
-.fp-auswahl:hover {
+.fp-auswahl:hover,
+.fp-auswahl:focus-visible {
   transform: translateY(-2px);
+  border-color: var(--fp-primary);
+}
+.fp-auswahl:not(.fp-card-aktiv):hover {
+  box-shadow:
+    7px 7px 0 rgba(36, 61, 53, 0.15),
+    inset 0 0 30px rgba(240, 247, 242, 0.95),
+    inset 0 0 8px rgba(255, 255, 255, 0.7),
+    0 0 0 2px rgba(36, 61, 53, 0.18);
+}
+
+/* Fokus allgemein (Tastatur): grüner Ring statt Browser-Default, konsistent
+   zur CI. */
+.fp-button:focus-visible {
+  outline: 2px solid var(--fp-primary);
+  outline-offset: 2px;
 }
 
 /* ---------- Schrittwechsel-Einblendung (einmalig via CSS-Animation) ---------- */

@@ -244,7 +244,7 @@ export interface PiktogrammProps {
 export function Piktogramm({
   name,
   aktiv = false,
-  groesse = 24,
+  groesse = 28,
   className,
   style,
   titel,

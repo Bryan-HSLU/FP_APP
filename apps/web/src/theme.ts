@@ -59,17 +59,21 @@ export const CSS = {
 /** Harter Schlagschatten OHNE Blur (scharfe Kante) – Bryans Pitch-/Grafikstil.
  *  Der Blur-Radius (3. Wert) ist bewusst 0. Deckungsgleich mit --fp-card-shadow
  *  (nur der Schlagschatten-Anteil). */
-export const schlagschatten = "7px 7px 0 rgba(36,61,53,0.15)";
+export const schlagschatten = "7px 7px 0 rgba(36,61,53,0.18)";
 
-/** Weisser Schein nach innen (inner glow) – CI-Grafiksprache. */
-export const innerGlow = "inset 0 0 18px rgba(240,247,242,0.85)";
+/** Weisser Schein nach innen (inner glow) – CI-Grafiksprache. Kräftiger als
+ *  v1 (Bryan, 2026-07-08: «Schein nach innen überall UND stärker»).
+ *  Deckungsgleich mit --fp-inner-glow / dem Innenschein-Anteil von
+ *  --fp-card-shadow. */
+export const innerGlow =
+  "inset 0 0 30px rgba(240,247,242,0.95), inset 0 0 8px rgba(255,255,255,0.7)";
 
 /** Wiederverwendbares Karten-Style-Objekt für Inline-Styles (spiegelt
  *  `.fp-card`). Wo möglich stattdessen `className={CSS.card}` nutzen. */
 export const karte = {
   background: "#ffffff",
   borderRadius: 12,
-  border: "1px solid rgba(36,61,53,0.22)",
+  border: "1px solid rgba(36,61,53,0.3)",
   boxShadow: `${schlagschatten}, ${innerGlow}`,
 } as const;
 

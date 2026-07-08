@@ -68,7 +68,7 @@ export function Ladezustand({ variante, piktogramm, titel, text }: LadezustandPr
         textAlign: "center",
       }}
     >
-      <Piktogramm name={iconName} groesse={48} className={CSS.piktogrammPuls} titel={kopf} />
+      <Piktogramm name={iconName} groesse={64} className={CSS.piktogrammPuls} titel={kopf} />
       <div style={{ ...titelStil, fontSize: 16, letterSpacing: "0.06em" }}>{kopf}</div>
       {unter && <div style={{ fontSize: 13, color: "var(--fp-muted)" }}>{unter}</div>}
     </div>

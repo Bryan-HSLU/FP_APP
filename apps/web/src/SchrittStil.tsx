@@ -173,7 +173,7 @@ export function SchrittStil({
           ) : zeigeStopp ? (
             /* ---------- Konvergenz-Stopp ---------- */
             <div style={{ textAlign: "center", padding: "16px 8px" }}>
-              <Piktogramm name="like" groesse={40} />
+              <Piktogramm name="like" groesse={56} />
               <p style={{ ...titel, fontSize: 18, margin: "12px 0 4px" }}>
                 Dein Stilprofil ist stabil.
               </p>
@@ -276,7 +276,7 @@ export function SchrittStil({
                     fontSize: 16,
                   }}
                 >
-                  <Piktogramm name="dislike" groesse={24} /> Gefällt nicht
+                  <Piktogramm name="dislike" groesse={32} /> Gefällt nicht
                 </button>
                 <button
                   type="button"
@@ -298,7 +298,7 @@ export function SchrittStil({
                 >
                   <Piktogramm
                     name="like"
-                    groesse={24}
+                    groesse={32}
                     style={{ filter: "brightness(0) invert(1)" }}
                   />{" "}
                   Gefällt mir

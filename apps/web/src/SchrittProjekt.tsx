@@ -98,7 +98,7 @@ export function SchrittProjekt({
               <Piktogramm
                 name={rt.key as PiktogrammName}
                 aktiv={aktiv}
-                groesse={64}
+                groesse={88}
                 titel={rt.label}
               />
               <span style={{ ...titel, fontSize: 19 }}>{rt.label}</span>
@@ -166,7 +166,7 @@ export function SchrittProjekt({
             gap: 8,
           }}
         >
-          <Piktogramm name="scan" groesse={18} /> Scan korrigieren
+          <Piktogramm name="scan" groesse={24} /> Scan korrigieren
         </button>
       )}
 
@@ -194,7 +194,7 @@ export function SchrittProjekt({
                     gap: 10,
                   }}
                 >
-                  <Piktogramm name={r.roomType as PiktogrammName} groesse={26} />
+                  <Piktogramm name={r.roomType as PiktogrammName} groesse={34} />
                   <strong style={{ color: THEME.gruen }}>{r.name}</strong>
                   <span style={{ fontSize: 12, color: THEME.salbei, marginLeft: "auto" }}>
                     {r.roomType}
@@ -235,7 +235,7 @@ function WegKarte({
 }) {
   const inhalt = (
     <>
-      <Piktogramm name={pikto} aktiv={aktiv} groesse={40} titel={kartenTitel} />
+      <Piktogramm name={pikto} aktiv={aktiv} groesse={56} titel={kartenTitel} />
       <span style={{ ...titel, fontSize: 15 }}>{kartenTitel}</span>
       <span style={{ fontSize: 12.5, color: FP_VAR.primary, lineHeight: 1.4 }}>{text}</span>
     </>
