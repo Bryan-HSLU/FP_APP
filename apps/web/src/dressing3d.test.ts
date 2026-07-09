@@ -9,6 +9,9 @@ const MASSE: [number, number, number][] = [
   [0.3, 0.22, 0.14], // Handtuchstapel (flach, breit)
   [0.28, 0.16, 0.2], // Ablage-Tray
   [0.24, 0.24, 0.55], // Zimmerpflanze (schmal, hoch)
+  [0.28, 0.09, 0.13], // Gewürzgläser-Set (sehr flach in d)
+  [0.2, 0.28, 0.34], // Kaffeemaschine (tief)
+  [0.3, 0.22, 0.06], // Geschirrtuch (extrem flach in h)
   [0.5, 0.5, 0.5], // Würfel-Kontrolle
 ];
 

@@ -312,6 +312,150 @@ const zimmerpflanze: Bauer = (w, d, h) => {
   ];
 };
 
+// ── Küchen-Deko (sparsam, «frisch gebaut»: neu, aufgeräumt, gestaged) ─────────
+
+// Schneidebrett mit Messerblock: flaches Holzbrett (gerundet) + kompakter
+// Messerblock mit drei angedeuteten, neuwertigen Messergriffen – kein Gebrauch.
+const schneidebrett: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.05;
+  return [
+    // Holzbrett (flach, gerundet)
+    rbox([w * 0.62, h * 0.13, d * 0.94], [-w * 0.16, -h / 2 + h * 0.065, 0], rr, "koerper"),
+    // Messerblock (dunkles Holz, rechts)
+    rbox([w * 0.3, h * 0.62, d * 0.66], [w * 0.3, -h / 2 + h * 0.31, 0], rr * 0.6, "dunkel"),
+    // Messergriffe (neuwertig, aus dem Block ragend)
+    box([w * 0.05, h * 0.4, d * 0.05], [w * 0.3, h * 0.3, -d * 0.2], "chrom"),
+    box([w * 0.05, h * 0.44, d * 0.05], [w * 0.3, h * 0.28, -d * 0.02], "hell"),
+    box([w * 0.05, h * 0.36, d * 0.05], [w * 0.3, h * 0.28, d * 0.18], "chrom"),
+  ];
+};
+
+// Kaffeemaschine kompakt: Edelstahlkorpus (gerundet) + dunkles Bedienpanel oben +
+// Brühkopf mit Auslauf, darunter eine saubere, leere Tasse – Showroom-Look.
+const kaffeemaschine: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.06;
+  return [
+    // Korpus (Edelstahl)
+    rbox([w * 0.9, h * 0.72, d * 0.8], [0, -h / 2 + h * 0.4, -d * 0.05], rr, "koerper"),
+    // Bedienpanel oben (dunkel)
+    rbox([w * 0.9, h * 0.14, d * 0.8], [0, h / 2 - h * 0.08, -d * 0.05], rr, "dunkel"),
+    // Brühkopf (Chrom) vorne
+    box([w * 0.32, h * 0.16, d * 0.18], [0, -h / 2 + h * 0.36, d * 0.32], "chrom"),
+    // Auslauf (Chrom)
+    zyl(w * 0.045, w * 0.055, h * 0.12, [0, -h / 2 + h * 0.24, d * 0.34], "chrom"),
+    // Tasse (hell) unter dem Auslauf
+    zyl(w * 0.15, w * 0.13, h * 0.13, [0, -h / 2 + h * 0.065, d * 0.34], "hell"),
+    // Siebträgergriff (dunkel)
+    box([w * 0.06, h * 0.05, d * 0.22], [w * 0.24, -h / 2 + h * 0.36, d * 0.3], "dunkel"),
+    // Bedienknopf (Chrom)
+    kugel(w * 0.05, [w * 0.28, h / 2 - h * 0.1, d * 0.02], "chrom"),
+  ];
+};
+
+// Obstschale mit Früchten: bauchige Keramikschale (Rotationskörper) + Innenrand +
+// ein paar gestapelte Früchte (Kugeln) – frisch angerichtet, aufgeräumt.
+const obstschale: Bauer = (w, d, h) => {
+  const r = Math.min(w, d);
+  const rF = r * 0.14;
+  return [
+    // Schale (bauchig)
+    drehteil(
+      [
+        [r * 0.16, -h * 0.42],
+        [r * 0.4, -h * 0.2],
+        [r * 0.5, h * 0.02],
+        [r * 0.48, h * 0.06],
+      ],
+      [0, 0, 0],
+      "koerper",
+    ),
+    // Innenrand (dunkler Schatten)
+    zyl(r * 0.42, r * 0.42, h * 0.02, [0, h * 0.05, 0], "dunkel"),
+    // Früchte (Kugeln, in der Schale)
+    kugel(rF, [-r * 0.16, h * 0.12, r * 0.02], "hell"),
+    kugel(rF * 0.95, [r * 0.08, h * 0.1, r * 0.14], "koerper"),
+    kugel(rF * 0.9, [r * 0.18, h * 0.13, -r * 0.08], "dunkel"),
+    kugel(rF * 0.85, [-r * 0.02, h * 0.22, -r * 0.04], "hell"),
+  ];
+};
+
+// Gewürzgläser-Set: kleine Ablage/Rack (gerundet) mit vier gleichen Gläschen
+// (Glas) samt farbiger Füllung und Chrom-Deckel – ordentlich aufgereiht.
+const gewuerzglaeser: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.08;
+  const jarR = Math.min(w * 0.1, d * 0.42);
+  const fuellRollen: Rolle[] = ["koerper", "hell", "dunkel", "hell"];
+  const teile: Teil[] = [
+    // Ablage/Rack (dunkel)
+    rbox([w, h * 0.12, d], [0, -h / 2 + h * 0.06, 0], rr, "dunkel"),
+  ];
+  const yBoden = -h / 2 + h * 0.12;
+  for (let i = 0; i < 4; i++) {
+    const cx = -w * 0.34 + (i * (w * 0.68)) / 3;
+    // Glaskörper
+    teile.push(zyl(jarR, jarR, h * 0.58, [cx, yBoden + h * 0.29, 0], "glas"));
+    // Gewürzfüllung (farbig, unten)
+    teile.push(
+      zyl(
+        jarR * 0.86,
+        jarR * 0.86,
+        h * 0.28,
+        [cx, yBoden + h * 0.15, 0],
+        fuellRollen[i] ?? "koerper",
+      ),
+    );
+    // Chrom-Deckel
+    teile.push(zyl(jarR * 0.94, jarR, h * 0.12, [cx, yBoden + h * 0.64, 0], "chrom"));
+  }
+  return teile;
+};
+
+// Kräutertopf: konischer Keramiktopf (Rotationskörper) + Erde + buschiges,
+// frisches Kraut aus mehreren versetzten grünen Kugeln.
+const kraeutertopf: Bauer = (w, d, h) => {
+  const r = Math.min(w, d);
+  const rL = Math.min(r * 0.34, h * 0.17);
+  const yBase = h * 0.02;
+  return [
+    // Topf (konisch)
+    drehteil(
+      [
+        [r * 0.3, -h * 0.48],
+        [r * 0.4, -h * 0.34],
+        [r * 0.44, -h * 0.16],
+        [r * 0.42, -h * 0.1],
+      ],
+      [0, 0, 0],
+      "koerper",
+    ),
+    // Erde
+    zyl(r * 0.38, r * 0.38, h * 0.04, [0, -h / 2 + h * 0.42, 0], "dunkel"),
+    // Kraut – buschig, mehrere versetzte Kugeln
+    kugel(rL, [0, yBase, 0], "koerper"),
+    kugel(rL * 0.82, [r * 0.22, yBase - rL * 0.4, r * 0.14], "hell"),
+    kugel(rL * 0.78, [-r * 0.2, yBase - rL * 0.35, -r * 0.12], "koerper"),
+    kugel(rL * 0.72, [r * 0.14, yBase + rL * 0.5, -r * 0.14], "hell"),
+    kugel(rL * 0.7, [-r * 0.14, yBase + rL * 0.55, r * 0.12], "koerper"),
+    kugel(rL * 0.62, [0, yBase + rL * 0.9, 0], "hell"),
+  ];
+};
+
+// Gefaltetes Geschirrtuch: zwei weiche, ordentlich gefaltete Lagen mit dezentem
+// Überhang und Faltkante – frisch aufgelegt, NICHT zerknüllt.
+const geschirrtuch: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.05;
+  return [
+    // untere Lage
+    rbox([w, h * 0.55, d * 0.9], [0, -h / 2 + h * 0.28, -d * 0.02], rr, "koerper"),
+    // obere Lage
+    rbox([w * 0.96, h * 0.5, d * 0.82], [0, -h / 2 + h * 0.72, -d * 0.02], rr, "hell"),
+    // Überhang vorne (leicht drapiert)
+    rbox([w * 0.9, h * 0.5, d * 0.16], [0, -h / 2 + h * 0.3, d * 0.42], rr * 0.8, "koerper"),
+    // Faltkante (dezent)
+    box([w * 0.92, h * 0.03, d * 0.02], [0, -h / 2 + h * 0.55, d * 0.4], "dunkel"),
+  ];
+};
+
 const DRESSING_BAUSAETZE: Record<string, Bauer> = {
   seifenspender,
   zahnputzbecher,
@@ -324,6 +468,12 @@ const DRESSING_BAUSAETZE: Record<string, Bauer> = {
   dekoschale,
   plaid,
   zimmerpflanze,
+  schneidebrett,
+  kaffeemaschine,
+  obstschale,
+  gewuerzglaeser,
+  kraeutertopf,
+  geschirrtuch,
 };
 
 /**
