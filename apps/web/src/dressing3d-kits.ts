@@ -179,12 +179,151 @@ const badpflanze: Bauer = (w, d, h) => {
   ];
 };
 
+// ── Wohnen-Deko (sparsam, «frisch gebaut»: neu, aufgeräumt, gestaged) ─────────
+
+// Bücherstapel: vier ordentlich gestapelte, leicht versetzte Bücher (weich
+// gerundete Buchblöcke) mit angedeutetem Buchrücken – kein Alltags-Chaos.
+const buecherstapel: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.03;
+  const lagen = 4;
+  const th = h / lagen;
+  const rollen: Rolle[] = ["koerper", "hell", "dunkel", "hell"];
+  const teile: Teil[] = [];
+  for (let i = 0; i < lagen; i++) {
+    const y = -h / 2 + th * (i + 0.5);
+    const shrink = 1 - i * 0.05;
+    const ox = (i % 2 === 0 ? 1 : -1) * w * 0.035;
+    const rolle = rollen[i] ?? "koerper";
+    teile.push(rbox([w * 0.94 * shrink, th * 0.82, d * 0.94 * shrink], [ox, y, 0], rr, rolle));
+    // Buchrücken (dezent dunkler, an einer Seite)
+    teile.push(
+      box([w * 0.02, th * 0.62, d * 0.88 * shrink], [ox - w * 0.46 * shrink, y, 0], "dunkel"),
+    );
+  }
+  return teile;
+};
+
+// Vase schlank: dezenter Keramikkörper (Rotationskörper) mit schmalem Hals +
+// Innenrand + Fussring. Bewusst leer (Showroom-Look, nichts benutzt).
+const vase: Bauer = (w, d, h) => {
+  const r = Math.min(w, d);
+  return [
+    drehteil(
+      [
+        [r * 0.18, -h * 0.48],
+        [r * 0.42, -h * 0.3],
+        [r * 0.46, -h * 0.02],
+        [r * 0.3, h * 0.3],
+        [r * 0.26, h * 0.44],
+        [r * 0.3, h * 0.48],
+      ],
+      [0, 0, 0],
+      "koerper",
+    ),
+    // Innenrand (dunkler Schatten der Öffnung)
+    zyl(r * 0.24, r * 0.24, h * 0.03, [0, h * 0.46, 0], "dunkel"),
+    // Fussring (hell)
+    zyl(r * 0.2, r * 0.22, h * 0.04, [0, -h / 2 + h * 0.04, 0], "hell"),
+  ];
+};
+
+// Kerzenständer-Paar: zwei polierte Metall-Kerzenständer (Fuss + Schaft) mit
+// je einer neuen, unbenutzten Kerze – unterschiedlich hoch, dezent gruppiert.
+const kerzenstaender: Bauer = (w, d, h) => {
+  const r = Math.min(w, d);
+  const stab = (cx: number, kerzeAnteil: number): Teil[] => {
+    const fussH = h * 0.06;
+    const schaftH = h * (kerzeAnteil < 0.5 ? 0.34 : 0.24);
+    const kerzeH = h * kerzeAnteil;
+    const fussY = -h / 2 + fussH / 2;
+    const schaftY = -h / 2 + fussH + schaftH / 2;
+    const kerzeY = -h / 2 + fussH + schaftH + kerzeH / 2;
+    const dochtY = kerzeY + kerzeH / 2 + h * 0.01;
+    return [
+      zyl(r * 0.32, r * 0.42, fussH, [cx, fussY, 0], "chrom"),
+      zyl(r * 0.12, r * 0.14, schaftH, [cx, schaftY, 0], "chrom"),
+      zyl(r * 0.2, r * 0.22, h * 0.03, [cx, schaftY + schaftH / 2, 0], "chrom"),
+      zyl(r * 0.16, r * 0.16, kerzeH, [cx, kerzeY, 0], "hell"),
+      box([r * 0.03, h * 0.02, r * 0.03], [cx, dochtY, 0], "dunkel"),
+    ];
+  };
+  return [...stab(-w * 0.24, 0.44), ...stab(w * 0.24, 0.34)];
+};
+
+// Deko-Schale mit Kugeln: flache gerundete Schale (Körper + Innenmulde) mit drei
+// dekorativen Kugeln – klassisches Staging-Objekt, aufgeräumt.
+const dekoschale: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.09;
+  const rK = Math.min(w, d) * 0.16;
+  return [
+    rbox([w, h * 0.5, d], [0, -h / 2 + h * 0.25, 0], rr, "koerper"),
+    rbox([w * 0.78, h * 0.4, d * 0.72], [0, -h / 2 + h * 0.42, 0], rr * 0.7, "dunkel"),
+    kugel(rK, [-w * 0.16, -h / 2 + h * 0.55, d * 0.02], "hell"),
+    kugel(rK * 0.9, [w * 0.06, -h / 2 + h * 0.52, d * 0.1], "koerper"),
+    kugel(rK * 0.82, [w * 0.2, -h / 2 + h * 0.54, -d * 0.08], "hell"),
+  ];
+};
+
+// Gefaltetes Plaid: ordentlich gefaltete Decke (zwei weiche Lagen) mit
+// überhängendem Zipfel – drapierter Staging-Look, NICHT zerknüllt.
+const plaid: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.06;
+  return [
+    rbox([w, h * 0.55, d], [0, -h / 2 + h * 0.275, 0], rr, "koerper"),
+    rbox([w * 0.96, h * 0.5, d * 0.92], [0, -h / 2 + h * 0.72, 0], rr, "hell"),
+    // überhängender Zipfel vorne (drapiert)
+    rbox([w * 0.9, h * 0.5, d * 0.18], [0, -h / 2 + h * 0.25, d * 0.4], rr * 0.8, "koerper"),
+    // Faltkanten (dezent)
+    box([w * 0.94, h * 0.02, d * 0.02], [0, -h / 2 + h * 0.55, d / 2 - d * 0.04], "dunkel"),
+    box([w * 0.9, h * 0.02, d * 0.02], [0, -h / 2 + h * 0.95, d * 0.32], "dunkel"),
+  ];
+};
+
+// Zimmerpflanze mittel (Klasse B): konischer Übertopf (Rotationskörper) + Erde +
+// zwei Stämme + volumetrisches Blattwerk aus versetzten Laub-Kugeln.
+const zimmerpflanze: Bauer = (w, d, h) => {
+  const r = Math.min(w, d);
+  const rL = Math.min(r * 0.46, h * 0.2);
+  const yT = h / 2 - rL * 1.1;
+  return [
+    // Übertopf (konisch)
+    drehteil(
+      [
+        [r * 0.3, -h * 0.48],
+        [r * 0.4, -h * 0.4],
+        [r * 0.44, -h * 0.3],
+        [r * 0.46, -h * 0.26],
+      ],
+      [0, 0, 0],
+      "koerper",
+    ),
+    // Erde
+    zyl(r * 0.4, r * 0.4, h * 0.03, [0, -h / 2 + h * 0.24, 0], "dunkel"),
+    // Stämme
+    zyl(r * 0.05, r * 0.06, h * 0.4, [r * 0.05, -h / 2 + h * 0.42, 0], "dunkel"),
+    zyl(r * 0.04, r * 0.05, h * 0.36, [-r * 0.06, -h / 2 + h * 0.4, r * 0.03], "dunkel"),
+    // Blattwerk – mehrere versetzte Kugeln
+    kugel(rL, [0, yT, 0], "koerper"),
+    kugel(rL * 0.7, [r * 0.16, yT - rL * 0.5, r * 0.12], "hell"),
+    kugel(rL * 0.64, [-r * 0.16, yT - rL * 0.45, -r * 0.12], "koerper"),
+    kugel(rL * 0.58, [r * 0.1, yT - rL * 0.95, -r * 0.14], "hell"),
+    kugel(rL * 0.52, [-r * 0.1, yT - rL * 0.85, r * 0.14], "koerper"),
+    kugel(rL * 0.5, [0, yT + rL * 0.4, 0], "hell"),
+  ];
+};
+
 const DRESSING_BAUSAETZE: Record<string, Bauer> = {
   seifenspender,
   zahnputzbecher,
   handtuchstapel,
   ablagetray,
   badpflanze,
+  buecherstapel,
+  vase,
+  kerzenstaender,
+  dekoschale,
+  plaid,
+  zimmerpflanze,
 };
 
 /**

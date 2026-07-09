@@ -58,6 +58,13 @@ const DRESSING_FARBE: Record<string, { warm: string; kuehl: string }> = {
   handtuchstapel: { warm: "#E8DCC8", kuehl: "#CBD6DD" },
   ablagetray: { warm: "#B9906B", kuehl: "#8C8F94" },
   badpflanze: { warm: "#6F8F6A", kuehl: "#7C948C" },
+  // Wohnen-Deko
+  buecherstapel: { warm: "#9C6B4A", kuehl: "#6E7A82" },
+  vase: { warm: "#D9C7B0", kuehl: "#C2CBD0" },
+  kerzenstaender: { warm: "#B8975B", kuehl: "#A9AEB2" },
+  dekoschale: { warm: "#C2A579", kuehl: "#9BA1A6" },
+  plaid: { warm: "#D8C4A0", kuehl: "#B7C2C8" },
+  zimmerpflanze: { warm: "#5F8457", kuehl: "#6E877D" },
 };
 const DRESSING_FARBE_FALLBACK = { warm: "#C9A38A", kuehl: "#AEB4B8" };
 
