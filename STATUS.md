@@ -8,6 +8,19 @@
 
 **Stand: 2026-07-09**
 
+### 3D-Volumetrie + Scene-Dressing für ALLE Raumtypen komplett (2026-07-09)
+- **Modelle** in höherer Volumetrie (rundbox/lathe/torus + Glas/Chrom) für
+  **Bad, Wohnen UND Küche** – alle `moebel3d`-Bauer klar erkennbar, nicht mehr
+  schematisch; Ampel-/Solver-Logik unberührt, bbox-Invariante bleibt.
+- **Scene-Dresser** für alle drei Raumtypen: `data/dressing/{bad,wohnen,kueche}.json`
+  + Kits in `dressing3d-kits.ts`, generischer Loader/Engine, „Deko"-Toggle.
+  Sparsam, „frisch gebaut". Verändert Plan/`constraintReport`/LV NICHT (0 ❌).
+- **Offen/Backlog:** komplett neue Möbeltypen aus Bryans Wunschliste (Recamiere,
+  Weinkühler, Doppelwaschtisch, Barwagen …) = eigener Schritt (Katalog+Regeln+
+  Solver). Deko-Sonderfall „an Gerätegriff hängen" bräuchte neue Platzierungsart.
+  Echtes Spiegel-Chrom bräuchte Environment-Map. Bryans echte `.glb` ersetzen
+  Platzhalter über `apps/web/public/assets/dressing/`.
+
 ### 3D-Modelle Bad – höhere Volumetrie (2026-07-09)
 - **Primitiv-System erweitert** (`apps/web/src/moebel3d.tsx`): neben box/zyl/kugel
   neu **`rundbox`** (RoundedBox), **`lathe`** (Rotationskörper), **`torus`** –
