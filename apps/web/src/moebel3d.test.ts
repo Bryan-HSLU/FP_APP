@@ -198,6 +198,53 @@ describe("Flagship-Bad-Modelle – Volumetrie & Chrom", () => {
   });
 });
 
+describe("Flagship-Wohnen/Schlafen-Modelle – Volumetrie & Materialien", () => {
+  const formen = (typ: string) => new Set(bauteile(typ, 1.2, 0.9, 0.85).map((t) => t.form));
+  const rollen = (typ: string) => new Set(bauteile(typ, 1.2, 0.9, 0.85).map((t) => t.rolle));
+
+  // Polster-/Korpus-Möbel: gerundete Kanten (rundbox) + genug Teile.
+  const gerundet = [
+    "sofa",
+    "sessel",
+    "sideboard",
+    "kommode",
+    "nachttisch",
+    "kleiderschrank",
+    "tvmoebel",
+    "bett",
+    "doppelbett",
+    "kinderbett",
+    "stuhl",
+    "buerostuhl",
+    "hocker",
+    "schreibtisch",
+  ];
+
+  it("nutzt gerundete Boxen (rundbox) und ist klar mehrteilig (>=6 Teile)", () => {
+    for (const typ of gerundet) {
+      expect(formen(typ).has("rundbox"), `${typ} nutzt rundbox`).toBe(true);
+      expect(bauteile(typ, 1.2, 0.9, 0.85).length, `${typ} >=6 Teile`).toBeGreaterThanOrEqual(6);
+    }
+  });
+
+  it("verbaut Chrom für Gestelle/Griffe/Füsse bei Polster- und Korpus-Möbeln", () => {
+    for (const typ of ["sofa", "sessel", "sideboard", "kommode", "nachttisch", "stuhl", "hocker"]) {
+      expect(rollen(typ).has("chrom"), `${typ} nutzt chrom`).toBe(true);
+    }
+  });
+
+  it("gibt dem TV-Möbel einen Glas-Screen und der Stehleuchte einen Rotationskörper", () => {
+    expect(rollen("tvmoebel").has("glas"), "tvmoebel hat Glas-Screen").toBe(true);
+    expect(formen("stehleuchte").has("lathe"), "stehleuchte hat Rotationskörper").toBe(true);
+    expect(rollen("stehleuchte").has("glas"), "stehleuchte hat Glas-Diffusor").toBe(true);
+  });
+
+  it("modelliert die Deko als Rotationskörper-Gefäss mit Chrom-Rand", () => {
+    expect(formen("deko").has("lathe"), "deko ist Rotationskörper").toBe(true);
+    expect(formen("deko").has("torus"), "deko hat Chrom-Ring").toBe(true);
+  });
+});
+
 describe("Farbableitung – Chrom-Rolle", () => {
   it("leitet Chrom als hellen Metallton aus der Basis-/Ampelfarbe ab", () => {
     // Aus der Ampelfarbe abgeleitet → Status dominiert weiter (kein Eigenwert).
