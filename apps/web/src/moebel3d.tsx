@@ -1201,21 +1201,31 @@ const hocker: Bauer = (w, d, h) => {
 // KÜCHE
 // ═══════════════════════════════════════════════════════════════════
 
-// Unterschrank: Korpus + 2 Türen + Griffe + Sockel + Arbeitsplatte
-const unterschrank: Bauer = (w, d, h) => [
-  // Korpus
-  box([w, h * 0.86, d], [0, -h / 2 + h * 0.49, 0], "koerper"),
-  // Arbeitsplatte
-  box([w, h * 0.07, d], [0, h / 2 - h * 0.035, 0], "dunkel"),
-  // Sockel
-  box([w * 0.92, h * 0.06, d * 0.6], [0, -h / 2 + h * 0.03, 0], "dunkel"),
-  // Türtrennlinie
-  box([w * 0.014, h * 0.72, d * 0.02], [0, -h * 0.04, d / 2 - d * 0.01], "dunkel"),
-  // Griff links
-  box([w * 0.3, h * 0.03, d * 0.04], [-w * 0.24, h * 0.04, d / 2 - d * 0.02], "hell"),
-  // Griff rechts
-  box([w * 0.3, h * 0.03, d * 0.04], [w * 0.24, h * 0.04, d / 2 - d * 0.02], "hell"),
-];
+// Unterschrank: gerundeter Korpus + Arbeitsplatte mit gerundeter Vorderkante +
+// zurückgesetzter Sockel + 2 leicht erhabene Türfronten (Fugen) + vertikale
+// Chrom-Griffe. Arbeitsplatten-Oberkante liegt bündig an der bbox-Oberkante,
+// damit die Küchenzeile durchgehend wirkt.
+const unterschrank: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.04;
+  return [
+    // Korpus (gerundete Kanten)
+    rbox([w, h * 0.84, d], [0, -h / 2 + h * 0.48, 0], rr, "koerper"),
+    // Arbeitsplatte (leicht überstehend, gerundete Vorderkante)
+    rbox([w, h * 0.08, d * 1.02], [0, h / 2 - h * 0.04, d * 0.01], rr * 0.7, "dunkel"),
+    // Zurückgesetzter Sockel (Fussleiste)
+    box([w * 0.92, h * 0.08, d * 0.86], [0, -h / 2 + h * 0.04, -d * 0.02], "dunkel"),
+    // Türfuge (senkrecht, mittig)
+    box([w * 0.012, h * 0.7, d * 0.02], [0, -h * 0.06, d / 2 - d * 0.008], "dunkel"),
+    // Linke Türfront (leicht erhaben, gerundet)
+    rbox([w * 0.46, h * 0.7, d * 0.04], [-w * 0.245, -h * 0.06, d / 2 - d * 0.02], rr * 0.5, "hell"),
+    // Rechte Türfront
+    rbox([w * 0.46, h * 0.7, d * 0.04], [w * 0.245, -h * 0.06, d / 2 - d * 0.02], rr * 0.5, "hell"),
+    // Vertikaler Chrom-Griff links (an der Innenkante)
+    zyl(w * 0.014, w * 0.014, h * 0.3, [-w * 0.03, -h * 0.06, d / 2 - d * 0.03], "chrom"),
+    // Vertikaler Chrom-Griff rechts
+    zyl(w * 0.014, w * 0.014, h * 0.3, [w * 0.03, -h * 0.06, d / 2 - d * 0.03], "chrom"),
+  ];
+};
 
 // Hochschrank (schlank): gerundeter Korpus, Türfuge, 2 vertikale Chrom-Griffe,
 // zurückgesetzter Sockel, obere Abschlussleiste.
@@ -1237,33 +1247,62 @@ const hochschrank: Bauer = (w, d, h) => {
   ];
 };
 
-// Hängeschrank: Korpus + Griff + Unterboden (sichtbar bei Wandmontage)
-const haengeschrank: Bauer = (w, d, h) => [
-  // Korpus
-  box([w, h, d], [0, 0, 0], "koerper"),
-  // Türtrennlinie
-  box([w * 0.014, h * 0.92, d * 0.02], [0, 0, d / 2 - d * 0.01], "dunkel"),
-  // Griff
-  box([w * 0.42, h * 0.03, d * 0.04], [0, -h / 2 + h * 0.14, d / 2 - d * 0.02], "hell"),
-  // Unterboden sichtbar
-  box([w * 0.96, h * 0.04, d * 0.96], [0, -h / 2 + h * 0.02, 0], "dunkel"),
-];
+// Hängeschrank (Wandschrank): gerundeter Korpus + 2 leicht erhabene Türfronten
+// mit Mittelfuge + vertikale Chrom-Griffe + sichtbarer Unterboden + obere
+// Abschlussleiste. Rückseite an der Wand (-z).
+const haengeschrank: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.05;
+  return [
+    // Korpus (gerundet)
+    rbox([w, h * 0.94, d], [0, h * 0.01, 0], rr, "koerper"),
+    // Obere Abschlussleiste (gerundet)
+    rbox([w, h * 0.05, d], [0, h / 2 - h * 0.025, 0], rr * 0.5, "hell"),
+    // Türfuge (senkrecht, mittig)
+    box([w * 0.012, h * 0.82, d * 0.02], [0, h * 0.01, d / 2 - d * 0.008], "dunkel"),
+    // Linke Türfront (leicht erhaben, gerundet)
+    rbox([w * 0.46, h * 0.82, d * 0.05], [-w * 0.245, h * 0.01, d / 2 - d * 0.025], rr * 0.5, "hell"),
+    // Rechte Türfront
+    rbox([w * 0.46, h * 0.82, d * 0.05], [w * 0.245, h * 0.01, d / 2 - d * 0.025], rr * 0.5, "hell"),
+    // Vertikaler Chrom-Griff links (untere Innenkante)
+    zyl(w * 0.014, w * 0.014, h * 0.32, [-w * 0.03, -h * 0.1, d / 2 - d * 0.04], "chrom"),
+    // Vertikaler Chrom-Griff rechts
+    zyl(w * 0.014, w * 0.014, h * 0.32, [w * 0.03, -h * 0.1, d / 2 - d * 0.04], "chrom"),
+    // Sichtbarer Unterboden (dunkel)
+    box([w * 0.96, h * 0.04, d * 0.96], [0, -h / 2 + h * 0.02, 0], "dunkel"),
+  ];
+};
 
-// Spüle: Arbeitsplatte + 1 oder 2 Becken + Armatur + Ablage
-const spuele: Bauer = (w, d, h) => [
-  // Arbeitsplatte
-  box([w, h * 0.1, d], [0, h / 2 - h * 0.05, 0], "koerper"),
-  // Becken links
-  box([w * 0.38, h * 0.14, d * 0.72], [-w * 0.2, h / 2 - h * 0.12, 0], "dunkel"),
-  // Becken rechts (kleines Abtropfbecken)
-  box([w * 0.24, h * 0.1, d * 0.62], [w * 0.3, h / 2 - h * 0.1, 0], "dunkel"),
-  // Armaturkörper
-  box([w * 0.06, h * 0.22, d * 0.06], [-w * 0.02, h / 2 - h * 0.01, -d * 0.1], "dunkel"),
-  // Auslauf
-  box([w * 0.03, h * 0.03, d * 0.24], [-w * 0.02, h / 2 - h * 0.01, d * 0.04], "dunkel"),
-  // Unterschrank (Unterbau)
-  box([w, h * 0.88, d], [0, -h / 2 + h * 0.44, 0], "koerper"),
-];
+// Spüle: gerundeter Unterbau + Arbeitsplatte (gerundete Vorderkante) +
+// vertieftes Edelstahl-Spülbecken (hell) mit dunkler Bodenmulde + Chrom-Ablauf +
+// Chrom-Armatur mit gebogenem Auslauf (Torus). Platte bündig zur bbox-Oberkante.
+const spuele: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.04;
+  const r0 = Math.min(w, d);
+  return [
+    // Unterbau-Korpus (gerundet)
+    rbox([w, h * 0.84, d], [0, -h / 2 + h * 0.44, 0], rr, "koerper"),
+    // Zurückgesetzter Sockel
+    box([w * 0.92, h * 0.08, d * 0.86], [0, -h / 2 + h * 0.04, -d * 0.02], "dunkel"),
+    // Türfront (leicht erhaben, gerundet)
+    rbox([w * 0.94, h * 0.66, d * 0.04], [0, -h / 2 + h * 0.46, d / 2 - d * 0.02], rr * 0.5, "hell"),
+    // Waagrechter Chrom-Griff an der Front
+    zyl(w * 0.012, w * 0.012, w * 0.3, [0, -h / 2 + h * 0.72, d / 2 - d * 0.03], "chrom"),
+    // Arbeitsplatte (gerundete Vorderkante, leicht überstehend)
+    rbox([w, h * 0.08, d * 1.02], [0, h / 2 - h * 0.04, d * 0.01], rr * 0.7, "dunkel"),
+    // Edelstahl-Beckenrand (hell, vertieft in der Platte)
+    rbox([w * 0.62, h * 0.06, d * 0.78], [-w * 0.1, h / 2 - h * 0.05, 0], rr * 0.4, "hell"),
+    // Beckenmulde (dunkel, vertieft – gibt der Armatur Raum darüber)
+    box([w * 0.52, h * 0.2, d * 0.64], [-w * 0.1, h / 2 - h * 0.16, 0], "dunkel"),
+    // Ablauf (Chrom-Ring am Beckenboden)
+    ring(r0 * 0.05, r0 * 0.014, "y", [-w * 0.1, h / 2 - h * 0.24, 0], "chrom"),
+    // Armatur-Körper (Chrom, vertikal) – im Beckenraum, Oberkante bündig zur Platte
+    zyl(w * 0.022, w * 0.026, h * 0.18, [-w * 0.1, h / 2 - h * 0.09, -d * 0.28], "chrom"),
+    // Gebogener Auslauf (Chrom-Torus) – arkt auf Plattenhöhe über das Becken
+    ring(d * 0.12, w * 0.02, "x", [-w * 0.1, h / 2 - d * 0.12, -d * 0.16], "chrom"),
+    // Einhebel-Mischer (Chrom, seitlich am Armatur-Körper)
+    rbox([w * 0.09, h * 0.03, d * 0.05], [-w * 0.02, h / 2 - h * 0.05, -d * 0.28], w * 0.012, "chrom"),
+  ];
+};
 
 // Kochfeld: Platte + 4 Kochzonen + Regler
 const kochfeld: Bauer = (w, d, h) => {
