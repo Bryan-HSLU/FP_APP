@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dressing-item.schema.json",
+  "title": "DressingItem",
+  "description": "Scene-Dressing-Objekt (rein visuelle Deko-Ebene, getrennt vom Plan). NICHT solver-/normrelevant: erscheint nie in plan.placements, constraintReport oder LV. Der Client platziert es deterministisch an Ankern, die aus dem bestehenden Plan abgeleitet werden. Box/Primitiv-Platzhalter mit Auto-Upgrade: ohne gltfRef rendert der Viewer prozedurale Primitive aus masse; sobald gltfRef gesetzt und assetStatus=modeled ist, ersetzt das echte glTF den Platzhalter.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "schemaVersion",
+    "name",
+    "roomTypes",
+    "klasse",
+    "funktionsTyp",
+    "anchorTypes",
+    "platzierung",
+    "masse",
+    "achsenTags",
+    "attributTags",
+    "assetStatus"
+  ],
+  "properties": {
+    "id": { "$ref": "#/$defs/uuid" },
+    "schemaVersion": { "$ref": "#/$defs/semver" },
+    "name": { "type": "string", "minLength": 1 },
+    "roomTypes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "enum": ["bad", "kueche", "wohnen", "schlafen", "essen", "flur", "sonstig"] }
+    },
+    "klasse": {
+      "enum": ["B", "C", "D"],
+      "description": "Objektklasse (Scene-Dressing-Konzept): B leicht kollisionsrelevant (Bodenobjekt, einfache Kollisionsprüfung + Türkorridor) · C visuelle Mid-Objects (an Wand/Möbel gehängt) · D Deko-Cluster (Mikro-Objekte auf Oberflächen). Klasse A bleibt im Katalog/Solver."
+    },
+    "funktionsTyp": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Funktionaler Typ des Deko-Objekts – wählt auch den prozeduralen 3D-Bausatz (dressing3d)."
+    },
+    "anchorTypes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+      "description": "Erlaubte Anker: funktionsTypen aus dem Plan (z.B. lavabo, badmoebel, wc) ODER die Schlüsselworte 'wand' bzw. 'ecke'. Ohne passenden Anker im Raum wird das Objekt nicht platziert."
+    },
+    "platzierung": {
+      "enum": ["auf_oberflaeche", "an_wand", "freie_ecke", "an_moebel"],
+      "description": "Ankerart: auf_oberflaeche = auf der Oberkante eines Möbels · an_wand = an einer Raumwand · freie_ecke = in einer freien Raumecke (Boden) · an_moebel = neben/an einem Möbel (Boden)."
+    },
+    "masse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["w", "d", "h"],
+      "properties": {
+        "w": { "type": "number", "exclusiveMinimum": 0 },
+        "d": { "type": "number", "exclusiveMinimum": 0 },
+        "h": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "achsenTags": {
+      "type": "object",
+      "additionalProperties": { "type": "number", "minimum": -1, "maximum": 1 },
+      "description": "Stil-Achsen-Ausprägungen (gleiche Achsen wie Katalog/Stilprofil) für den Stil-Match (stilNaehe). Steuert die stilabhängige Varianten-/Materialwahl."
+    },
+    "attributTags": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9-]+:[a-z0-9-]+$" }
+    },
+    "assetStatus": { "enum": ["placeholder", "modeled"] },
+    "gltfRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Dateiname (ohne Endung) eines echten glTF-Binary unter apps/web/public/assets/dressing/<gltfRef>.glb. Nur wirksam bei assetStatus=modeled; sonst rendert der prozedurale Platzhalter."
+    },
+    "modell3d": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Optionale prozedurale Bausatz-Variante (analog Katalog modell3d). Fehlt sie, greift der Standard-Bausatz des funktionsTyp."
+    }
+  },
+  "$defs": {
+    "uuid": { "type": "string", "format": "uuid" },
+    "semver": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" }
+  }
+}

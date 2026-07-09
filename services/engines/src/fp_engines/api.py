@@ -229,6 +229,33 @@ def catalog(room_type: str) -> Any:
         )
 
 
+def _dressing(room_type: str) -> list[dict[str, Any]]:
+    path = REPO_ROOT / "data" / "dressing" / f"{room_type}.json"
+    if not path.is_file():
+        raise FileNotFoundError(room_type)
+    return json.loads(path.read_text(encoding="utf-8"))  # type: ignore[no-any-return]
+
+
+@app.get("/dressing/{room_type}")
+def dressing(room_type: str) -> Any:
+    """Scene-Dressing-Stammdaten je Raumtyp (rein visuelle Deko-Ebene).
+
+    Read-only, analog /catalog. Die Objekte sind NICHT solver-/normrelevant –
+    der Client platziert sie deterministisch an Ankern aus dem bestehenden Plan.
+    """
+    try:
+        return _dressing(room_type)
+    except FileNotFoundError:
+        return JSONResponse(
+            status_code=404,
+            content={
+                "code": "SCHEMA_INVALID",
+                "message": f"Kein Scene-Dressing für «{room_type}»",
+                "details": {},
+            },
+        )
+
+
 def _kueche_zone_id(room: dict[str, Any]) -> str | None:
     """ID der Küchen-Zone in einem Grossraum (für Auto-Routing), sonst None."""
     for zone in room.get("zones", []):

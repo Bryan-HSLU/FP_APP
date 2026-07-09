@@ -43,6 +43,29 @@ export interface Room extends RoomInput {
   name: string;
 }
 
+/** Scene-Dressing-Objekt (rein visuelle Deko-Ebene, getrennt vom Plan).
+ *  Vertrag: packages/shared/schemas/dressing-item.schema.json. NICHT solver-/
+ *  normrelevant – erscheint nie in placements/constraintReport/LV. */
+export interface DressingItem {
+  id: string;
+  schemaVersion: string;
+  name: string;
+  roomTypes: string[];
+  /** B leicht kollisionsrelevant · C an Wand/Möbel · D Mikro-Deko auf Oberfläche. */
+  klasse: "B" | "C" | "D";
+  funktionsTyp: string;
+  /** funktionsTypen aus dem Plan ODER die Schlüsselworte "wand"/"ecke". */
+  anchorTypes: string[];
+  platzierung: "auf_oberflaeche" | "an_wand" | "freie_ecke" | "an_moebel";
+  masse: { w: number; d: number; h: number };
+  achsenTags: Record<string, number>;
+  attributTags: string[];
+  assetStatus: "placeholder" | "modeled";
+  /** Dateiname (ohne Endung) unter public/assets/dressing/<gltfRef>.glb. */
+  gltfRef?: string;
+  modell3d?: string;
+}
+
 export interface KV {
   raumName: string;
   mengen: { bodenflaeche_m2: number; wandflaeche_m2: number; objekte: number };
@@ -152,6 +175,8 @@ export const api = {
       body: JSON.stringify({ room, stilprofil, seed }),
     }),
   catalog: (roomType: string) => call<KatalogItem[]>(`/catalog/${roomType}`),
+  /** Scene-Dressing-Stammdaten je Raumtyp (rein visuelle Deko-Ebene, read-only). */
+  dressing: (roomType: string) => call<DressingItem[]>(`/dressing/${roomType}`),
   rules: (roomType: string) => call<unknown[]>(`/rules/${roomType}`),
   /** Top-3 Küchenformen (Formwahl) für einen Küchen- oder Grossraum. */
   kuecheFormen: (room: Room, stilprofil: unknown | null, normProfile: string, zoneId?: string) =>

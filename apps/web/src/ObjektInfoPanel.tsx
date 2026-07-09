@@ -14,36 +14,14 @@
 import type { KatalogItem } from "./api";
 import { toScreen, type PlanTransform } from "./plan2d";
 import type { Stilprofil } from "./Stil";
+import { stilNaehe } from "./stilnaehe";
 import { symbolScreenPrims } from "./symbole2d";
 import { CSS, THEME } from "./theme";
 
-/**
- * Stil-Nähe eines Katalog-Items zum Stilprofil: Cosinus-Ähnlichkeit zwischen
- * dem Stilvektor (Achsen) und den `achsenTags` des Items über die gemeinsamen
- * Achsen. Ergebnis in [0,1] (Cosinus [−1,1] linear auf [0,1] abgebildet;
- * 1 = deckungsgleiche Ausrichtung). `null`, wenn es keine gemeinsame Achse gibt.
- * Bewusst leichtgewichtig und wiederverwendbar (auch ausserhalb dieser Datei).
- */
-export function stilNaehe(
-  styleVector: Record<string, number>,
-  achsenTags: Record<string, number>,
-): number | null {
-  let dot = 0;
-  let na = 0;
-  let nb = 0;
-  let gemeinsame = 0;
-  for (const [achse, wa] of Object.entries(styleVector)) {
-    const wb = achsenTags[achse];
-    if (wb === undefined) continue;
-    gemeinsame++;
-    dot += wa * wb;
-    na += wa * wa;
-    nb += wb * wb;
-  }
-  if (gemeinsame === 0 || na === 0 || nb === 0) return null;
-  const cos = dot / (Math.sqrt(na) * Math.sqrt(nb));
-  return Math.max(0, Math.min(1, (cos + 1) / 2));
-}
+// stilNaehe lebt jetzt in `stilnaehe.ts` (geteilt mit der Scene-Dressing-Engine);
+// hier re-exportiert, damit bestehende Importe `{ stilNaehe } from "./ObjektInfoPanel"`
+// weiter funktionieren.
+export { stilNaehe };
 
 /** CHF-Preis eines Items formatiert (Schweizer Format, ohne Rappen). */
 function preisText(item: KatalogItem): string {

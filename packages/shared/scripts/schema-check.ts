@@ -19,6 +19,7 @@ const mapping: { dir: string; schema: string; array: boolean }[] = [
   { dir: "taxonomy", schema: "taxonomie", array: false },
   { dir: "catalog", schema: "katalog-item", array: true },
   { dir: "images", schema: "bild-katalog-item", array: true },
+  { dir: "dressing", schema: "dressing-item", array: true },
 ];
 
 const validator = createValidator();
