@@ -17,31 +17,66 @@
  *  Klick-Handling und deaktivieren das Raycasting, damit Auswahl/Ampel/Solver-
  *  Logik im Viewer völlig unberührt bleiben.
  */
-import { useGLTF } from "@react-three/drei";
+import { RoundedBox, useGLTF } from "@react-three/drei";
 import { Suspense, useMemo } from "react";
+import { Vector2 } from "three";
 import type { DressingItem, KatalogItem, Plan, Room } from "./api";
 import { sceneDressing, type DressingPlatzierung } from "./dressing";
 import { dressingBauteile } from "./dressing3d-kits";
-import { rolleFarbe, type Teil } from "./moebel3d.tsx";
+import { rolleFarbe, type Rolle, type Teil } from "./moebel3d.tsx";
 
-/** Ein Bauteil als Mesh – Raycasting deaktiviert (Deko blockiert nie Auswahl). */
+// raycast=noop: Klicks gehen «durch» die Deko → Möbelauswahl/Deselektion bleiben.
+const noRaycast = () => null;
+
+/** Oberflächen-Physik je Rolle – spiegelt {@link ./moebel3d.tsx} (glas transparent,
+ *  chrom poliert), damit Deko und Möbel denselben Material-Look tragen. */
+function DressingMaterial({ rolle, farbwert }: { rolle: Rolle; farbwert: string }) {
+  if (rolle === "glas") {
+    return <meshStandardMaterial color={farbwert} transparent opacity={0.32} roughness={0.05} />;
+  }
+  if (rolle === "chrom") {
+    return <meshStandardMaterial color={farbwert} metalness={0.6} roughness={0.14} />;
+  }
+  const roughness = rolle === "dunkel" ? 0.62 : rolle === "hell" ? 0.5 : 0.55;
+  return <meshStandardMaterial color={farbwert} metalness={0.03} roughness={roughness} />;
+}
+
+/** Ein Bauteil als Mesh – Raycasting deaktiviert (Deko blockiert nie Auswahl).
+ *  Deckt dieselben Primitive wie {@link ./moebel3d.tsx} ab (box/rundbox/zylinder/
+ *  kugel/lathe/torus), damit die volumetrischen Deko-Kits vollständig rendern. */
 function DressingTeilMesh({ teil, farbe }: { teil: Teil; farbe: string }) {
   const farbwert = rolleFarbe(teil.rolle, farbe);
-  const glas = teil.rolle === "glas";
-  const material = (
-    <meshStandardMaterial color={farbwert} transparent={glas} opacity={glas ? 0.32 : 1} />
-  );
-  // raycast=noop: Klicks gehen «durch» die Deko → Möbelauswahl/Deselektion bleiben.
-  const noRaycast = () => null;
-  // Deko-Kits nutzen nur box/zylinder/kugel; die volumetrischen Formen aus
-  // moebel3d (rundbox/lathe/torus) kommen hier nicht vor – rundbox fällt sicher
-  // auf eine schlichte Box zurück, lathe/torus rendern nichts.
-  if (teil.form === "box" || teil.form === "rundbox") {
+  const material = <DressingMaterial rolle={teil.rolle} farbwert={farbwert} />;
+  if (teil.form === "box") {
     return (
       <mesh position={teil.pos} raycast={noRaycast}>
         <boxGeometry args={teil.groesse} />
         {material}
       </mesh>
+    );
+  }
+  if (teil.form === "rundbox") {
+    const minHalb = Math.min(...teil.groesse) / 2;
+    const radius = Math.max(0, Math.min(teil.radius, minHalb - 1e-4));
+    if (radius < 1e-4) {
+      return (
+        <mesh position={teil.pos} raycast={noRaycast}>
+          <boxGeometry args={teil.groesse} />
+          {material}
+        </mesh>
+      );
+    }
+    return (
+      <RoundedBox
+        position={teil.pos}
+        args={teil.groesse}
+        radius={radius}
+        smoothness={3}
+        steps={1}
+        raycast={noRaycast}
+      >
+        {material}
+      </RoundedBox>
     );
   }
   if (teil.form === "zylinder") {
@@ -60,7 +95,23 @@ function DressingTeilMesh({ teil, farbe }: { teil: Teil; farbe: string }) {
       </mesh>
     );
   }
-  return null;
+  if (teil.form === "lathe") {
+    const punkte = teil.profil.map(([r, y]) => new Vector2(Math.max(0, r), y));
+    return (
+      <mesh position={teil.pos} raycast={noRaycast}>
+        <latheGeometry args={[punkte, teil.segmente]} />
+        {material}
+      </mesh>
+    );
+  }
+  const rot: [number, number, number] =
+    teil.achse === "y" ? [Math.PI / 2, 0, 0] : teil.achse === "x" ? [0, Math.PI / 2, 0] : [0, 0, 0];
+  return (
+    <mesh position={teil.pos} rotation={rot} raycast={noRaycast}>
+      <torusGeometry args={[teil.radius, teil.roehre, 16, 32]} />
+      {material}
+    </mesh>
+  );
 }
 
 /** Prozedurale Deko (Platzhalter): Primitiv-Kit in der bbox der Deko-Masse. */
