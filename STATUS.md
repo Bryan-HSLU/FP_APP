@@ -6,7 +6,22 @@
 > Abweichungen gibt es. Meilenstein-Definitionen: Brain →
 > `vault/50_Umsetzung/Bauplan-Meilensteine.md`.
 
-**Stand: 2026-07-08**
+**Stand: 2026-07-09**
+
+### Scene Dressing – Bad-Durchstich (2026-07-09)
+- **Neue visuelle Deko-Ebene**, client-seitig & getrennt vom Plan (Konzept:
+  Brain `vault/50_Umsetzung/Scene-Dressing-Konzept.md`). `sceneDressing()` in
+  `apps/web/src/dressing.ts` (Seed/Anker/Stil/Klasse-B-Kollision), gerendert als
+  `DressingLayer3D` mit **„Deko"-Toggle** im 3D-Viewer. Verändert
+  `placements`/`constraintReport` NICHT → 0 ❌ unberührt (Regressions-Test).
+- **Ästhetik „frisch gebaut, nicht bewohnt":** 5 sparsame Bad-Objekte
+  (Seifenspender, Zahnputzbecher, Tray, gefaltete Handtücher, Pflanze).
+- **Asset-Drop-in:** `apps/web/public/assets/dressing/<gltfRef>.glb` (README dort);
+  `assetStatus:"modeled"`+`gltfRef` → ersetzt Platzhalter automatisch. Bryan
+  modelliert + lädt hoch, Rest macht die App.
+- Bugfix: Ecken-Footprint (rotiert) stach durch die Wand → inkrementell nach
+  innen rücken. Details: `vault/10_Learnings/Learning-Scene-Dressing-Bad-Durchstich.md`.
+- **Offen:** Fan-out Wohnen/Küche; Klasse C (`an_wand`) in Engine da, ungenutzt.
 
 ### Zuletzt (2026-07-08, diese Session)
 - **UI-Feinschliff:** Schein nach innen stärker & überall, mehr CI-Grün,
