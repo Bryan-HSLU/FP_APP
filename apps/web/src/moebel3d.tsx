@@ -1217,7 +1217,12 @@ const unterschrank: Bauer = (w, d, h) => {
     // Türfuge (senkrecht, mittig)
     box([w * 0.012, h * 0.7, d * 0.02], [0, -h * 0.06, d / 2 - d * 0.008], "dunkel"),
     // Linke Türfront (leicht erhaben, gerundet)
-    rbox([w * 0.46, h * 0.7, d * 0.04], [-w * 0.245, -h * 0.06, d / 2 - d * 0.02], rr * 0.5, "hell"),
+    rbox(
+      [w * 0.46, h * 0.7, d * 0.04],
+      [-w * 0.245, -h * 0.06, d / 2 - d * 0.02],
+      rr * 0.5,
+      "hell",
+    ),
     // Rechte Türfront
     rbox([w * 0.46, h * 0.7, d * 0.04], [w * 0.245, -h * 0.06, d / 2 - d * 0.02], rr * 0.5, "hell"),
     // Vertikaler Chrom-Griff links (an der Innenkante)
@@ -1260,9 +1265,19 @@ const haengeschrank: Bauer = (w, d, h) => {
     // Türfuge (senkrecht, mittig)
     box([w * 0.012, h * 0.82, d * 0.02], [0, h * 0.01, d / 2 - d * 0.008], "dunkel"),
     // Linke Türfront (leicht erhaben, gerundet)
-    rbox([w * 0.46, h * 0.82, d * 0.05], [-w * 0.245, h * 0.01, d / 2 - d * 0.025], rr * 0.5, "hell"),
+    rbox(
+      [w * 0.46, h * 0.82, d * 0.05],
+      [-w * 0.245, h * 0.01, d / 2 - d * 0.025],
+      rr * 0.5,
+      "hell",
+    ),
     // Rechte Türfront
-    rbox([w * 0.46, h * 0.82, d * 0.05], [w * 0.245, h * 0.01, d / 2 - d * 0.025], rr * 0.5, "hell"),
+    rbox(
+      [w * 0.46, h * 0.82, d * 0.05],
+      [w * 0.245, h * 0.01, d / 2 - d * 0.025],
+      rr * 0.5,
+      "hell",
+    ),
     // Vertikaler Chrom-Griff links (untere Innenkante)
     zyl(w * 0.014, w * 0.014, h * 0.32, [-w * 0.03, -h * 0.1, d / 2 - d * 0.04], "chrom"),
     // Vertikaler Chrom-Griff rechts
@@ -1284,7 +1299,12 @@ const spuele: Bauer = (w, d, h) => {
     // Zurückgesetzter Sockel
     box([w * 0.92, h * 0.08, d * 0.86], [0, -h / 2 + h * 0.04, -d * 0.02], "dunkel"),
     // Türfront (leicht erhaben, gerundet)
-    rbox([w * 0.94, h * 0.66, d * 0.04], [0, -h / 2 + h * 0.46, d / 2 - d * 0.02], rr * 0.5, "hell"),
+    rbox(
+      [w * 0.94, h * 0.66, d * 0.04],
+      [0, -h / 2 + h * 0.46, d / 2 - d * 0.02],
+      rr * 0.5,
+      "hell",
+    ),
     // Waagrechter Chrom-Griff an der Front
     zyl(w * 0.012, w * 0.012, w * 0.3, [0, -h / 2 + h * 0.72, d / 2 - d * 0.03], "chrom"),
     // Arbeitsplatte (gerundete Vorderkante, leicht überstehend)
@@ -1300,164 +1320,277 @@ const spuele: Bauer = (w, d, h) => {
     // Gebogener Auslauf (Chrom-Torus) – arkt auf Plattenhöhe über das Becken
     ring(d * 0.12, w * 0.02, "x", [-w * 0.1, h / 2 - d * 0.12, -d * 0.16], "chrom"),
     // Einhebel-Mischer (Chrom, seitlich am Armatur-Körper)
-    rbox([w * 0.09, h * 0.03, d * 0.05], [-w * 0.02, h / 2 - h * 0.05, -d * 0.28], w * 0.012, "chrom"),
+    rbox(
+      [w * 0.09, h * 0.03, d * 0.05],
+      [-w * 0.02, h / 2 - h * 0.05, -d * 0.28],
+      w * 0.012,
+      "chrom",
+    ),
   ];
 };
 
-// Kochfeld: Platte + 4 Kochzonen + Regler
+// Kochfeld: gerundeter Unterschrank-Korpus mit erhabener Front + Chrom-Griff +
+// bündige Glas-Kochfläche (Ceran) mit 4 eingelassenen Chrom-Kochzonen und
+// Touch-Bedienleiste. Glasoberkante liegt bündig zur bbox-Oberkante, damit das
+// Kochfeld in der Küchenzeile auf Arbeitsplattenhöhe sitzt.
 const kochfeld: Bauer = (w, d, h) => {
-  const r = Math.min(w, d) * 0.16;
-  const platte = (x: number, z: number): Teil =>
-    zyl(r, r, h * 0.04, [x, h / 2 - h * 0.07, z], "dunkel");
+  const rr = Math.min(w, d) * 0.04;
+  const r = Math.min(w, d) * 0.15;
+  const zone = (x: number, z: number): Teil[] => [
+    // Kochzonen-Ring (Chrom, eingelassen ins Glas)
+    ring(r, w * 0.008, "y", [x, h / 2 - h * 0.03, z], "chrom"),
+    // Zonenfläche (dunkel, matt)
+    zyl(r * 0.9, r * 0.9, h * 0.012, [x, h / 2 - h * 0.035, z], "dunkel"),
+  ];
   return [
-    // Unterbau
-    box([w, h * 0.88, d], [0, -h / 2 + h * 0.44, 0], "koerper"),
-    // Deckfläche
-    box([w * 0.96, h * 0.1, d * 0.96], [0, h / 2 - h * 0.05, 0], "dunkel"),
+    // Unterbau-Korpus (gerundet)
+    rbox([w, h * 0.86, d], [0, -h / 2 + h * 0.45, 0], rr, "koerper"),
+    // Zurückgesetzter Sockel
+    box([w * 0.92, h * 0.08, d * 0.86], [0, -h / 2 + h * 0.04, -d * 0.02], "dunkel"),
+    // Front (leicht erhaben, gerundet)
+    rbox(
+      [w * 0.94, h * 0.62, d * 0.04],
+      [0, -h / 2 + h * 0.44, d / 2 - d * 0.02],
+      rr * 0.5,
+      "hell",
+    ),
+    // Waagrechter Chrom-Griff
+    zyl(w * 0.012, w * 0.012, w * 0.3, [0, -h / 2 + h * 0.7, d / 2 - d * 0.03], "chrom"),
+    // Glas-Kochfläche (Ceran, bündig zur Oberkante)
+    rbox([w, h * 0.06, d], [0, h / 2 - h * 0.03, 0], rr * 0.5, "glas"),
     // 4 Kochzonen
-    platte(-w * 0.22, -d * 0.2),
-    platte(w * 0.22, -d * 0.2),
-    platte(-w * 0.22, d * 0.2),
-    platte(w * 0.22, d * 0.2),
-    // Regler (4 Zylinder an der Frontkante)
-    zyl(w * 0.04, w * 0.04, h * 0.05, [-w * 0.3, h / 2 - h * 0.03, d / 2 - d * 0.06], "hell"),
-    zyl(w * 0.04, w * 0.04, h * 0.05, [-w * 0.1, h / 2 - h * 0.03, d / 2 - d * 0.06], "hell"),
-    zyl(w * 0.04, w * 0.04, h * 0.05, [w * 0.1, h / 2 - h * 0.03, d / 2 - d * 0.06], "hell"),
-    zyl(w * 0.04, w * 0.04, h * 0.05, [w * 0.3, h / 2 - h * 0.03, d / 2 - d * 0.06], "hell"),
+    ...zone(-w * 0.24, -d * 0.2),
+    ...zone(w * 0.24, -d * 0.2),
+    ...zone(-w * 0.24, d * 0.22),
+    ...zone(w * 0.24, d * 0.22),
+    // Touch-Bedienleiste (dunkel) vorne mittig
+    box([w * 0.5, h * 0.02, d * 0.1], [0, h / 2 - h * 0.02, d * 0.32], "dunkel"),
   ];
 };
 
-// Kühlschrank: Korpus + 2-türig + Griffe + Lüftungsschlitze oben
-const kuehlschrank: Bauer = (w, d, h) => [
-  // Korpus
-  box([w, h, d], [0, 0, 0], "koerper"),
-  // Türtrenner
-  box([w * 0.96, h * 0.016, d * 0.02], [0, h * 0.18, d / 2 - d * 0.01], "dunkel"),
-  // Griff Oberteil
-  box([w * 0.04, h * 0.22, d * 0.04], [w / 2 - w * 0.08, h * 0.3, d / 2 - d * 0.02], "hell"),
-  // Griff Unterteil
-  box([w * 0.04, h * 0.18, d * 0.04], [w / 2 - w * 0.08, -h * 0.1, d / 2 - d * 0.02], "hell"),
-  // Lüftungsschlitze oben (3 Linien)
-  box([w * 0.78, h * 0.012, d * 0.02], [0, h / 2 - h * 0.04, d / 2 - d * 0.01], "dunkel"),
-  box([w * 0.78, h * 0.012, d * 0.02], [0, h / 2 - h * 0.07, d / 2 - d * 0.01], "dunkel"),
-  box([w * 0.78, h * 0.012, d * 0.02], [0, h / 2 - h * 0.1, d / 2 - d * 0.01], "dunkel"),
-];
+// Kühlschrank: gerundeter Edelstahl-Korpus + zurückgesetzter Sockel + waagrechte
+// Türfuge (Kühlteil oben / Gefrierteil unten) + 2 leicht erhabene Türfronten +
+// durchgehende vertikale Chrom-Griffe.
+const kuehlschrank: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.05;
+  return [
+    // Korpus (gerundet)
+    rbox([w, h * 0.96, d], [0, h * 0.02, 0], rr, "koerper"),
+    // Zurückgesetzter Sockel
+    box([w * 0.9, h * 0.04, d * 0.8], [0, -h / 2 + h * 0.02, 0], "dunkel"),
+    // Türfuge (waagrecht) zwischen Kühl- und Gefrierteil
+    box([w * 0.96, h * 0.014, d * 0.02], [0, -h * 0.12, d / 2 - d * 0.01], "dunkel"),
+    // Obere Türfront (Kühlteil, leicht erhaben)
+    rbox([w * 0.94, h * 0.56, d * 0.04], [0, h * 0.16, d / 2 - d * 0.02], rr * 0.5, "hell"),
+    // Untere Türfront (Gefrierteil)
+    rbox([w * 0.94, h * 0.22, d * 0.04], [0, -h * 0.26, d / 2 - d * 0.02], rr * 0.5, "hell"),
+    // Vertikaler Chrom-Griff oben
+    zyl(w * 0.016, w * 0.016, h * 0.4, [w * 0.4, h * 0.16, d / 2 - d * 0.035], "chrom"),
+    // Vertikaler Chrom-Griff unten
+    zyl(w * 0.016, w * 0.016, h * 0.14, [w * 0.4, -h * 0.26, d / 2 - d * 0.035], "chrom"),
+  ];
+};
 
-// Geschirrspüler: Korpus + Bedienfeld + Tür + Griff
-const geschirrspueler: Bauer = (w, d, h) => [
-  // Korpus
-  box([w, h, d], [0, 0, 0], "koerper"),
-  // Bedienfeld oben
-  box([w, h * 0.1, d * 0.05], [0, h / 2 - h * 0.05, d / 2 - d * 0.025], "dunkel"),
-  // Status-LEDs (kleine helle Punkte)
-  box([w * 0.18, h * 0.04, d * 0.03], [w * 0.2, h / 2 - h * 0.05, d / 2 - d * 0.015], "glas"),
-  // Tür
-  box([w * 0.92, h * 0.82, d * 0.03], [0, -h * 0.06, d / 2 - d * 0.015], "hell"),
-  // Griff
-  box([w * 0.68, h * 0.04, d * 0.04], [0, h / 2 - h * 0.14, d / 2 - d * 0.02], "dunkel"),
-];
+// Geschirrspüler: gerundeter Korpus + zurückgesetzter Sockel + integrierte
+// erhabene Front + dunkle Bedienleiste mit Status-LED + waagrechte Chrom-
+// Griffleiste. Front auf Schrankhöhe, damit die Zeile bündig wirkt.
+const geschirrspueler: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.05;
+  return [
+    // Korpus (gerundet)
+    rbox([w, h * 0.92, d], [0, -h / 2 + h * 0.48, 0], rr, "koerper"),
+    // Zurückgesetzter Sockel
+    box([w * 0.9, h * 0.06, d * 0.8], [0, -h / 2 + h * 0.03, 0], "dunkel"),
+    // Integrierte Front (leicht erhaben, gerundet)
+    rbox([w * 0.94, h * 0.78, d * 0.04], [0, -h / 2 + h * 0.5, d / 2 - d * 0.02], rr * 0.5, "hell"),
+    // Bedienleiste oben (dunkel)
+    box([w * 0.94, h * 0.06, d * 0.02], [0, h / 2 - h * 0.05, d / 2 - d * 0.01], "dunkel"),
+    // Status-LED (glas, leuchtet)
+    box([w * 0.06, h * 0.03, d * 0.02], [w * 0.34, h / 2 - h * 0.05, d / 2 - d * 0.008], "glas"),
+    // Waagrechte Chrom-Griffleiste
+    zyl(w * 0.014, w * 0.014, w * 0.6, [0, h / 2 - h * 0.13, d / 2 - d * 0.03], "chrom"),
+  ];
+};
 
-// Backofen: Korpus + Tür + Glasfenster + Griff + Regler
-const backofen: Bauer = (w, d, h) => [
-  // Korpus
-  box([w, h, d], [0, 0, 0], "koerper"),
-  // Türrahmen
-  box([w * 0.9, h * 0.72, d * 0.04], [0, -h / 2 + h * 0.43, d / 2 - d * 0.02], "dunkel"),
-  // Glasfenster
-  box([w * 0.76, h * 0.48, d * 0.03], [0, -h / 2 + h * 0.4, d / 2 - d * 0.015], "glas"),
-  // Griff
-  box([w * 0.62, h * 0.04, d * 0.04], [0, h / 2 - h * 0.16, d / 2 - d * 0.02], "hell"),
-  // Bedienfeld oben
-  box([w, h * 0.14, d * 0.04], [0, h / 2 - h * 0.07, d / 2 - d * 0.02], "dunkel"),
-  // Regler (3 Zylinder)
-  zyl(w * 0.04, w * 0.04, h * 0.04, [-w * 0.28, h / 2 - h * 0.07, d / 2 - d * 0.02], "hell"),
-  zyl(w * 0.04, w * 0.04, h * 0.04, [0, h / 2 - h * 0.07, d / 2 - d * 0.02], "hell"),
-  zyl(w * 0.04, w * 0.04, h * 0.04, [w * 0.28, h / 2 - h * 0.07, d / 2 - d * 0.02], "hell"),
-];
+// Backofen (Einbau): gerundeter Korpus + dunkle Bedienblende mit 3 Chrom-Dreh-
+// knöpfen und Glas-Display + erhabener Türrahmen mit grosser Glas-Sichtscheibe +
+// waagrechter Chrom-Griff über dem Fenster.
+const backofen: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.05;
+  return [
+    // Korpus (gerundet)
+    rbox([w, h * 0.96, d], [0, 0, 0], rr, "koerper"),
+    // Bedienblende oben (dunkel)
+    rbox([w, h * 0.16, d * 0.96], [0, h / 2 - h * 0.08, 0], rr * 0.5, "dunkel"),
+    // 3 Chrom-Drehknöpfe
+    zyl(w * 0.045, w * 0.045, d * 0.03, [-w * 0.3, h / 2 - h * 0.08, d / 2 - d * 0.01], "chrom"),
+    zyl(w * 0.045, w * 0.045, d * 0.03, [-w * 0.05, h / 2 - h * 0.08, d / 2 - d * 0.01], "chrom"),
+    zyl(w * 0.045, w * 0.045, d * 0.03, [w * 0.3, h / 2 - h * 0.08, d / 2 - d * 0.01], "chrom"),
+    // Display (glas, leuchtet)
+    box([w * 0.22, h * 0.05, d * 0.02], [w * 0.14, h / 2 - h * 0.08, d / 2 - d * 0.008], "glas"),
+    // Türrahmen (erhaben, gerundet)
+    rbox([w * 0.94, h * 0.72, d * 0.04], [0, -h / 2 + h * 0.4, d / 2 - d * 0.02], rr * 0.5, "hell"),
+    // Glas-Sichtscheibe
+    rbox([w * 0.72, h * 0.5, d * 0.03], [0, -h / 2 + h * 0.4, d / 2 - d * 0.012], rr * 0.4, "glas"),
+    // Waagrechter Chrom-Griff über dem Fenster
+    zyl(w * 0.016, w * 0.016, w * 0.6, [0, -h / 2 + h * 0.82, d / 2 - d * 0.03], "chrom"),
+  ];
+};
 
-// Mikrowelle: Flaches Gehäuse + Tür + Fenster + Bedienfeld
-const mikrowelle: Bauer = (w, d, h) => [
-  // Gehäuse
-  box([w, h, d], [0, 0, 0], "koerper"),
-  // Tür (2/3 der Breite links)
-  box([w * 0.62, h * 0.82, d * 0.04], [-w * 0.14, 0, d / 2 - d * 0.02], "dunkel"),
-  // Türfenster
-  box([w * 0.52, h * 0.62, d * 0.03], [-w * 0.14, 0, d / 2 - d * 0.015], "glas"),
-  // Türgriff
-  box([w * 0.04, h * 0.58, d * 0.04], [w * 0.18, 0, d / 2 - d * 0.02], "dunkel"),
-  // Bedienfeld rechts
-  box([w * 0.3, h * 0.82, d * 0.03], [w * 0.34, 0, d / 2 - d * 0.015], "dunkel"),
-  // Display (leuchtet)
-  box([w * 0.2, h * 0.22, d * 0.02], [w * 0.28, h * 0.2, d / 2 - d * 0.01], "glas"),
-];
+// Mikrowelle: gerundetes Gehäuse + erhabener Türrahmen mit Glas-Sichtfenster +
+// vertikaler Chrom-Griff + dunkles Bedienfeld rechts mit Glas-Display und
+// Tastenfeld.
+const mikrowelle: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.05;
+  return [
+    // Gehäuse (gerundet)
+    rbox([w, h * 0.96, d], [0, 0, 0], rr, "koerper"),
+    // Türrahmen (links, erhaben)
+    rbox([w * 0.62, h * 0.86, d * 0.04], [-w * 0.16, 0, d / 2 - d * 0.02], rr * 0.5, "dunkel"),
+    // Türfenster (Glas)
+    rbox([w * 0.5, h * 0.66, d * 0.03], [-w * 0.16, 0, d / 2 - d * 0.012], rr * 0.4, "glas"),
+    // Vertikaler Chrom-Griff an der Türkante
+    zyl(w * 0.014, w * 0.014, h * 0.6, [w * 0.19, 0, d / 2 - d * 0.03], "chrom"),
+    // Bedienfeld rechts (dunkel)
+    rbox([w * 0.28, h * 0.86, d * 0.03], [w * 0.34, 0, d / 2 - d * 0.015], rr * 0.4, "dunkel"),
+    // Display (glas, leuchtet)
+    box([w * 0.2, h * 0.16, d * 0.02], [w * 0.34, h * 0.24, d / 2 - d * 0.008], "glas"),
+    // Tastenfeld (hell)
+    box([w * 0.2, h * 0.36, d * 0.015], [w * 0.34, -h * 0.12, d / 2 - d * 0.006], "hell"),
+  ];
+};
 
-// Dunstabzug: Gehäuse + Auslass + Lüfteröffnung
-const dunstabzug: Bauer = (w, d, h) => [
-  // Hauptgehäuse
-  box([w, h * 0.82, d], [0, h / 2 - h * 0.41, 0], "koerper"),
-  // Frontblende mit Lüfteröffnungen
-  box([w * 0.82, h * 0.2, d * 0.5], [0, -h / 2 + h * 0.25, d / 2 - d * 0.26], "dunkel"),
-  // Lüftungsschlitze (3 Linien)
-  box([w * 0.72, h * 0.03, d * 0.42], [0, -h / 2 + h * 0.2, d / 2 - d * 0.23], "hell"),
-  box([w * 0.72, h * 0.03, d * 0.42], [0, -h / 2 + h * 0.27, d / 2 - d * 0.23], "hell"),
-  // Bedienfeld
-  box([w * 0.64, h * 0.1, d * 0.44], [0, -h / 2 + h * 0.14, d / 2 - d * 0.24], "hell"),
-  // Unterkante (Lichtstreifen)
-  box([w * 0.88, h * 0.04, d * 0.08], [0, -h / 2 + h * 0.04, d / 2 - d * 0.05], "glas"),
-];
+// Dunstabzug (Wandhaube): schmaler gerundeter Kaminschacht oben an der Wand +
+// breiter gerundeter Haubenkörper + abgeschrägte Edelstahl-Frontblende mit
+// dunklem Fettfilter + Chrom-Slider + Beleuchtungsstreifen (Glas) an der Unterkante.
+const dunstabzug: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.05;
+  return [
+    // Kaminschacht (schmal, oben, an der Wand)
+    rbox([w * 0.32, h * 0.5, d * 0.34], [0, h / 2 - h * 0.25, -d * 0.2], rr, "koerper"),
+    // Haubenkörper (breit, unten, gerundet)
+    rbox([w, h * 0.4, d], [0, -h / 2 + h * 0.24, 0], rr, "koerper"),
+    // Abgeschrägte Frontblende (Edelstahl, hell)
+    rbox([w * 0.9, h * 0.2, d * 0.5], [0, -h / 2 + h * 0.16, d * 0.22], rr * 0.5, "hell"),
+    // Fettfilter-Front (dunkel, eingelassen)
+    box([w * 0.8, h * 0.12, d * 0.42], [0, -h / 2 + h * 0.12, d * 0.24], "dunkel"),
+    // Bedien-Slider (Chrom)
+    zyl(w * 0.01, w * 0.01, w * 0.3, [0, -h / 2 + h * 0.2, d * 0.44], "chrom"),
+    // Beleuchtungsstreifen an der Unterkante (glas, leuchtet)
+    box([w * 0.86, h * 0.03, d * 0.1], [0, -h / 2 + h * 0.03, d * 0.4], "glas"),
+  ];
+};
 
-// Waschmaschine: Korpus + Rundes Bullauge + Bedienfeld
+// Waschmaschine: gerundeter Korpus + zurückgesetzter Sockel + erhabene Front +
+// Bullauge (Chrom-Ring/Torus + dunkle Dichtung + getöntes Glas) + dunkle
+// Bedienblende mit Chrom-Programmwähler und Glas-Display.
 const waschmaschine: Bauer = (w, d, h) => {
-  const r = Math.min(w, d) * 0.32;
+  const rr = Math.min(w, d) * 0.05;
+  const r = Math.min(w, d) * 0.3;
   return [
-    // Korpus
-    box([w, h, d], [0, 0, 0], "koerper"),
-    // Türrahmen (rund simuliert durch 2 Boxen im Kreuz)
-    zyl(r, r, d * 0.06, [0, -h * 0.06, d / 2 - d * 0.03], "dunkel"),
-    // Bullauge Glas
-    zyl(r * 0.82, r * 0.82, d * 0.04, [0, -h * 0.06, d / 2 - d * 0.01], "glas"),
-    // Türgriff
-    box([w * 0.04, h * 0.04, d * 0.06], [r * 0.88, -h * 0.06, d / 2 - d * 0.03], "hell"),
-    // Bedienfeld oben
-    box([w * 0.92, h * 0.18, d * 0.04], [0, h / 2 - h * 0.09, d / 2 - d * 0.02], "dunkel"),
-    // Display
-    box([w * 0.32, h * 0.1, d * 0.03], [-w * 0.22, h / 2 - h * 0.09, d / 2 - d * 0.015], "glas"),
-    // Regler
-    zyl(w * 0.06, w * 0.06, d * 0.04, [w * 0.2, h / 2 - h * 0.09, d / 2 - d * 0.02], "hell"),
-    // Sockel zurückgesetzt
-    box([w * 0.88, h * 0.05, d * 0.6], [0, -h / 2 + h * 0.025, 0], "dunkel"),
+    // Korpus (gerundet)
+    rbox([w, h * 0.94, d], [0, -h / 2 + h * 0.49, 0], rr, "koerper"),
+    // Zurückgesetzter Sockel
+    box([w * 0.9, h * 0.05, d * 0.8], [0, -h / 2 + h * 0.025, 0], "dunkel"),
+    // Front (leicht erhaben, hell)
+    rbox([w * 0.94, h * 0.7, d * 0.03], [0, -h * 0.08, d / 2 - d * 0.015], rr * 0.5, "hell"),
+    // Bullauge-Rahmen (Chrom-Ring)
+    ring(r, w * 0.02, "z", [0, -h * 0.06, d / 2 - d * 0.02], "chrom"),
+    // Dichtung (dunkel)
+    zyl(r * 0.86, r * 0.86, d * 0.03, [0, -h * 0.06, d / 2 - d * 0.02], "dunkel"),
+    // Bullauge-Glas (getönt)
+    zyl(r * 0.7, r * 0.7, d * 0.02, [0, -h * 0.06, d / 2 - d * 0.008], "glas"),
+    // Bedienblende oben (dunkel)
+    rbox(
+      [w * 0.94, h * 0.16, d * 0.03],
+      [0, h / 2 - h * 0.11, d / 2 - d * 0.015],
+      rr * 0.4,
+      "dunkel",
+    ),
+    // Programmwähler (Chrom-Drehknopf)
+    zyl(w * 0.07, w * 0.07, d * 0.03, [w * 0.28, h / 2 - h * 0.11, d / 2 - d * 0.01], "chrom"),
+    // Display (glas, leuchtet)
+    box([w * 0.3, h * 0.07, d * 0.02], [-w * 0.18, h / 2 - h * 0.11, d / 2 - d * 0.008], "glas"),
   ];
 };
 
-// Tumbler / Wäschetrockner: Gleiche Form wie Waschmaschine
+// Tumbler / Wäschetrockner: wie die Waschmaschine gerundet, Bullauge leicht nach
+// links versetzt (Chrom-Ring + Dichtung + Glas), zusätzlich eine Kondensat-
+// Schublade unten. Bedienblende oben mit Chrom-Wähler und Glas-Display.
 const tumbler: Bauer = (w, d, h) => {
-  const r = Math.min(w, d) * 0.32;
+  const rr = Math.min(w, d) * 0.05;
+  const r = Math.min(w, d) * 0.3;
   return [
-    box([w, h, d], [0, 0, 0], "koerper"),
-    zyl(r, r, d * 0.06, [0, -h * 0.05, d / 2 - d * 0.03], "dunkel"),
-    zyl(r * 0.8, r * 0.8, d * 0.04, [0, -h * 0.05, d / 2 - d * 0.01], "glas"),
-    // Lüftungsöffnungen rechts
-    box([w * 0.12, h * 0.5, d * 0.03], [w / 2 - w * 0.1, -h * 0.05, d / 2 - d * 0.015], "dunkel"),
-    box([w * 0.08, h * 0.4, d * 0.02], [w / 2 - w * 0.1, -h * 0.05, d / 2 - d * 0.01], "hell"),
-    box([w * 0.88, h * 0.18, d * 0.04], [0, h / 2 - h * 0.09, d / 2 - d * 0.02], "dunkel"),
-    zyl(w * 0.06, w * 0.06, d * 0.04, [w * 0.2, h / 2 - h * 0.09, d / 2 - d * 0.02], "hell"),
-    box([w * 0.88, h * 0.05, d * 0.6], [0, -h / 2 + h * 0.025, 0], "dunkel"),
+    // Korpus (gerundet)
+    rbox([w, h * 0.94, d], [0, -h / 2 + h * 0.49, 0], rr, "koerper"),
+    // Zurückgesetzter Sockel
+    box([w * 0.9, h * 0.05, d * 0.8], [0, -h / 2 + h * 0.025, 0], "dunkel"),
+    // Front (leicht erhaben, hell)
+    rbox([w * 0.94, h * 0.7, d * 0.03], [0, -h * 0.06, d / 2 - d * 0.015], rr * 0.5, "hell"),
+    // Bullauge-Rahmen (Chrom-Ring)
+    ring(r, w * 0.02, "z", [-w * 0.05, -h * 0.04, d / 2 - d * 0.02], "chrom"),
+    // Dichtung (dunkel)
+    zyl(r * 0.86, r * 0.86, d * 0.03, [-w * 0.05, -h * 0.04, d / 2 - d * 0.02], "dunkel"),
+    // Bullauge-Glas
+    zyl(r * 0.7, r * 0.7, d * 0.02, [-w * 0.05, -h * 0.04, d / 2 - d * 0.008], "glas"),
+    // Bedienblende oben (dunkel)
+    rbox(
+      [w * 0.94, h * 0.16, d * 0.03],
+      [0, h / 2 - h * 0.11, d / 2 - d * 0.015],
+      rr * 0.4,
+      "dunkel",
+    ),
+    // Programmwähler (Chrom)
+    zyl(w * 0.07, w * 0.07, d * 0.03, [w * 0.3, h / 2 - h * 0.11, d / 2 - d * 0.01], "chrom"),
+    // Display (glas)
+    box([w * 0.3, h * 0.07, d * 0.02], [-w * 0.16, h / 2 - h * 0.11, d / 2 - d * 0.008], "glas"),
+    // Kondensat-Schublade unten (Griffmulde, dunkel)
+    box([w * 0.5, h * 0.04, d * 0.02], [0, -h / 2 + h * 0.16, d / 2 - d * 0.012], "dunkel"),
   ];
 };
 
-// Eckschrank: Korpus + 1 Tür + Griff + Sockel
-const eckschrank: Bauer = (w, d, h) => [
-  box([w, h * 0.86, d], [0, -h / 2 + h * 0.43, 0], "koerper"),
-  box([w, h * 0.08, d], [0, h / 2 - h * 0.04, 0], "dunkel"),
-  box([w * 0.92, h * 0.06, d * 0.7], [0, -h / 2 + h * 0.03, 0], "dunkel"),
-  box([w * 0.3, h * 0.03, d * 0.04], [w * 0.1, h * 0.04, d / 2 - d * 0.02], "hell"),
-];
+// Eckschrank: gerundeter Korpus + Arbeitsplatte (bündig zur bbox-Oberkante, wie
+// Unterschrank – damit die Zeile durchläuft) + zurückgesetzter Sockel + schmale
+// Eck-Türfront (hell, erhaben) neben fester Blende + vertikaler Chrom-Griff.
+const eckschrank: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.04;
+  return [
+    // Korpus (gerundet)
+    rbox([w, h * 0.84, d], [0, -h / 2 + h * 0.48, 0], rr, "koerper"),
+    // Arbeitsplatte (gerundete Vorderkante, bündig zur Oberkante)
+    rbox([w, h * 0.08, d * 1.02], [0, h / 2 - h * 0.04, d * 0.01], rr * 0.7, "dunkel"),
+    // Zurückgesetzter Sockel
+    box([w * 0.92, h * 0.08, d * 0.86], [0, -h / 2 + h * 0.04, -d * 0.02], "dunkel"),
+    // Eck-Türfront (schmal, hell, erhaben)
+    rbox([w * 0.6, h * 0.7, d * 0.04], [-w * 0.16, -h * 0.06, d / 2 - d * 0.02], rr * 0.5, "hell"),
+    // Feste Blende rechts (Korpusfarbe)
+    rbox(
+      [w * 0.24, h * 0.7, d * 0.04],
+      [w * 0.34, -h * 0.06, d / 2 - d * 0.02],
+      rr * 0.5,
+      "koerper",
+    ),
+    // Vertikaler Chrom-Griff an der Türkante
+    zyl(w * 0.014, w * 0.014, h * 0.3, [-w * 0.02, -h * 0.06, d / 2 - d * 0.03], "chrom"),
+  ];
+};
 
-// Füllstück: Dünnes Verbindungsstück zwischen Küchenschränken
-const fuellstueck: Bauer = (w, d, h) => [
-  box([w, h, d], [0, 0, 0], "koerper"),
-  box([w * 0.3, h, d * 0.05], [0, 0, d / 2 - d * 0.025], "dunkel"),
-];
+// Füllstück: schmales Passstück zwischen Küchenschränken – gerundeter Korpus +
+// bündige Arbeitsplatte + zurückgesetzter Sockel + erhabene Passblende, damit es
+// in der Zeile bündig verschwindet.
+const fuellstueck: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.06;
+  return [
+    // Korpus (gerundet)
+    rbox([w, h * 0.84, d], [0, -h / 2 + h * 0.48, 0], rr, "koerper"),
+    // Arbeitsplatte (bündig zur Oberkante, wie Nachbarschränke)
+    rbox([w, h * 0.08, d * 1.02], [0, h / 2 - h * 0.04, d * 0.01], rr * 0.7, "dunkel"),
+    // Zurückgesetzter Sockel
+    box([w * 0.9, h * 0.08, d * 0.86], [0, -h / 2 + h * 0.04, -d * 0.02], "dunkel"),
+    // Passblende vorne (hell, erhaben)
+    rbox([w * 0.9, h * 0.68, d * 0.03], [0, -h * 0.04, d / 2 - d * 0.015], rr * 0.5, "hell"),
+  ];
+};
 
 // ═══════════════════════════════════════════════════════════════════
 // VARIANTEN – mehrere 3D-Bausätze je funktionsTyp

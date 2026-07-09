@@ -245,6 +245,83 @@ describe("Flagship-Wohnen/Schlafen-Modelle – Volumetrie & Materialien", () => 
   });
 });
 
+describe("Flagship-Küche-Modelle – Volumetrie & Materialien", () => {
+  const formen = (typ: string) => new Set(bauteile(typ, 0.6, 0.6, 0.85).map((t) => t.form));
+  const rollen = (typ: string) => new Set(bauteile(typ, 0.6, 0.6, 0.85).map((t) => t.rolle));
+
+  // Korpus-/Geräte-Bauer der Küche: gerundete Kanten (rundbox) + genug Teile.
+  const gerundet = [
+    "unterschrank",
+    "hochschrank",
+    "haengeschrank",
+    "spuele",
+    "kochfeld",
+    "eckschrank",
+    "fuellstueck",
+    "kuehlschrank",
+    "geschirrspueler",
+    "backofen",
+    "mikrowelle",
+    "dunstabzug",
+    "waschmaschine",
+    "tumbler",
+  ];
+
+  it("nutzt gerundete Boxen (rundbox) und ist klar mehrteilig (>=4 Teile)", () => {
+    for (const typ of gerundet) {
+      expect(formen(typ).has("rundbox"), `${typ} nutzt rundbox`).toBe(true);
+      expect(bauteile(typ, 0.6, 0.6, 0.85).length, `${typ} >=4 Teile`).toBeGreaterThanOrEqual(4);
+    }
+  });
+
+  it("verbaut Chrom für Griffe/Armaturen an Schränken und Geräten", () => {
+    for (const typ of [
+      "unterschrank",
+      "haengeschrank",
+      "spuele",
+      "kochfeld",
+      "eckschrank",
+      "kuehlschrank",
+      "geschirrspueler",
+      "backofen",
+      "mikrowelle",
+      "dunstabzug",
+      "waschmaschine",
+      "tumbler",
+    ]) {
+      expect(rollen(typ).has("chrom"), `${typ} nutzt chrom`).toBe(true);
+    }
+  });
+
+  it("gibt Glas-Flächen an Kochfeld, Backofen, Mikrowelle und Waschgeräten", () => {
+    for (const typ of ["kochfeld", "backofen", "mikrowelle", "waschmaschine", "tumbler"]) {
+      expect(rollen(typ).has("glas"), `${typ} hat Glas`).toBe(true);
+    }
+  });
+
+  it("modelliert Spüle und Waschgeräte mit Torus (Armatur-Bogen bzw. Bullauge-Ring)", () => {
+    for (const typ of ["spuele", "waschmaschine", "tumbler"]) {
+      expect(formen(typ).has("torus"), `${typ} nutzt torus`).toBe(true);
+    }
+  });
+
+  it("bleibt für alle Küchen-Bauer vollständig in der bbox (auch extreme Masse)", () => {
+    const masse: [number, number, number][] = [
+      [0.6, 0.6, 0.85],
+      [0.15, 0.6, 0.85], // schmales Füllstück
+      [0.6, 0.6, 2.0], // Hochschrank/Kühlschrank
+      [0.9, 0.9, 0.9],
+    ];
+    for (const typ of gerundet) {
+      for (const [w, d, h] of masse) {
+        expect(passtInBbox(bauteile(typ, w, d, h), w, d, h), `${typ} ${w}×${d}×${h} in bbox`).toBe(
+          true,
+        );
+      }
+    }
+  });
+});
+
 describe("Farbableitung – Chrom-Rolle", () => {
   it("leitet Chrom als hellen Metallton aus der Basis-/Ampelfarbe ab", () => {
     // Aus der Ampelfarbe abgeleitet → Status dominiert weiter (kein Eigenwert).
