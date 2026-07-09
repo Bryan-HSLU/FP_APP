@@ -8,6 +8,20 @@
 
 **Stand: 2026-07-09**
 
+### 3D-Modelle Bad – höhere Volumetrie (2026-07-09)
+- **Primitiv-System erweitert** (`apps/web/src/moebel3d.tsx`): neben box/zyl/kugel
+  neu **`rundbox`** (RoundedBox), **`lathe`** (Rotationskörper), **`torus`** –
+  plus Material-Rollen **`glas`** (echt transparent) und **`chrom`** (metallisch).
+  Ampel-Farblogik unangetastet (Rolle steuert nur Oberflächen-Physik).
+- **Alle Bad-Objekte + 5 Deko-Kits** auf klar erkennbare, plastische Volumetrie
+  gehoben (WC/Lavabo/Dusche als Flagship, dann Fan-out: Badewanne, Spiegel,
+  Badmöbel, Hochschrank, Regal, Handtuchstange/-heizung, Urinal, Bidet,
+  Badteppich, Wandleuchte, Pflanze; Deko: Seifenspender, Zahnputzbecher,
+  gefaltete Handtücher, Tray, Pflanze). `dressing3d.tsx`-Renderer auf die neuen
+  Primitive erweitert. bbox-Invariante (`passtInBbox`/`clampTeil`) bleibt.
+- **Offen:** Fan-out Wohnen/Küche-Modelle im gleichen Detailgrad; echtes
+  Spiegel-Chrom bräuchte eine Environment-Map (aktuell mattes Metall).
+
 ### Scene Dressing – Bad-Durchstich (2026-07-09)
 - **Neue visuelle Deko-Ebene**, client-seitig & getrennt vom Plan (Konzept:
   Brain `vault/50_Umsetzung/Scene-Dressing-Konzept.md`). `sceneDressing()` in
