@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   bausatzSchluessel,
   bauteile,
+  clampTeil,
   MATERIAL_FALLBACK,
   MATERIAL_FARBE,
   materialFarbe,
   mischen,
   passtInBbox,
   rolleFarbe,
+  type Teil,
 } from "./moebel3d.tsx";
 
 // Registrierte 3D-Varianten (funktionsTyp trägt mehrere Bausätze).
@@ -118,6 +120,89 @@ describe("Varianten-Bausätze – mehrteilig & bbox-treu", () => {
     expect(ueberVariante).toEqual(standard);
     // Die Variante unterscheidet sich sichtbar vom Standard.
     expect(bauteile("wc-wandhaengend", 0.4, 0.6, 0.42)).not.toEqual(standard);
+  });
+});
+
+describe("Neue Primitive – rundbox/lathe/torus (Volumetrie)", () => {
+  it("erfasst rundbox/lathe/torus in passtInBbox (passende Teile liegen drin)", () => {
+    const teile: Teil[] = [
+      { form: "rundbox", groesse: [0.8, 0.4, 0.6], pos: [0, 0, 0], radius: 0.1, rolle: "koerper" },
+      {
+        form: "lathe",
+        profil: [
+          [0, -0.2],
+          [0.25, 0],
+          [0.28, 0.18],
+        ],
+        segmente: 24,
+        pos: [0, 0, 0],
+        rolle: "koerper",
+      },
+      { form: "torus", radius: 0.2, roehre: 0.03, achse: "y", pos: [0, 0, 0], rolle: "chrom" },
+    ];
+    expect(passtInBbox(teile, 1, 1, 1)).toBe(true);
+  });
+
+  it("erkennt Überstand neuer Formen und clampt sie zurück in die bbox", () => {
+    const zuGross: Teil[] = [
+      { form: "rundbox", groesse: [2, 2, 2], pos: [1, 1, 1], radius: 0.5, rolle: "koerper" },
+      {
+        form: "lathe",
+        profil: [
+          [0, -1],
+          [0.9, 0],
+          [0.9, 1],
+        ],
+        segmente: 24,
+        pos: [0.5, 0.4, -0.6],
+        rolle: "koerper",
+      },
+      {
+        form: "torus",
+        radius: 0.9,
+        roehre: 0.2,
+        achse: "x",
+        pos: [0.7, -0.8, 0.5],
+        rolle: "chrom",
+      },
+    ];
+    for (const t of zuGross) {
+      expect(passtInBbox([t], 0.6, 0.5, 0.9), "vorher ausserhalb").toBe(false);
+      expect(passtInBbox([clampTeil(t, 0.6, 0.5, 0.9)], 0.6, 0.5, 0.9), "nach clamp drin").toBe(
+        true,
+      );
+    }
+  });
+});
+
+describe("Flagship-Bad-Modelle – Volumetrie & Chrom", () => {
+  const formen = (typ: string) => new Set(bauteile(typ, 0.6, 0.5, 0.85).map((t) => t.form));
+  const rollen = (typ: string) => new Set(bauteile(typ, 0.6, 0.5, 0.85).map((t) => t.rolle));
+
+  it("WC nutzt gerundete Boxen und einen Chrom-Drücker (>=6 Teile)", () => {
+    expect(bauteile("wc", 0.4, 0.6, 0.42).length).toBeGreaterThanOrEqual(6);
+    expect(formen("wc").has("rundbox")).toBe(true);
+    expect(rollen("wc").has("chrom")).toBe(true);
+  });
+
+  it("Lavabo nutzt Rotationskörper (lathe) + Torus-Bogen + Chrom-Armatur", () => {
+    expect(formen("lavabo").has("lathe")).toBe(true);
+    expect(formen("lavabo").has("torus")).toBe(true);
+    expect(rollen("lavabo").has("chrom")).toBe(true);
+  });
+
+  it("Dusche hat echtes Glas, Chrom-Armaturen und einen Torus-Ablauf/Ring", () => {
+    expect(rollen("dusche").has("glas")).toBe(true);
+    expect(rollen("dusche").has("chrom")).toBe(true);
+    expect(formen("dusche").has("torus")).toBe(true);
+  });
+});
+
+describe("Farbableitung – Chrom-Rolle", () => {
+  it("leitet Chrom als hellen Metallton aus der Basis-/Ampelfarbe ab", () => {
+    // Aus der Ampelfarbe abgeleitet → Status dominiert weiter (kein Eigenwert).
+    expect(rolleFarbe("chrom", "#000000")).not.toBe("#000000");
+    expect(rolleFarbe("chrom", "#808080")).toMatch(/^#[0-9a-f]{6}$/i);
   });
 });
 

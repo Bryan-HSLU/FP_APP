@@ -18,6 +18,9 @@
  * «Neue Variante hinzufügen in 3 Schritten» steht dort im Docstring.
  */
 
+import { RoundedBox } from "@react-three/drei";
+import { Vector2 } from "three";
+
 /** Material-/Basisfarbe je funktionsTyp für den 3D-Viewer (Bryans Möbel-
  *  Materialwunsch). WICHTIG: Nur wirksam, wenn die Norm-Ampel «ok» ist –
  *  knapp/verletzt/gesperrt behalten im Viewer3D ihre Statusfarben, die Ampel
@@ -84,12 +87,36 @@ export function materialFarbe(funktionsTyp: string): string {
   return MATERIAL_FARBE[funktionsTyp] ?? MATERIAL_FALLBACK;
 }
 
-/** Rolle eines Bauteils – steuert nur die Farbableitung, nie die Ampel. */
-export type Rolle = "koerper" | "hell" | "dunkel" | "glas";
+/**
+ * Rolle eines Bauteils – steuert Farbableitung UND Materialwirkung
+ * (metalness/roughness/opacity), nie aber die Ampel. `chrom` ist neu für
+ * Armaturen/Griffe (poliertes Metall). Die Basisfarbe kommt weiter aus
+ * `rolleFarbe`/Ampel; die Rolle legt nur die Oberflächen-Physik fest.
+ */
+export type Rolle = "koerper" | "hell" | "dunkel" | "glas" | "chrom";
 
-/** Ein Primitiv im lokalen Box-Koordinatensystem (Meter, Ursprung = Mitte). */
+/**
+ * Ein Primitiv im lokalen Box-Koordinatensystem (Meter, Ursprung = Mitte).
+ *
+ * Grundformen `box|zylinder|kugel` sind unverändert. Für höhere Volumetrie /
+ * gerundete Keramik kamen additiv hinzu:
+ * - `rundbox`  – Box mit gerundeten Kanten (drei `RoundedBox`), `radius` in Metern.
+ * - `lathe`    – Rotationskörper aus einem 2D-Profil (Keramik-Rundungen). Das
+ *                Profil ist eine Liste `[radius, y]`-Punkte; `y` ist relativ zu
+ *                `pos` (Rotationsachse = Y). Bounding = max-Radius × (yMax−yMin).
+ * - `torus`    – Ring (Ablauf, Rosette, gebogener Auslauf). `achse` = die Achse,
+ *                zu der die Ring-Ebene senkrecht steht (`y` = flach liegend).
+ * Alle neuen Formen werden von {@link passtInBbox}/{@link clampTeil} erfasst.
+ */
 export type Teil =
   | { form: "box"; groesse: [number, number, number]; pos: [number, number, number]; rolle: Rolle }
+  | {
+      form: "rundbox";
+      groesse: [number, number, number];
+      pos: [number, number, number];
+      radius: number;
+      rolle: Rolle;
+    }
   | {
       form: "zylinder";
       rTop: number;
@@ -98,7 +125,22 @@ export type Teil =
       pos: [number, number, number];
       rolle: Rolle;
     }
-  | { form: "kugel"; radius: number; pos: [number, number, number]; rolle: Rolle };
+  | { form: "kugel"; radius: number; pos: [number, number, number]; rolle: Rolle }
+  | {
+      form: "lathe";
+      profil: [number, number][];
+      segmente: number;
+      pos: [number, number, number];
+      rolle: Rolle;
+    }
+  | {
+      form: "torus";
+      radius: number;
+      roehre: number;
+      achse: "x" | "y" | "z";
+      pos: [number, number, number];
+      rolle: Rolle;
+    };
 
 // Kurz-Konstruktoren, damit die Bauteil-Listen kompakt lesbar bleiben.
 const box = (
@@ -106,6 +148,13 @@ const box = (
   pos: [number, number, number],
   rolle: Rolle,
 ): Teil => ({ form: "box", groesse, pos, rolle });
+
+const rbox = (
+  groesse: [number, number, number],
+  pos: [number, number, number],
+  radius: number,
+  rolle: Rolle,
+): Teil => ({ form: "rundbox", groesse, pos, radius, rolle });
 
 const zyl = (
   rTop: number,
@@ -121,6 +170,35 @@ const kugel = (radius: number, pos: [number, number, number], rolle: Rolle): Tei
   pos,
   rolle,
 });
+
+/** Rotationskörper: Profil = `[radius, y]`-Punkte (y relativ zu `pos`, Achse Y). */
+const drehteil = (
+  profil: [number, number][],
+  pos: [number, number, number],
+  rolle: Rolle,
+  segmente = 24,
+): Teil => ({ form: "lathe", profil, pos, rolle, segmente });
+
+/** Ring/Torus. `achse` = Achse senkrecht zur Ring-Ebene (`y` = flach liegend). */
+const ring = (
+  radius: number,
+  roehre: number,
+  achse: "x" | "y" | "z",
+  pos: [number, number, number],
+  rolle: Rolle,
+): Teil => ({ form: "torus", radius, roehre, achse, pos, rolle });
+
+/** Halb-Ausdehnungen [x,y,z] eines Torus – abhängig von der Ring-Achse. */
+function torusHalb(
+  radius: number,
+  roehre: number,
+  achse: "x" | "y" | "z",
+): [number, number, number] {
+  const gross = radius + roehre;
+  if (achse === "y") return [gross, roehre, gross];
+  if (achse === "x") return [roehre, gross, gross];
+  return [gross, gross, roehre];
+}
 
 /**
  * Mischt eine #rrggbb-Farbe Richtung Weiss (faktor>0) oder Schwarz (faktor<0).
@@ -150,6 +228,11 @@ export function rolleFarbe(rolle: Rolle, farbe: string): string {
       return mischen(farbe, -0.32);
     case "glas":
       return mischen(farbe, 0.4);
+    case "chrom":
+      // Poliertes Metall: heller neutraler Ton; der Chrom-Look entsteht v.a.
+      // über metalness/roughness im Material (siehe teilMaterial). Bleibt aus
+      // der Ampel-/Basisfarbe abgeleitet, damit der Status weiter dominiert.
+      return mischen(farbe, 0.52);
   }
 }
 
@@ -163,54 +246,128 @@ type Bauer = (w: number, d: number, h: number) => Teil[];
 // BAD
 // ═══════════════════════════════════════════════════════════════════
 
-// WC: Keramikkörper + Sitzfläche + Spülkasten mit Knopf
-const wc: Bauer = (w, d, h) => [
-  // Keramik-Sockel
-  box([w * 0.9, h * 0.48, d * 0.78], [0, -h / 2 + h * 0.24, d * 0.05], "koerper"),
-  // Sitzfläche (heller Ring)
-  box([w * 0.88, h * 0.06, d * 0.74], [0, -h / 2 + h * 0.5, d * 0.05], "hell"),
-  // Sitzdeckel
-  box([w * 0.86, h * 0.04, d * 0.72], [0, -h / 2 + h * 0.57, d * 0.05], "dunkel"),
-  // Spülkasten
-  box([w * 0.88, h * 0.38, d * 0.22], [0, h / 2 - h * 0.19, -d / 2 + d * 0.11], "koerper"),
-  // Spülknopf
-  box([w * 0.12, h * 0.04, d * 0.04], [0, h / 2 - h * 0.06, -d / 2 + d * 0.22], "dunkel"),
-];
-
-// Lavabo: Schale + Säule + Armatur + Abfluss
-const lavabo: Bauer = (w, d, h) => {
-  const r = Math.min(w, d);
+// WC (bodenstehend): gerundeter Keramikkörper (rundbox), Sitzbrille + Deckel,
+// Spülkasten mit gerundeten Kanten, Chrom-Drücker, Fussübergang zum Boden.
+const wc: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.12; // Rundungsradius der Keramik
   return [
-    // Säule (Zylinder)
-    zyl(r * 0.14, r * 0.18, h * 0.55, [0, -h / 2 + h * 0.275, 0], "koerper"),
-    // Beckenplatte
-    box([w * 0.96, h * 0.22, d * 0.96], [0, h / 2 - h * 0.15, 0], "hell"),
-    // Beckenvertiefung (dunkel)
-    box([w * 0.72, h * 0.12, d * 0.72], [0, h / 2 - h * 0.08, 0], "dunkel"),
-    // Armatur-Körper (bleibt unter der bbox-Oberkante h/2 – Norm-Ampel-Treue)
-    box([w * 0.07, h * 0.12, d * 0.07], [0, h / 2 - h * 0.06, -d * 0.1], "dunkel"),
-    // Armatur-Auslauf (waagerecht)
-    box([w * 0.04, h * 0.04, d * 0.2], [0, h / 2 - h * 0.03, d * 0.04], "dunkel"),
-    // Abfluss
-    zyl(r * 0.04, r * 0.04, h * 0.04, [0, h / 2 - h * 0.12, 0], "dunkel"),
+    // Standfuss/Sockel zum Boden (verjüngter Übergang)
+    rbox([w * 0.44, h * 0.5, d * 0.42], [0, -h / 2 + h * 0.25, d * 0.05], rr, "koerper"),
+    // Keramik-Schüssel (gerundeter Hauptkörper)
+    rbox([w * 0.82, h * 0.28, d * 0.66], [0, -h / 2 + h * 0.53, d * 0.09], rr, "koerper"),
+    // Sitzbrille (heller Ring)
+    rbox([w * 0.82, h * 0.05, d * 0.62], [0, -h / 2 + h * 0.68, d * 0.1], rr * 0.5, "hell"),
+    // Sitzdeckel (leicht abgesetzt, dunkler)
+    rbox([w * 0.8, h * 0.045, d * 0.6], [0, -h / 2 + h * 0.72, d * 0.1], rr * 0.5, "dunkel"),
+    // Spülkasten (gerundete Kanten)
+    rbox([w * 0.8, h * 0.4, d * 0.24], [0, h / 2 - h * 0.24, -d / 2 + d * 0.14], rr, "koerper"),
+    // Spülkasten-Deckel
+    rbox(
+      [w * 0.84, h * 0.05, d * 0.28],
+      [0, h / 2 - h * 0.03, -d / 2 + d * 0.15],
+      rr * 0.4,
+      "hell",
+    ),
+    // Drücker (Chrom)
+    rbox(
+      [w * 0.16, h * 0.03, d * 0.07],
+      [0, h / 2 - h * 0.02, -d / 2 + d * 0.15],
+      w * 0.02,
+      "chrom",
+    ),
   ];
 };
 
-// Dusche: Wanne + 2 Glaswände + Duschkopf + Armatur
-const dusche: Bauer = (w, d, h) => [
-  // Wannenboden
-  box([w * 0.98, h * 0.05, d * 0.98], [0, -h / 2 + h * 0.025, 0], "koerper"),
-  // Wannenrand
-  box([w, h * 0.08, d], [0, -h / 2 + h * 0.07, 0], "hell"),
-  // Glaswand links/rechts
-  box([w * 0.04, h * 0.88, d * 0.96], [w / 2 - w * 0.02, h * 0.02, 0], "glas"),
-  // Glaswand vorne
-  box([w * 0.96, h * 0.88, d * 0.04], [0, h * 0.02, d / 2 - d * 0.02], "glas"),
-  // Armatur-Stange
-  zyl(w * 0.02, w * 0.02, h * 0.45, [-w * 0.38, h * 0.18, -d * 0.44], "dunkel"),
-  // Duschkopf
-  zyl(w * 0.08, w * 0.08, h * 0.04, [-w * 0.38, h / 2 - h * 0.1, -d * 0.44], "dunkel"),
-];
+// Lavabo (Standsäule): geschwungene Keramik-Säule (Rotationskörper), gerundeter
+// Waschtisch mit runder Beckenschale (Rotationskörper) + sichtbarer Vertiefung,
+// Chrom-Armatur mit Rosette, Auslauf und gebogenem Bogen (Torus), Chrom-Ablauf.
+const lavabo: Bauer = (w, d, h) => {
+  const r0 = Math.min(w, d);
+  const rr = r0 * 0.1;
+  return [
+    // Keramik-Säule (Rotationskörper: breiter Fuss, schlanke Taille, Flare oben)
+    drehteil(
+      [
+        [r0 * 0.2, -h * 0.39],
+        [r0 * 0.15, -h * 0.26],
+        [r0 * 0.11, -h * 0.05],
+        [r0 * 0.14, h * 0.24],
+        [r0 * 0.2, h * 0.39],
+      ],
+      [0, -h * 0.11, d * 0.02],
+      "koerper",
+    ),
+    // Waschtisch-/Beckenkörper (gerundet, breit)
+    rbox([w * 0.96, h * 0.16, d * 0.9], [0, h / 2 - h * 0.14, 0], rr, "hell"),
+    // Beckenschale-Vertiefung (Rotationskörper, dunkle Innenmulde)
+    drehteil(
+      [
+        [0, -h * 0.13],
+        [r0 * 0.18, -h * 0.11],
+        [r0 * 0.32, -h * 0.04],
+        [r0 * 0.36, -h * 0.005],
+      ],
+      [0, h / 2 - h * 0.055, 0],
+      "dunkel",
+    ),
+    // Ablauf (Chrom-Ring)
+    ring(r0 * 0.05, r0 * 0.014, "y", [0, h / 2 - h * 0.17, 0], "chrom"),
+    // Armatur-Rosette (Chrom-Ring auf der Platte, hinten)
+    ring(r0 * 0.07, r0 * 0.02, "y", [0, h / 2 - h * 0.05, -d * 0.33], "chrom"),
+    // Armatur-Körper (Chrom, vertikal)
+    zyl(w * 0.03, w * 0.035, h * 0.14, [0, h / 2 - h * 0.11, -d * 0.33], "chrom"),
+    // Gebogener Auslauf (Chrom-Torus, achse x = Bogen in der y/z-Ebene)
+    ring(d * 0.11, w * 0.028, "x", [0, h / 2 - h * 0.04 - d * 0.11, -d * 0.22], "chrom"),
+    // Einhebel-Mischer (Chrom)
+    rbox(
+      [w * 0.12, h * 0.03, d * 0.05],
+      [w * 0.08, h / 2 - h * 0.03, -d * 0.31],
+      w * 0.015,
+      "chrom",
+    ),
+  ];
+};
+
+// Dusche: Duschtasse mit gerundetem Rand, 2 echte Glaswände (transparent),
+// Chrom-Eckpfosten + Türgriff, Chrom-Brausestange mit Thermostat, Regen-
+// Duschkopf (flacher Chrom-Teller mit Ring) und angedeutete Handbrause.
+const dusche: Bauer = (w, d, h) => {
+  const r0 = Math.min(w, d);
+  const rr = r0 * 0.08;
+  return [
+    // Duschtasse (gerundeter Rand)
+    rbox([w * 0.98, h * 0.07, d * 0.98], [0, -h / 2 + h * 0.035, 0], rr, "koerper"),
+    // Tasse-Innenfläche (leicht vertieft, hell)
+    rbox([w * 0.86, h * 0.03, d * 0.86], [0, -h / 2 + h * 0.06, 0], rr * 0.6, "hell"),
+    // Ablauf (Chrom-Ring)
+    ring(r0 * 0.06, r0 * 0.018, "y", [0, -h / 2 + h * 0.07, 0], "chrom"),
+    // Glaswand rechts (+x) – echt transparent
+    box([w * 0.03, h * 0.86, d * 0.94], [w / 2 - w * 0.015, h * 0.02, 0], "glas"),
+    // Glaswand vorne (+z) – echt transparent
+    box([w * 0.94, h * 0.86, d * 0.03], [0, h * 0.02, d / 2 - d * 0.015], "glas"),
+    // Eckpfosten (Chrom) vorne-rechts – verbindet die Glaswände über Eck
+    zyl(w * 0.022, w * 0.022, h * 0.9, [w / 2 - w * 0.022, h * 0.02, d / 2 - d * 0.022], "chrom"),
+    // Türgriff (Chrom, vertikale Stange an der Frontscheibe)
+    zyl(w * 0.012, w * 0.012, h * 0.3, [w * 0.18, h * 0.06, d / 2 - d * 0.045], "chrom"),
+    // Vertikale Brausestange (Chrom) an der Rückwand
+    zyl(w * 0.018, w * 0.018, h * 0.5, [-w * 0.36, h * 0.12, -d / 2 + d * 0.04], "chrom"),
+    // Thermostat/Armatur (Chrom, gerundet) unten an der Rückwand
+    rbox(
+      [w * 0.18, h * 0.06, d * 0.05],
+      [-w * 0.36, -h * 0.08, -d / 2 + d * 0.05],
+      w * 0.02,
+      "chrom",
+    ),
+    // Handbrause an der Stange (Chrom)
+    zyl(w * 0.03, w * 0.02, h * 0.11, [-w * 0.31, h * 0.06, -d / 2 + d * 0.05], "chrom"),
+    // Auslegerarm zum Regenkopf (Chrom, von der Rückwand nach vorne)
+    box([w * 0.04, h * 0.025, d * 0.28], [-w * 0.14, h / 2 - h * 0.06, -d / 2 + d * 0.18], "chrom"),
+    // Regen-Duschkopf (flacher Chrom-Teller)
+    zyl(r0 * 0.19, r0 * 0.19, h * 0.02, [-w * 0.14, h / 2 - h * 0.09, -d * 0.14], "chrom"),
+    // Regenkopf-Rand (Chrom-Ring als Fassung)
+    ring(r0 * 0.19, r0 * 0.016, "y", [-w * 0.14, h / 2 - h * 0.1, -d * 0.14], "chrom"),
+  ];
+};
 
 // Badewanne: Wanne mit Rand, Armatur, Abfluss
 const badewanne: Bauer = (w, d, h) => [
@@ -1149,11 +1306,49 @@ export function clampTeil(t: Teil, w: number, d: number, h: number): Teil {
     return hi <= lo ? [Math.max(-limit, Math.min(limit, c)), 0] : [(lo + hi) / 2, (hi - lo) / 2];
   };
   const klemm = (c: number, spiel: number) => Math.max(-spiel, Math.min(spiel, c));
-  if (t.form === "box") {
+  if (t.form === "box" || t.form === "rundbox") {
     const [cx, hx] = fit(t.pos[0], t.groesse[0] / 2, w / 2);
     const [cy, hy] = fit(t.pos[1], t.groesse[1] / 2, h / 2);
     const [cz, hz] = fit(t.pos[2], t.groesse[2] / 2, d / 2);
-    return { ...t, groesse: [hx * 2, hy * 2, hz * 2], pos: [cx, cy, cz] };
+    const groesse: [number, number, number] = [hx * 2, hy * 2, hz * 2];
+    if (t.form === "rundbox") {
+      // Rundungsradius darf nie eine halbe Kantenlänge überschreiten.
+      const radius = Math.max(0, Math.min(t.radius, hx, hy, hz));
+      return { ...t, groesse, radius, pos: [cx, cy, cz] };
+    }
+    return { ...t, groesse, pos: [cx, cy, cz] };
+  }
+  if (t.form === "torus") {
+    const [hex, hey, hez] = torusHalb(t.radius, t.roehre, t.achse);
+    const skala = Math.min(1, w / 2 / hex, h / 2 / hey, d / 2 / hez);
+    const radius = t.radius * skala;
+    const roehre = t.roehre * skala;
+    const [nx, ny, nz] = torusHalb(radius, roehre, t.achse);
+    return {
+      ...t,
+      radius,
+      roehre,
+      pos: [klemm(t.pos[0], w / 2 - nx), klemm(t.pos[1], h / 2 - ny), klemm(t.pos[2], d / 2 - nz)],
+    };
+  }
+  if (t.form === "lathe") {
+    const rMax = Math.max(0, ...t.profil.map((p) => p[0]));
+    const skalaR = rMax > 0 ? Math.min(1, w / 2 / rMax, d / 2 / rMax) : 1;
+    const ys = t.profil.map((p) => p[1]);
+    const yMin = Math.min(...ys);
+    const yMax = Math.max(...ys);
+    const spanne = yMax - yMin;
+    const skalaY = spanne > 0 ? Math.min(1, h / spanne) : 1;
+    const profil = t.profil.map(([r, y]) => [r * skalaR, y * skalaY] as [number, number]);
+    const rMax2 = rMax * skalaR;
+    const yMin2 = yMin * skalaY;
+    const yMax2 = yMax * skalaY;
+    const cy = Math.max(-h / 2 - yMin2, Math.min(h / 2 - yMax2, t.pos[1]));
+    return {
+      ...t,
+      profil,
+      pos: [klemm(t.pos[0], w / 2 - rMax2), cy, klemm(t.pos[2], d / 2 - rMax2)],
+    };
   }
   if (t.form === "zylinder") {
     const rMax = Math.max(t.rTop, t.rBottom);
@@ -1199,7 +1394,7 @@ export function passtInBbox(teile: Teil[], w: number, d: number, h: number, eps 
   const drin = (mitte: number, halb: number, grenze: number) =>
     mitte - halb >= -grenze - eps && mitte + halb <= grenze + eps;
   return teile.every((t) => {
-    if (t.form === "box") {
+    if (t.form === "box" || t.form === "rundbox") {
       const [gx, gy, gz] = t.groesse;
       return (
         drin(t.pos[0], gx / 2, w / 2) &&
@@ -1213,6 +1408,23 @@ export function passtInBbox(teile: Teil[], w: number, d: number, h: number, eps 
         drin(t.pos[0], r, w / 2) && drin(t.pos[1], t.hoehe / 2, h / 2) && drin(t.pos[2], r, d / 2)
       );
     }
+    if (t.form === "torus") {
+      const [hx, hy, hz] = torusHalb(t.radius, t.roehre, t.achse);
+      return drin(t.pos[0], hx, w / 2) && drin(t.pos[1], hy, h / 2) && drin(t.pos[2], hz, d / 2);
+    }
+    if (t.form === "lathe") {
+      const rMax = Math.max(0, ...t.profil.map((p) => p[0]));
+      const ys = t.profil.map((p) => p[1]);
+      const yMin = Math.min(...ys);
+      const yMax = Math.max(...ys);
+      // Profil-y ist relativ zu pos, daher asymmetrische y-Prüfung.
+      return (
+        drin(t.pos[0], rMax, w / 2) &&
+        drin(t.pos[2], rMax, d / 2) &&
+        t.pos[1] + yMax <= h / 2 + eps &&
+        t.pos[1] + yMin >= -h / 2 - eps
+      );
+    }
     return (
       drin(t.pos[0], t.radius, w / 2) &&
       drin(t.pos[1], t.radius, h / 2) &&
@@ -1221,13 +1433,32 @@ export function passtInBbox(teile: Teil[], w: number, d: number, h: number, eps 
   });
 }
 
+/**
+ * Material-Eigenschaften je Rolle (echte three-Props). Ändert NIE die Basisfarbe
+ * (die kommt aus `rolleFarbe`/Ampel) – nur die Oberflächen-Physik:
+ * - `glas`  → transparent, sehr glatt.
+ * - `chrom` → poliertes Metall (hohe metalness, niedrige roughness).
+ * - Keramik/Holz (`koerper|hell|dunkel`) → matt, keine Spiegelung.
+ * Die Norm-Ampel-Färbung (Viewer3D) übersteuert weiter allein die Farbe.
+ */
+function TeilMaterial({ rolle, farbwert }: { rolle: Rolle; farbwert: string }) {
+  if (rolle === "glas") {
+    return <meshStandardMaterial color={farbwert} transparent opacity={0.22} roughness={0.05} />;
+  }
+  if (rolle === "chrom") {
+    // Ohne Environment-Map bleibt metalness bewusst moderat, damit das Metall
+    // nicht schwarz kippt, aber klar glänzt (scharfes Highlight vom
+    // directionalLight). Der helle Grundton (rolleFarbe) trägt den Chrom-Look.
+    return <meshStandardMaterial color={farbwert} metalness={0.6} roughness={0.14} />;
+  }
+  const roughness = rolle === "dunkel" ? 0.62 : rolle === "hell" ? 0.5 : 0.55;
+  return <meshStandardMaterial color={farbwert} metalness={0.03} roughness={roughness} />;
+}
+
 /** Rendert ein einzelnes Bauteil als Mesh (lokale Koordinaten der Gruppe). */
 function TeilMesh({ teil, farbe }: { teil: Teil; farbe: string }) {
   const farbwert = rolleFarbe(teil.rolle, farbe);
-  const glas = teil.rolle === "glas";
-  const material = (
-    <meshStandardMaterial color={farbwert} transparent={glas} opacity={glas ? 0.28 : 1} />
-  );
+  const material = <TeilMaterial rolle={teil.rolle} farbwert={farbwert} />;
   if (teil.form === "box") {
     return (
       <mesh position={teil.pos}>
@@ -1236,10 +1467,51 @@ function TeilMesh({ teil, farbe }: { teil: Teil; farbe: string }) {
       </mesh>
     );
   }
+  if (teil.form === "rundbox") {
+    const minHalb = Math.min(...teil.groesse) / 2;
+    const radius = Math.max(0, Math.min(teil.radius, minHalb - 1e-4));
+    // Degenerierter Radius (sehr flache Teile) → schlichte Box statt RoundedBox.
+    if (radius < 1e-4) {
+      return (
+        <mesh position={teil.pos}>
+          <boxGeometry args={teil.groesse} />
+          {material}
+        </mesh>
+      );
+    }
+    return (
+      <RoundedBox position={teil.pos} args={teil.groesse} radius={radius} smoothness={3} steps={1}>
+        {material}
+      </RoundedBox>
+    );
+  }
   if (teil.form === "zylinder") {
     return (
       <mesh position={teil.pos}>
-        <cylinderGeometry args={[teil.rTop, teil.rBottom, teil.hoehe, 20]} />
+        <cylinderGeometry args={[teil.rTop, teil.rBottom, teil.hoehe, 24]} />
+        {material}
+      </mesh>
+    );
+  }
+  if (teil.form === "lathe") {
+    const punkte = teil.profil.map(([r, y]) => new Vector2(Math.max(0, r), y));
+    return (
+      <mesh position={teil.pos}>
+        <latheGeometry args={[punkte, teil.segmente]} />
+        {material}
+      </mesh>
+    );
+  }
+  if (teil.form === "torus") {
+    const rot: [number, number, number] =
+      teil.achse === "y"
+        ? [Math.PI / 2, 0, 0]
+        : teil.achse === "x"
+          ? [0, Math.PI / 2, 0]
+          : [0, 0, 0];
+    return (
+      <mesh position={teil.pos} rotation={rot}>
+        <torusGeometry args={[teil.radius, teil.roehre, 16, 32]} />
         {material}
       </mesh>
     );

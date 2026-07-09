@@ -33,7 +33,10 @@ function DressingTeilMesh({ teil, farbe }: { teil: Teil; farbe: string }) {
   );
   // raycast=noop: Klicks gehen «durch» die Deko → Möbelauswahl/Deselektion bleiben.
   const noRaycast = () => null;
-  if (teil.form === "box") {
+  // Deko-Kits nutzen nur box/zylinder/kugel; die volumetrischen Formen aus
+  // moebel3d (rundbox/lathe/torus) kommen hier nicht vor – rundbox fällt sicher
+  // auf eine schlichte Box zurück, lathe/torus rendern nichts.
+  if (teil.form === "box" || teil.form === "rundbox") {
     return (
       <mesh position={teil.pos} raycast={noRaycast}>
         <boxGeometry args={teil.groesse} />
@@ -49,12 +52,15 @@ function DressingTeilMesh({ teil, farbe }: { teil: Teil; farbe: string }) {
       </mesh>
     );
   }
-  return (
-    <mesh position={teil.pos} raycast={noRaycast}>
-      <sphereGeometry args={[teil.radius, 14, 10]} />
-      {material}
-    </mesh>
-  );
+  if (teil.form === "kugel") {
+    return (
+      <mesh position={teil.pos} raycast={noRaycast}>
+        <sphereGeometry args={[teil.radius, 14, 10]} />
+        {material}
+      </mesh>
+    );
+  }
+  return null;
 }
 
 /** Prozedurale Deko (Platzhalter): Primitiv-Kit in der bbox der Deko-Masse. */
