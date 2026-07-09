@@ -12,6 +12,7 @@ import {
   api,
   ApiFehler,
   type Arbeitsdreieck,
+  type DressingItem,
   type KatalogItem,
   type KuechenForm,
   type KV,
@@ -48,6 +49,7 @@ export function App() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [room, setRoom] = useState<Room | null>(null);
   const [catalog, setCatalog] = useState<KatalogItem[]>([]);
+  const [dressingItems, setDressingItems] = useState<DressingItem[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [seed, setSeed] = useState(1);
@@ -136,6 +138,9 @@ export function App() {
         );
       const effTyp = istKueche ? "kueche" : r.roomType;
       setCatalog(await api.catalog(effTyp));
+      // Scene-Dressing-Stammdaten (rein visuelle Deko) je Raumtyp; fehlt der
+      // Datensatz (nur «bad» im Durchstich), bleibt die Deko-Ebene einfach leer.
+      setDressingItems(await api.dressing(r.roomType).catch(() => []));
       setRules((await api.rules(effTyp)) as Rule[]);
       setBilder(await api.images(r.roomType).catch(() => []));
       if (achsen.length === 0) setAchsen((await api.taxonomy()).achsen);
@@ -563,6 +568,8 @@ export function App() {
               statusById={statusById}
               onSelect={waehleItem}
               stilprofil={stilprofil}
+              plan={plan}
+              dressingItems={dressingItems}
               interaktiv
               gewaehlteFlaeche={flaeche}
               onSelectFlaeche={waehleFlaeche}

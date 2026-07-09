@@ -11,7 +11,8 @@ import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState, type ComponentRef, type CSSProperties } from "react";
 import { Euler, Shape, Vector3, type Camera } from "three";
-import type { KatalogItem, Placement, Room } from "./api";
+import type { DressingItem, KatalogItem, Placement, Plan, Room } from "./api";
+import { DressingLayer3D } from "./dressing3d.tsx";
 import { materialFarbe, Moebel3D } from "./moebel3d.tsx";
 import {
   leiteOberflaechen,
@@ -337,6 +338,9 @@ function Bedienleiste({
   onAmpel,
   waende,
   onWaende,
+  deko,
+  onDeko,
+  dekoVerfuegbar,
 }: {
   preset: Ansichtspreset;
   onPreset: (p: Ansichtspreset) => void;
@@ -346,6 +350,10 @@ function Bedienleiste({
   onAmpel: () => void;
   waende: boolean;
   onWaende: () => void;
+  deko: boolean;
+  onDeko: () => void;
+  /** «Deko»-Knopf nur zeigen, wenn Scene-Dressing-Daten vorliegen. */
+  dekoVerfuegbar: boolean;
 }) {
   const trenner = (
     <span
@@ -399,6 +407,11 @@ function Bedienleiste({
       <button type="button" onClick={onWaende} style={knopfStil(waende)} aria-pressed={waende}>
         Wände
       </button>
+      {dekoVerfuegbar && (
+        <button type="button" onClick={onDeko} style={knopfStil(deko)} aria-pressed={deko}>
+          Deko
+        </button>
+      )}
     </div>
   );
 }
@@ -411,6 +424,8 @@ export function Viewer3D({
   statusById,
   onSelect,
   stilprofil,
+  plan,
+  dressingItems,
   interaktiv = false,
   gewaehlteFlaeche,
   onSelectFlaeche,
@@ -421,6 +436,10 @@ export function Viewer3D({
   room: Room;
   placements: Placement[];
   catalog: KatalogItem[];
+  /** Voller Plan (für Scene-Dressing: Anker + Seed). Nur lesend genutzt. */
+  plan?: Plan | null;
+  /** Scene-Dressing-Stammdaten des Raumtyps (rein visuelle Deko-Ebene). */
+  dressingItems?: DressingItem[];
   gewaehltId: string | null;
   statusById: Map<string, Status>;
   onSelect: (id: string | null) => void;
@@ -446,6 +465,9 @@ export function Viewer3D({
   const [preset, setPreset] = useState<Ansichtspreset>("perspektive");
   const [ampel, setAmpel] = useState(true);
   const [waende, setWaende] = useState(true);
+  const [deko, setDeko] = useState(true);
+  // Deko rendern, sobald ein Plan (Anker + Seed) und Stammdaten vorliegen.
+  const dressingAn = deko && !!plan && (dressingItems?.length ?? 0) > 0;
 
   const basis = leiteOberflaechen(stilprofil ?? null, room.roomType);
   const spez = wendeVariantenAn(basis, room.roomType, oberflaechenWahl);
@@ -474,6 +496,9 @@ export function Viewer3D({
         onAmpel={() => setAmpel((a) => !a)}
         waende={waende}
         onWaende={() => setWaende((w) => !w)}
+        deko={deko}
+        onDeko={() => setDeko((x) => !x)}
+        dekoVerfuegbar={!!plan && (dressingItems?.length ?? 0) > 0}
       />
       {modus === "begehung" && (
         <p style={{ fontSize: 11, color: THEME.salbei, margin: "0 0 6px" }}>
@@ -518,6 +543,16 @@ export function Viewer3D({
               />
             );
           })}
+          {dressingAn && plan && (
+            <DressingLayer3D
+              room={room}
+              plan={plan}
+              catalog={catalog}
+              styleProfile={stilprofil ?? null}
+              dressingItems={dressingItems ?? []}
+              sichtbar
+            />
+          )}
           {modus === "orbit" ? (
             <KameraSteuerung preset={preset} bboxKey={bboxKey} pose={orbitPose} />
           ) : (

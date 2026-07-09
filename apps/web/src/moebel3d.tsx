@@ -1142,7 +1142,7 @@ export function bausatzSchluessel(funktionsTyp: string, modell3d?: string): stri
  * Footprints. Bei realen Katalog-Massen ein No-Op; greift nur, wenn ein
  * Detail (z.B. eine Armatur) sonst überstehen würde.
  */
-function clampTeil(t: Teil, w: number, d: number, h: number): Teil {
+export function clampTeil(t: Teil, w: number, d: number, h: number): Teil {
   const fit = (c: number, halb: number, limit: number): [number, number] => {
     const lo = Math.max(c - halb, -limit);
     const hi = Math.min(c + halb, limit);

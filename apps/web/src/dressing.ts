@@ -56,9 +56,8 @@ const DRESSING_FARBE: Record<string, { warm: string; kuehl: string }> = {
   seifenspender: { warm: "#D8C3A5", kuehl: "#C9CDD2" },
   zahnputzbecher: { warm: "#E3D5C0", kuehl: "#BFD3D9" },
   handtuchstapel: { warm: "#E8DCC8", kuehl: "#CBD6DD" },
-  wcbuerste: { warm: "#B9BEBE", kuehl: "#9AA0A6" },
   ablagetray: { warm: "#B9906B", kuehl: "#8C8F94" },
-  waeschekorb: { warm: "#C7A879", kuehl: "#AAB0B4" },
+  badpflanze: { warm: "#6F8F6A", kuehl: "#7C948C" },
 };
 const DRESSING_FARBE_FALLBACK = { warm: "#C9A38A", kuehl: "#AEB4B8" };
 
@@ -167,7 +166,9 @@ function planFootprints(placements: Placement[], byId: Map<string, KatalogItem>)
   for (const p of placements) {
     const item = byId.get(p.catalogItemId);
     if (!item) continue;
-    quads.push(footprint([p.pose.pos[0], p.pose.pos[1]], item.masse.w, item.masse.d, p.pose.yawDeg));
+    quads.push(
+      footprint([p.pose.pos[0], p.pose.pos[1]], item.masse.w, item.masse.d, p.pose.yawDeg),
+    );
   }
   return quads;
 }
@@ -391,16 +392,29 @@ function platziereEcke(
   for (const i of reihenfolge) {
     const e = ecken[i] as EckAnker;
     if (eckenBelegt.has(e.index)) continue;
-    const dist = halbDiag + 0.06;
-    const pos: Vec2 = [e.ecke[0] + e.innen[0] * dist, e.ecke[1] + e.innen[1] * dist];
     // Yaw: Front zeigt aus der Ecke ins Rauminnere.
     const yawDeg = (Math.atan2(e.innen[0], e.innen[1]) * 180) / Math.PI;
-    const fp = footprint(pos, item.masse.w, item.masse.d, yawDeg);
-    if (!imRaum(fp, floor)) continue;
-    if (kollidiert(fp, hindernisse)) continue;
+    // Entlang der Winkelhalbierenden nach innen schieben, bis der (rotierte)
+    // Footprint ganz im Raum liegt UND frei ist. Der Startabstand deckt einen
+    // rechten Winkel nur knapp; bei spitzen Ecken/grossen Objekten poken die
+    // Ecken sonst durch die Wand – darum inkrementell weiter reinrücken.
+    let platz: { pos: Vec2; fp: Quad } | null = null;
+    for (let dist = halbDiag + 0.06; dist <= halbDiag + 0.5; dist += 0.04) {
+      const pos: Vec2 = [e.ecke[0] + e.innen[0] * dist, e.ecke[1] + e.innen[1] * dist];
+      const fp = footprint(pos, item.masse.w, item.masse.d, yawDeg);
+      if (!imRaum(fp, floor)) continue;
+      if (kollidiert(fp, hindernisse)) continue;
+      platz = { pos, fp };
+      break;
+    }
+    if (!platz) continue;
     eckenBelegt.add(e.index);
-    hindernisse.push(fp); // belegt die Fläche für spätere Bodenobjekte
-    return { pos: [pos[0], item.masse.h / 2, pos[1]], yawDeg, ankerRef: `ecke${e.index}` };
+    hindernisse.push(platz.fp); // belegt die Fläche für spätere Bodenobjekte
+    return {
+      pos: [platz.pos[0], item.masse.h / 2, platz.pos[1]],
+      yawDeg,
+      ankerRef: `ecke${e.index}`,
+    };
   }
   return null;
 }
