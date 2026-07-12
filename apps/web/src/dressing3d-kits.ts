@@ -456,6 +456,72 @@ const geschirrtuch: Bauer = (w, d, h) => {
   ];
 };
 
+// ── Licht (sparsam, «frisch gebaut»: echte Leuchten, kein Kabelsalat) ─────────
+
+// Pendelleuchte: Deckenrosette (Chrom) + dünnes Kabel + kegeliger Schirm
+// (Rotationskörper, stilfarbig) + warmer Diffusor in der Öffnung. Der Diffusor
+// (rolle "hell") ist der einzige leuchtende Bauteil – dressing3d.tsx erkennt
+// ihn daran und rendert ihn emissiv + setzt dort eine kleine Punktlichtquelle.
+const pendelleuchte: Bauer = (w, d, h) => {
+  const r = Math.min(w, d);
+  const rosetteH = h * 0.05;
+  const rosetteY = h / 2 - rosetteH / 2;
+  const schirmTopY = h * 0.06;
+  const kabelH = Math.max(h * 0.02, h / 2 - rosetteH - schirmTopY);
+  const kabelY = schirmTopY + kabelH / 2;
+  const diffusorY = -h * 0.32;
+  return [
+    // Deckenrosette (Chrom, sitzt an der Decke)
+    zyl(r * 0.1, r * 0.1, rosetteH, [0, rosetteY, 0], "chrom"),
+    // Kabel (dünn, dunkel)
+    zyl(r * 0.012, r * 0.012, kabelH, [0, kabelY, 0], "dunkel"),
+    // Schirm (kegelig, Rotationskörper, stilfarbig)
+    drehteil(
+      [
+        [r * 0.05, schirmTopY],
+        [r * 0.22, schirmTopY - h * 0.1],
+        [r * 0.46, -h * 0.3],
+        [r * 0.42, -h * 0.36],
+      ],
+      [0, 0, 0],
+      "koerper",
+    ),
+    // Diffusor (warmweiss, leuchtet – sitzt in der Schirm-Öffnung)
+    kugel(r * 0.17, [0, diffusorY, 0], "hell"),
+  ];
+};
+
+// Tischleuchte: runder Chrom-Fuss + dünner Stab + kegeliger Schirm
+// (Rotationskörper, stilfarbig) + warmer Diffusor darunter. Gleiche
+// Diffusor-Konvention wie die Pendelleuchte (rolle "hell" = leuchtend).
+const tischleuchte: Bauer = (w, d, h) => {
+  const r = Math.min(w, d);
+  const fussH = h * 0.06;
+  const fussY = -h / 2 + fussH / 2;
+  const stabH = h * 0.5;
+  const stabY = fussY + fussH / 2 + stabH / 2;
+  const diffusorY = h * 0.12;
+  return [
+    // Fuss (Chrom, gerundet)
+    zyl(r * 0.4, r * 0.44, fussH, [0, fussY, 0], "chrom"),
+    // Stab (dünn, dunkel)
+    zyl(r * 0.05, r * 0.06, stabH, [0, stabY, 0], "dunkel"),
+    // Schirm (kegelig, Rotationskörper, stilfarbig)
+    drehteil(
+      [
+        [r * 0.06, h * 0.42],
+        [r * 0.24, h * 0.3],
+        [r * 0.42, h * 0.12],
+        [r * 0.38, h * 0.08],
+      ],
+      [0, 0, 0],
+      "koerper",
+    ),
+    // Diffusor (warmweiss, leuchtet – unter dem Schirm)
+    kugel(r * 0.18, [0, diffusorY, 0], "hell"),
+  ];
+};
+
 const DRESSING_BAUSAETZE: Record<string, Bauer> = {
   seifenspender,
   zahnputzbecher,
@@ -474,7 +540,13 @@ const DRESSING_BAUSAETZE: Record<string, Bauer> = {
   gewuerzglaeser,
   kraeutertopf,
   geschirrtuch,
+  pendelleuchte,
+  tischleuchte,
 };
+
+/** funktionsTypen, deren Diffusor (rolle "hell") im Viewer emissiv leuchtet
+ *  und eine kleine Punktlichtquelle bekommt (dressing3d.tsx). */
+export const DRESSING_LICHT_TYPEN = new Set(["pendelleuchte", "tischleuchte"]);
 
 /**
  * Primitiv-Bauteile eines Deko-funktionsTyps, garantiert bbox-treu (clampTeil).

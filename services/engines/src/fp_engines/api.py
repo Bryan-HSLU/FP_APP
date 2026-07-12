@@ -319,6 +319,8 @@ class SolveRequest(BaseModel):
     zoneId: str | None = None
     auswahl: list[str] | None = None
     relationaleAbsichten: list[dict[str, Any]] = []
+    anordnung: list[dict[str, Any]] | None = None
+    flaechen: dict[str, Any] | None = None
     stilprofil: dict[str, Any] | None = None
     stilprofilRef: str | None = None
 
@@ -368,8 +370,10 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
                 }
                 sel = BaselineKurator().kuratiere(neutral, raum, katalog, None, req.seed)
                 auswahl, absichten = sel["auswahl"], sel["relationaleAbsichten"]
+                anordnung = sel.get("anordnung")
             else:
                 auswahl, absichten = req.auswahl, req.relationaleAbsichten
+                anordnung = req.anordnung
             plan = solve(
                 raum,
                 auswahl,
@@ -380,6 +384,7 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
                 norm_profile=req.normProfile,
                 stilprofil_ref=req.stilprofilRef,
                 style_profile=req.stilprofil,
+                anordnung=anordnung,
                 created_at=created,
             )
     except NoFeasiblePlacement as e:
@@ -400,7 +405,11 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
         dreieck = arbeitsdreieck(plan["placements"], {c["id"]: c for c in katalog})
         if dreieck is not None:
             extra["arbeitsdreieck"] = dreieck
-    return JSONResponse(content={"plan": plan, "room": raum, **hinweis, **extra})
+    # Flächen-Wünsche (Kurator Call C) additiv durchreichen; Frontend-Konsum ist
+    # eine spätere Welle. None = Client leitet die Optik deterministisch ab.
+    return JSONResponse(
+        content={"plan": plan, "room": raum, "flaechen": req.flaechen, **hinweis, **extra}
+    )
 
 
 class EvaluateRequest(BaseModel):

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "kurator-vertrag.schema.json",
   "title": "KuratorVertrag",
-  "description": "Vertrag 7: Schnittstelle zum KI-Kurator (ADR-0007). Erdung als Schema-Regel: Response-IDs müssen Teilmenge des katalogAuszug sein – sonst Retry/Fallback deterministische Baseline.",
+  "description": "Vertrag 7: Schnittstelle zum KI-Kurator (ADR-0007). Erdung als Schema-Regel: Response-IDs müssen Teilmenge des katalogAuszug sein – sonst Retry/Fallback deterministische Baseline. v0.2 (additiv/minor): optionale Felder «anordnung» (weiche Anordnungs-Anweisungen je Item) und «flaechen» (Boden-/Wand-Material-Wünsche) – Kurator-Pipeline v2 (3 Calls).",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -11,6 +11,21 @@
   },
   "$defs": {
     "uuid": { "type": "string", "format": "uuid" },
+    "materialSlug": {
+      "description": "Geerdete Material-Slugs für Boden/Wand – EINZIGE zulässige Werte. Der Client rendert die Looks prozedural (siehe apps/web/src/oberflaechen.ts). Änderungen hier = bewusster Vertrags-Akt (TS-Union + Python lesen dieselbe Liste).",
+      "enum": [
+        "fliesen-hell",
+        "fliesen-gruen",
+        "fliesen-anthrazit",
+        "putz-weiss",
+        "putz-warm",
+        "holz-hell",
+        "holz-dunkel",
+        "parkett-eiche",
+        "beton",
+        "naturstein"
+      ]
+    },
     "kuratorRequest": {
       "type": "object",
       "additionalProperties": false,
@@ -91,6 +106,67 @@
               },
               "targetId": { "$ref": "#/$defs/uuid" },
               "zone": { "type": "string" }
+            }
+          }
+        },
+        "anordnung": {
+          "description": "Weiche Anordnungs-Anweisungen je Item (Call B). Alle Felder ausser itemId optional. Der Solver behandelt sie als Präferenzen (nie als harte Regeln): wandIndex wird auf die Kandidaten dieser Wand gefiltert (Fallback auf alle, wenn dort kein normkonformer Platz frei ist), relationen ergänzen/überschreiben die relationaleAbsichten, prioritaet ordnet innerhalb P2/P3.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["itemId"],
+            "properties": {
+              "itemId": { "$ref": "#/$defs/uuid" },
+              "wandIndex": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "0-basierter Index in room.shell.walls."
+              },
+              "relationen": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Strings der bestehenden Relations-Grammatik (near/against-wall/corner/facing/opposite/group/pair-with)."
+              },
+              "prioritaet": {
+                "type": "integer",
+                "description": "Kleinere Zahl zuerst (Reihenfolge innerhalb einer Prioritätsklasse)."
+              }
+            }
+          }
+        },
+        "flaechen": {
+          "description": "Boden-/Wand-Material-Wünsche (Call C). Nur Slugs aus $defs/materialSlug. Der Client leitet die Optik ansonsten deterministisch ab (oberflaechen.ts).",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "boden": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": { "material": { "$ref": "#/$defs/materialSlug" } }
+            },
+            "waende": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["wandIndex", "material"],
+                "properties": {
+                  "wandIndex": { "type": "integer", "minimum": 0 },
+                  "material": { "$ref": "#/$defs/materialSlug" },
+                  "bereich": {
+                    "enum": ["voll", "halbhoch", "sockel"],
+                    "description": "Vertikale Ausdehnung; hoeheM nur bei halbhoch/sockel sinnvoll."
+                  },
+                  "hoeheM": {
+                    "type": "number",
+                    "minimum": 0.3,
+                    "maximum": 3.0,
+                    "description": "Höhe der Materialzone ab Boden (m), nur bei halbhoch/sockel."
+                  },
+                  "akzent": { "type": "boolean" }
+                }
+              }
             }
           }
         },

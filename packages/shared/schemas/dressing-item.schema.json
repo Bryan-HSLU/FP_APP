@@ -44,8 +44,8 @@
       "description": "Erlaubte Anker: funktionsTypen aus dem Plan (z.B. lavabo, badmoebel, wc) ODER die Schlüsselworte 'wand' bzw. 'ecke'. Ohne passenden Anker im Raum wird das Objekt nicht platziert."
     },
     "platzierung": {
-      "enum": ["auf_oberflaeche", "an_wand", "freie_ecke", "an_moebel"],
-      "description": "Ankerart: auf_oberflaeche = auf der Oberkante eines Möbels · an_wand = an einer Raumwand · freie_ecke = in einer freien Raumecke (Boden) · an_moebel = neben/an einem Möbel (Boden)."
+      "enum": ["auf_oberflaeche", "an_wand", "freie_ecke", "an_moebel", "an_decke"],
+      "description": "Ankerart: auf_oberflaeche = auf der Oberkante eines Möbels · an_wand = an einer Raumwand · freie_ecke = in einer freien Raumecke (Boden) · an_moebel = neben/an einem Möbel (Boden) · an_decke = an der Decke über einem Möbel-Anker hängend (Oberkante an Deckenhöhe, masse.h = Hängelänge inkl. Schirm)."
     },
     "masse": {
       "type": "object",

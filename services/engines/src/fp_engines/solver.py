@@ -38,6 +38,7 @@ from fp_engines.relationen import (
     PairWith,
     Relation,
     parse_relation,
+    parse_relationen,
 )
 from fp_engines.rules.geometry import (
     Quad,
@@ -208,9 +209,7 @@ def _tuer_korridore(room: dict[str, Any], tiefe: float = _TUER_KORRIDOR_TIEFE) -
     return zones
 
 
-def _blockiert_korridor(
-    item: dict[str, Any], kandidat: _Kandidat, korridore: list[Quad]
-) -> bool:
+def _blockiert_korridor(item: dict[str, Any], kandidat: _Kandidat, korridore: list[Quad]) -> bool:
     """Überlappt der Footprint des Kandidaten einen Tür-Zugangsstreifen?"""
     if not korridore:
         return False
@@ -425,23 +424,43 @@ def _filter_kandidaten(
     return kandidaten
 
 
+def _bevorzuge_wand(kandidaten: list[_Kandidat], wand_index: int | None) -> list[_Kandidat]:
+    """Weicher Wandwunsch (anordnung.wandIndex): Posen an genau dieser Wand nach
+    vorne, alle übrigen dahinter (stabil, Score-Reihenfolge bleibt je Gruppe).
+
+    Bewusst reine Umsortierung, KEIN harter Filter: findet sich an der Wunschwand
+    kein zulässiger Platz, greifen automatisch die übrigen Kandidaten → nie
+    NoFeasiblePlacement wegen eines Wandwunsches. Ungültiger/negativer Index ist
+    ein No-op (keine Pose matcht) – der Solver bleibt robust.
+    """
+    if wand_index is None:
+        return kandidaten
+    auf = [k for k in kandidaten if k.wall_index == wand_index]
+    if not auf:
+        return kandidaten
+    rest = [k for k in kandidaten if k.wall_index != wand_index]
+    return auf + rest
+
+
 def _ordne_kandidaten(
     kandidaten: list[_Kandidat],
     rels: list[Relation],
     ctx: _PlatzKontext,
     rnd: random.Random,
+    wunsch_wand: int | None = None,
 ) -> list[_Kandidat]:
     """Kandidaten filtern + nach Soft-Score ordnen; seed bricht Gleichstände.
 
     Reihenfolge: erst mischen (seed = Variation), dann filtern, dann STABIL nach
-    −Score sortieren. Ohne Relationen/Stil ist der Score 0 → die Mischung bleibt
-    unverändert (byte-identisch zum relationslosen Alt-Verhalten).
+    −Score sortieren, zuletzt den (weichen) Wandwunsch nach vorne ziehen. Ohne
+    Relationen/Stil/Wandwunsch ist der Score 0 → die Mischung bleibt unverändert
+    (byte-identisch zum relationslosen Alt-Verhalten).
     """
     kandidaten = list(kandidaten)
     rnd.shuffle(kandidaten)
     kandidaten = _filter_kandidaten(kandidaten, rels, ctx)
     kandidaten.sort(key=lambda k: -_kandidat_score(k, rels, ctx))
-    return kandidaten
+    return _bevorzuge_wand(kandidaten, wunsch_wand)
 
 
 def _merke_platzierung(
@@ -466,12 +485,20 @@ def solve(
     norm_profile: str = "ch",
     stilprofil_ref: str | None = None,
     style_profile: dict[str, Any] | None = None,
+    anordnung: list[dict[str, Any]] | None = None,
     created_at: str = "1970-01-01T00:00:00Z",
 ) -> dict[str, Any]:
     """Raummodell + Auswahl + Regeln + seed → normkonformes Plan-Objekt.
 
     Determinismus: gleicher Input + gleicher seed ⇒ gleicher Plan
     (Engineering-Grundlagen §1); Varianten via anderem seed («würfeln»).
+
+    `anordnung` (Kurator-Pipeline v2, Vertrag 7) ist eine **weiche** Ebene je
+    Item: `relationen` ergänzen/überschreiben die `relationaleAbsichten`
+    (anordnung gewinnt), `wandIndex` zieht die Wand-Posen dieser Wand nach vorne
+    (Fallback auf alle Kandidaten, wenn dort nichts Zulässiges frei ist),
+    `prioritaet` ordnet innerhalb P2/P3. Nichts davon berührt die harten Regeln –
+    jeder Plan endet mit 0 ❌.
     """
     rnd = random.Random(seed)
     by_id = {c["id"]: c for c in catalog}
@@ -486,6 +513,29 @@ def solve(
         rel = parse_relation(a.get("relation"))
         if rel is not None:
             rel_map.setdefault(a["itemId"], []).append(rel)
+
+    # Anordnung (weich) einweben: relationen überschreiben je Item (anordnung
+    # gewinnt), wandIndex/prioritaet sammeln. Ungültiges wird robust ignoriert.
+    wand_wunsch: dict[str, int] = {}
+    prio: dict[str, int] = {}
+    n_walls = len(room["shell"]["walls"])
+    for a in anordnung or []:
+        iid = a.get("itemId")
+        if iid is None:
+            continue
+        if a.get("relationen"):
+            rel_map[iid] = parse_relationen(list(a["relationen"]))
+        wi = a.get("wandIndex")
+        if isinstance(wi, int) and not isinstance(wi, bool) and 0 <= wi < n_walls:
+            wand_wunsch[iid] = wi
+        pr = a.get("prioritaet")
+        if isinstance(pr, int) and not isinstance(pr, bool):
+            prio[iid] = pr
+    if prio:
+        # Stabile Reihenfolge: kleinere prioritaet zuerst; Items ohne Angabe
+        # behalten ihre relative Reihenfolge (inf) und landen dahinter.
+        p2 = sorted(p2, key=lambda it: prio.get(it["id"], math.inf))
+        p3 = sorted(p3, key=lambda it: prio.get(it["id"], math.inf))
 
     floor: list[Vec2] = [(float(p[0]), float(p[1])) for p in room["shell"]["floor"]["polygon"]]
     ctx = _PlatzKontext(
@@ -517,6 +567,9 @@ def solve(
         if p1_rels:
             kandidaten = _filter_kandidaten(kandidaten, p1_rels, ctx)
             kandidaten.sort(key=lambda k: -_kandidat_score(k, p1_rels, ctx))
+        # Wandwunsch bei P1: nur Ranking (Anschluss/Backtracking geht vor) – die
+        # Wunschwand wird zuerst probiert, das Backtracking bleibt vollständig.
+        kandidaten = _bevorzuge_wand(kandidaten, wand_wunsch.get(item["id"]))
         for kandidat in kandidaten[:P1_CAP]:
             placement = _als_placement(item, kandidat, rnd)
             placements.append(placement)
@@ -566,7 +619,9 @@ def solve(
         """
         for item in items:
             rels = rel_map.get(item["id"], [])
-            kandidaten = _ordne_kandidaten(_candidates(room, item), rels, ctx, rnd)
+            kandidaten = _ordne_kandidaten(
+                _candidates(room, item), rels, ctx, rnd, wand_wunsch.get(item["id"])
+            )
             for kandidat in kandidaten[:cap]:
                 if _blockiert_korridor(item, kandidat, korridore):
                     continue

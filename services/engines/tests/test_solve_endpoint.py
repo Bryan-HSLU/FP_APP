@@ -118,6 +118,36 @@ def test_export_kueche_plan() -> None:
     assert gltf.status_code == 200
 
 
+def test_solve_reicht_anordnung_und_flaechen_durch() -> None:
+    """Kurator-Pipeline v2: /solve nimmt anordnung (an solve) + flaechen (echo)."""
+    client = TestClient(app)
+    room = _room("raummodell.wohnen-sample")
+    sofa = "bbbbbbbb-0001-4000-8000-000000000001"
+    flaechen = {"boden": {"material": "parkett-eiche"}}
+    res = client.post(
+        "/solve",
+        json={
+            "room": room,
+            "seed": 1,
+            "auswahl": [sofa],
+            "anordnung": [{"itemId": sofa, "wandIndex": 0, "relationen": ["against-wall"]}],
+            "flaechen": flaechen,
+        },
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["plan"]["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+    assert body["flaechen"] == flaechen  # additiv durchgereicht
+
+
+def test_solve_ohne_flaechen_gibt_none() -> None:
+    """Ohne Flächen-Wunsch trägt die Response flaechen=None (Client leitet ab)."""
+    client = TestClient(app)
+    room = _room("raummodell.bad-sample")
+    body = client.post("/solve", json={"room": room, "seed": 1}).json()
+    assert body["flaechen"] is None
+
+
 def test_solve_wohnen_kernmoebel() -> None:
     """M5: Sample-Wohnzimmer → /solve liefert Plan mit Sofa + Esstisch + TV-Möbel."""
     client = TestClient(app)

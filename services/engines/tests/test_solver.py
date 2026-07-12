@@ -5,7 +5,9 @@ beide Test-Räume (Sample-Bad + echtes L-WC R1). Zusätzlich: jeder Plan
 validiert gegen das Plan-Schema (Vertrag 2) und ist seed-deterministisch.
 """
 
+import copy
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -165,9 +167,7 @@ _COUCHTISCH = "bbbbbbbb-0009-4000-8000-000000000009"  # P2, boden
 _SIDEBOARD = "bbbbbbbb-0015-4000-8000-000000000015"  # P2, boden, d 0.42
 
 
-def _solve_wohnen(
-    auswahl: list[str], absichten: list[dict[str, Any]], seed: int
-) -> dict[str, Any]:
+def _solve_wohnen(auswahl: list[str], absichten: list[dict[str, Any]], seed: int) -> dict[str, Any]:
     return solve(
         _WOHNEN_ROOM,
         auswahl,
@@ -270,6 +270,160 @@ def test_stil_score_durchgereicht_erhaelt_invariante() -> None:
         created_at="2026-06-11T12:00:00Z",
     )
     assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+
+
+# --- Kurator-Pipeline v2: weiche Anordnung (wandIndex/prioritaet/relationen) ---
+
+
+def _dist_point_segment(p: tuple[float, float], a: list[float], b: list[float]) -> float:
+    ax, az = a[0], a[1]
+    bx, bz = b[0], b[1]
+    dx, dz = bx - ax, bz - az
+    laenge2 = dx * dx + dz * dz
+    t = 0.0 if laenge2 == 0 else max(0.0, min(1.0, ((p[0] - ax) * dx + (p[1] - az) * dz) / laenge2))
+    return math.hypot(p[0] - (ax + t * dx), p[1] - (az + t * dz))
+
+
+def _nearest_wall(pos: tuple[float, float], walls: list[dict[str, Any]]) -> int:
+    return min(
+        range(len(walls)),
+        key=lambda i: _dist_point_segment(pos, walls[i]["start"], walls[i]["end"]),
+    )
+
+
+def _solve_anordnung(
+    auswahl: list[str],
+    absichten: list[dict[str, Any]],
+    anordnung: list[dict[str, Any]],
+    seed: int,
+    room: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return solve(
+        room or _WOHNEN_ROOM,
+        auswahl,
+        absichten,
+        WOHNEN_CATALOG,
+        _WOHNEN_RULES,
+        seed=seed,
+        anordnung=anordnung,
+        created_at="2026-06-11T12:00:00Z",
+    )
+
+
+def test_wandindex_platziert_an_gewuenschter_wand() -> None:
+    """anordnung.wandIndex ⇒ das Item landet (wenn zulässig) an genau dieser Wand."""
+    walls = _WOHNEN_ROOM["shell"]["walls"]
+    for wi in range(len(walls)):
+        plan = _solve_anordnung([_SIDEBOARD], [], [{"itemId": _SIDEBOARD, "wandIndex": wi}], 2)
+        assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+        assert _nearest_wall(_pos(plan, _SIDEBOARD), walls) == wi
+
+
+def test_wandindex_fallback_bei_unmoeglicher_wand() -> None:
+    """Keine zulässige Wand-Pose an der Wunschwand ⇒ weicher Fallback (kein Fehler)."""
+    room = copy.deepcopy(_WOHNEN_ROOM)
+    room["shell"]["walls"][0]["kind"] = "offen"  # Wand 0 hat keine Wand-Kandidaten mehr
+    plan = _solve_anordnung(
+        [_SIDEBOARD], [], [{"itemId": _SIDEBOARD, "wandIndex": 0}], 1, room=room
+    )
+    assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+    # Trotz unerfüllbarem Wandwunsch wird das (optionale) Item platziert.
+    assert any(p["catalogItemId"] == _SIDEBOARD for p in plan["placements"])
+
+
+def test_prioritaet_ordnet_innerhalb_p2() -> None:
+    """Kleinere prioritaet ⇒ zuerst platziert (stabile Reihenfolge in der Klasse)."""
+
+    def _reihenfolge(anordnung: list[dict[str, Any]]) -> list[str]:
+        plan = _solve_anordnung([_COUCHTISCH, _SIDEBOARD], [], anordnung, 3)
+        return [p["catalogItemId"] for p in plan["placements"]]
+
+    vor = _reihenfolge(
+        [{"itemId": _SIDEBOARD, "prioritaet": 1}, {"itemId": _COUCHTISCH, "prioritaet": 2}]
+    )
+    assert vor.index(_SIDEBOARD) < vor.index(_COUCHTISCH)
+    nach = _reihenfolge(
+        [{"itemId": _SIDEBOARD, "prioritaet": 2}, {"itemId": _COUCHTISCH, "prioritaet": 1}]
+    )
+    assert nach.index(_COUCHTISCH) < nach.index(_SIDEBOARD)
+
+
+def test_anordnung_relationen_werden_konsumiert() -> None:
+    """anordnung.relationen speisen die weiche Ebene (against-wall ⇒ an die Wand)."""
+    from fp_engines.rules.geometry import dist_point_to_polygon_boundary
+
+    plan = _solve_anordnung(
+        [_SIDEBOARD], [], [{"itemId": _SIDEBOARD, "relationen": ["against-wall"]}], 1
+    )
+    assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+    floor = [tuple(p) for p in _WOHNEN_ROOM["shell"]["floor"]["polygon"]]
+    tiefe = next(c["masse"]["d"] for c in WOHNEN_CATALOG if c["id"] == _SIDEBOARD)
+    assert dist_point_to_polygon_boundary(_pos(plan, _SIDEBOARD), floor) <= tiefe / 2 + 0.06
+
+
+def test_anordnung_relationen_ueberschreiben_absichten() -> None:
+    """Kollidieren absichten und anordnung.relationen je Item, gewinnt die anordnung."""
+    from fp_engines.rules.geometry import dist_point_to_polygon_boundary
+
+    # absichten wollen das Sideboard ans Sofa binden; anordnung erzwingt against-wall.
+    plan = _solve_anordnung(
+        [_SOFA, _SIDEBOARD],
+        [{"itemId": _SIDEBOARD, "relation": "pair-with:" + _SOFA}],
+        [{"itemId": _SIDEBOARD, "relationen": ["against-wall"]}],
+        1,
+    )
+    assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+    floor = [tuple(p) for p in _WOHNEN_ROOM["shell"]["floor"]["polygon"]]
+    tiefe = next(c["masse"]["d"] for c in WOHNEN_CATALOG if c["id"] == _SIDEBOARD)
+    assert dist_point_to_polygon_boundary(_pos(plan, _SIDEBOARD), floor) <= tiefe / 2 + 0.06
+
+
+def test_anordnung_erhaelt_invariante_ueber_seeds() -> None:
+    """Kombinierte anordnung (wandIndex + prioritaet + relationen): 0 ❌ über Seeds."""
+    anordnung = [
+        {"itemId": _SOFA, "wandIndex": 0, "prioritaet": 1, "relationen": ["against-wall"]},
+        {"itemId": _COUCHTISCH, "prioritaet": 2, "relationen": ["near:sofa:1.3"]},
+        {"itemId": _SIDEBOARD, "wandIndex": 2, "prioritaet": 3, "relationen": ["corner"]},
+    ]
+    for seed in range(8):
+        plan = _solve_anordnung([_SOFA, _COUCHTISCH, _SIDEBOARD], [], anordnung, seed)
+        assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+        assert plan["constraintReport"]["hard"]["ok"] is True
+
+
+# Solvability-Regression: alle solve()-fähigen Raum-Fixtures × Seeds 0–3, jeweils
+# mit der (neuen) Baseline-`anordnung` durchgereicht – beweist, dass die weiche
+# Anordnungs-Ebene die Feasibility nirgends bricht.
+_REGRESSION_RAEUME = [
+    ("raummodell.bad-sample", "bad"),
+    ("raummodell.bad-gross", "bad"),
+    ("raummodell.gaeste-wc", "bad"),
+    ("raummodell.r1-wc", "bad"),
+    ("raummodell.wohnen-sample", "wohnen"),
+    ("raummodell.wohnen-l", "wohnen"),
+    ("raummodell.wohnen-lang", "wohnen"),
+]
+
+
+@pytest.mark.parametrize(("room_name", "room_type"), _REGRESSION_RAEUME)
+@pytest.mark.parametrize("seed", range(4))
+def test_solvability_regression_mit_anordnung(room_name: str, room_type: str, seed: int) -> None:
+    room = _load(FIXTURES / f"{room_name}.json")
+    catalog = _catalog(room_type)
+    rules = _rules(room_type)
+    sel = baseline_auswahl(room, catalog)
+    plan = solve(
+        room,
+        sel["auswahl"],
+        sel["relationaleAbsichten"],
+        catalog,
+        rules,
+        seed=seed,
+        anordnung=sel["anordnung"],
+        created_at="2026-06-11T12:00:00Z",
+    )
+    assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+    assert plan["constraintReport"]["hard"]["ok"] is True
 
 
 def test_tuer_korridor_frei_von_optionalen() -> None:

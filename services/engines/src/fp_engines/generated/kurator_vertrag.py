@@ -1,15 +1,40 @@
-# AUTOGENERIERT aus packages/shared/schemas – nicht von Hand ändern (pnpm codegen).
+# AUTOGENERIERT aus packages/shared/schemas – nicht von Hand ändern.
 
 from __future__ import annotations
 
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, PositiveFloat, RootModel
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PositiveFloat,
+    RootModel,
+    confloat,
+    conint,
+)
 
 
 class Uuid(RootModel[UUID]):
     root: UUID
+
+
+class MaterialSlug(Enum):
+    """
+    Geerdete Material-Slugs für Boden/Wand – EINZIGE zulässige Werte. Der Client rendert die Looks prozedural (siehe apps/web/src/oberflaechen.ts). Änderungen hier = bewusster Vertrags-Akt (TS-Union + Python lesen dieselbe Liste).
+    """
+
+    fliesen_hell = "fliesen-hell"
+    fliesen_gruen = "fliesen-gruen"
+    fliesen_anthrazit = "fliesen-anthrazit"
+    putz_weiss = "putz-weiss"
+    putz_warm = "putz-warm"
+    holz_hell = "holz-hell"
+    holz_dunkel = "holz-dunkel"
+    parkett_eiche = "parkett-eiche"
+    beton = "beton"
+    naturstein = "naturstein"
 
 
 class RoomType(Enum):
@@ -104,6 +129,69 @@ class RelationaleAbsichtenItem(BaseModel):
     zone: str | None = None
 
 
+class AnordnungItem(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    itemId: Uuid
+    wandIndex: conint(ge=0) | None = Field(
+        None, description="0-basierter Index in room.shell.walls."
+    )
+    relationen: list[str] | None = Field(
+        None,
+        description="Strings der bestehenden Relations-Grammatik (near/against-wall/corner/facing/opposite/group/pair-with).",
+    )
+    prioritaet: int | None = Field(
+        None,
+        description="Kleinere Zahl zuerst (Reihenfolge innerhalb einer Prioritätsklasse).",
+    )
+
+
+class Boden(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    material: MaterialSlug | None = None
+
+
+class Bereich(Enum):
+    """
+    Vertikale Ausdehnung; hoeheM nur bei halbhoch/sockel sinnvoll.
+    """
+
+    voll = "voll"
+    halbhoch = "halbhoch"
+    sockel = "sockel"
+
+
+class WaendeItem(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    wandIndex: conint(ge=0)
+    material: MaterialSlug
+    bereich: Bereich | None = Field(
+        None,
+        description="Vertikale Ausdehnung; hoeheM nur bei halbhoch/sockel sinnvoll.",
+    )
+    hoeheM: confloat(ge=0.3, le=3.0) | None = Field(
+        None, description="Höhe der Materialzone ab Boden (m), nur bei halbhoch/sockel."
+    )
+    akzent: bool | None = None
+
+
+class Flaechen(BaseModel):
+    """
+    Boden-/Wand-Material-Wünsche (Call C). Nur Slugs aus $defs/materialSlug. Der Client leitet die Optik ansonsten deterministisch ab (oberflaechen.ts).
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    boden: Boden | None = None
+    waende: list[WaendeItem] | None = None
+
+
 class KuratorResponse(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -113,12 +201,20 @@ class KuratorResponse(BaseModel):
         description="catalogItemIds – MUSS Teilmenge von request.katalogAuszug sein (harte Validierung).",
     )
     relationaleAbsichten: list[RelationaleAbsichtenItem]
+    anordnung: list[AnordnungItem] | None = Field(
+        None,
+        description="Weiche Anordnungs-Anweisungen je Item (Call B). Alle Felder ausser itemId optional. Der Solver behandelt sie als Präferenzen (nie als harte Regeln): wandIndex wird auf die Kandidaten dieser Wand gefiltert (Fallback auf alle, wenn dort kein normkonformer Platz frei ist), relationen ergänzen/überschreiben die relationaleAbsichten, prioritaet ordnet innerhalb P2/P3.",
+    )
+    flaechen: Flaechen | None = Field(
+        None,
+        description="Boden-/Wand-Material-Wünsche (Call C). Nur Slugs aus $defs/materialSlug. Der Client leitet die Optik ansonsten deterministisch ab (oberflaechen.ts).",
+    )
     begruendung: str | None = None
 
 
 class KuratorVertrag(BaseModel):
     """
-    Vertrag 7: Schnittstelle zum KI-Kurator (ADR-0007). Erdung als Schema-Regel: Response-IDs müssen Teilmenge des katalogAuszug sein – sonst Retry/Fallback deterministische Baseline.
+    Vertrag 7: Schnittstelle zum KI-Kurator (ADR-0007). Erdung als Schema-Regel: Response-IDs müssen Teilmenge des katalogAuszug sein – sonst Retry/Fallback deterministische Baseline. v0.2 (additiv/minor): optionale Felder «anordnung» (weiche Anordnungs-Anweisungen je Item) und «flaechen» (Boden-/Wand-Material-Wünsche) – Kurator-Pipeline v2 (3 Calls).
     """
 
     model_config = ConfigDict(

@@ -43,6 +43,31 @@
         "targetId": "aaaaaaaa-0001-4000-8000-000000000001"
       }
     ],
+    "anordnung": [
+      {
+        "itemId": "aaaaaaaa-0003-4000-8000-000000000003",
+        "wandIndex": 0,
+        "relationen": ["against-wall", "corner"],
+        "prioritaet": 1
+      },
+      {
+        "itemId": "aaaaaaaa-0002-4000-8000-000000000002",
+        "relationen": ["near:wc:1.5"],
+        "prioritaet": 2
+      }
+    ],
+    "flaechen": {
+      "boden": { "material": "fliesen-hell" },
+      "waende": [
+        {
+          "wandIndex": 0,
+          "material": "fliesen-anthrazit",
+          "bereich": "voll",
+          "akzent": true
+        },
+        { "wandIndex": 1, "material": "fliesen-hell", "bereich": "halbhoch", "hoeheM": 1.2 }
+      ]
+    },
     "begruendung": "P1-Grundausstattung Bad; Lavabo nahe WC wegen gemeinsamer Anschlusswand."
   }
 }

@@ -82,5 +82,33 @@
     "achsenTags": { "temperatur": 0.5, "materialitaet": 0.6, "farbigkeit": 0.5 },
     "attributTags": ["material:keramik", "pflanze:gruenpflanze"],
     "assetStatus": "placeholder"
+  },
+  {
+    "id": "422ae2ed-8a97-4a15-8028-e7d60146fe2a",
+    "schemaVersion": "0.1.0",
+    "name": "Pendelleuchte über Esstisch",
+    "roomTypes": ["wohnen"],
+    "klasse": "C",
+    "funktionsTyp": "pendelleuchte",
+    "anchorTypes": ["esstisch"],
+    "platzierung": "an_decke",
+    "masse": { "w": 0.35, "d": 0.35, "h": 0.5 },
+    "achsenTags": { "temperatur": 0.6, "materialitaet": 0.4, "kontur": -0.1 },
+    "attributTags": ["material:textil", "farbe:beige"],
+    "assetStatus": "placeholder"
+  },
+  {
+    "id": "b4c67d80-6675-44a3-9e4d-f1d8448bd0b2",
+    "schemaVersion": "0.1.0",
+    "name": "Tischleuchte schlank",
+    "roomTypes": ["wohnen"],
+    "klasse": "D",
+    "funktionsTyp": "tischleuchte",
+    "anchorTypes": ["sideboard", "nachttisch", "konsolentisch"],
+    "platzierung": "auf_oberflaeche",
+    "masse": { "w": 0.18, "d": 0.18, "h": 0.42 },
+    "achsenTags": { "temperatur": 0.6, "materialitaet": 0.4, "kontur": -0.1 },
+    "attributTags": ["material:textil", "farbe:beige"],
+    "assetStatus": "placeholder"
   }
 ]
