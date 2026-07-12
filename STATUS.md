@@ -8,6 +8,26 @@
 
 **Stand: 2026-07-12**
 
+### Kurator-Pipeline v2 + Licht + individuelle Flächen (2026-07-12)
+- **Kurator v2 – 3 KI-Calls** (`kurator.py`, Vertrag v0.2 additiv): A Auswahl ·
+  B **Anordnung** (je Item wandIndex/relationen/prioritaet; Solver setzt sie
+  WEICH um – Ranking, nie NoFeasiblePlacement wegen Wandwunsch) · C **Flächen**
+  (materialSlug-Enum 10 Slugs als einzige Quelle, bereich voll/halbhoch/sockel,
+  hoeheM, akzent). Jeder Call validiert + 1 Repair + **Teil-Fallback**
+  (B→relationalRules, C→None). Prompts: `data/prompts/kurator-{rolle,anordnung,
+  flaechen}.md`. Norm-Filter/Parität unangetastet → 0 ❌ bleibt beweisbar.
+- **Licht & Lampen** (Dressing): Platzierungsart `an_decke` (Schema-Enum
+  additiv); Pendelleuchte (wohnen+kueche, über Esstisch/Arbeitsfläche),
+  Tischleuchte (wohnen) – leuchten echt (Emissive + pointLight). Offener Punkt:
+  glTF-Upgrade einer Leuchte braucht das Punktlicht noch (additiv nachrüstbar).
+- **3D-Flächen-Rendering**: Kurator-`flaechen` sichtbar – je Wand eigenes
+  Material (raumhoch/halbhoch/Sockel, Akzentwand), Boden aus Slug; ohne
+  `flaechen` exakt bisheriges stilabgeleitetes Verhalten. Offen: Zusammenspiel
+  Kurator-Flächen vs. manuelle Oberflächen-Variante definieren; 2D zeigt die
+  Flächen (bewusst) noch nicht.
+- HF: /plan macht jetzt bis zu 3 Groq-Calls → wenige Sekunden länger; Fallback-
+  Marker je Call in der Begründung (`CURATOR_ANORDNUNG_FALLBACK` etc.).
+
 ### Katalog-Ausbau: 13 neue Möbeltypen (2026-07-12)
 - **26 neue Katalog-Items** (je 2 Stil-Varianten, alle P3): Bad waeschekorb/
   badhocker/abfalleimer/midischrank · Wohnen pouf/vitrine/konsolentisch/
