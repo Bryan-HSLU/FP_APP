@@ -386,6 +386,125 @@ const stuhl: Bauer = (w, d) => {
   ];
 };
 
+// Wäschekorb: Kontur + Innenring (Rundkorb-Andeutung)
+const waeschekorb: Bauer = (w, d) => {
+  const m = Math.min(w, d);
+  return [box(w / 2, d / 2), circle([0, 0], m * 0.34)];
+};
+
+// Badhocker: Kontur + Sitzkreis
+const badhocker: Bauer = (w, d) => {
+  const m = Math.min(w, d);
+  return [box(w / 2, d / 2), circle([0, 0], m * 0.36)];
+};
+
+// Abfalleimer: Kreis mit Kreuz (Deckel-Andeutung)
+const abfalleimer: Bauer = (w, d) => {
+  const m = Math.min(w, d);
+  const r = m * 0.42;
+  return [circle([0, 0], r), line([-r, 0], [r, 0]), line([0, -r], [0, r])];
+};
+
+// Midischrank: Kontur + Front + Türtrennung (wie Schrank, mittelhoch)
+const midischrank: Bauer = (w, d) => [
+  box(w / 2, d / 2),
+  line([-w / 2, d / 2 - 0.2 * d], [w / 2, d / 2 - 0.2 * d]),
+  line([0, d / 2 - 0.2 * d], [0, d / 2]),
+];
+
+// Pouf: gerundetes Quadrat + Innenrahmen
+const pouf: Bauer = (w, d) => {
+  const m = Math.min(w, d);
+  return [
+    roundRect(-w / 2, -d / 2, w / 2, d / 2, m * 0.24),
+    roundRect(-w / 2 + 0.16 * w, -d / 2 + 0.16 * d, w / 2 - 0.16 * w, d / 2 - 0.16 * d, m * 0.14),
+  ];
+};
+
+// Vitrine: Kontur + Glasfront-Diagonale (wie Schrank, aber Diagonale statt Trennlinie)
+const vitrine: Bauer = (w, d) => [
+  box(w / 2, d / 2),
+  line([-w / 2, d / 2 - 0.2 * d], [w / 2, d / 2 - 0.2 * d]),
+  line([-w / 2, -d / 2], [w / 2, d / 2 - 0.2 * d]),
+];
+
+// Konsolentisch: schmale Kontur + Doppellinie (Plattenkante, wandnah)
+const konsolentisch: Bauer = (w, d) => [
+  box(w / 2, d / 2),
+  line([-w / 2 + 0.1 * w, -d / 2 + 0.16 * d], [w / 2 - 0.1 * w, -d / 2 + 0.16 * d]),
+];
+
+// Barwagen: Kontur + vier Rollen-Punkte an den Ecken
+const barwagen: Bauer = (w, d) => {
+  const r = Math.min(w, d) * 0.08;
+  return [
+    box(w / 2, d / 2),
+    circle([-0.36 * w, -0.36 * d], r),
+    circle([0.36 * w, -0.36 * d], r),
+    circle([-0.36 * w, 0.36 * d], r),
+    circle([0.36 * w, 0.36 * d], r),
+  ];
+};
+
+// Servierwagen: wie Barwagen – Kontur + vier Rollen-Punkte, zwei Ablageböden
+const servierwagen: Bauer = (w, d) => {
+  const r = Math.min(w, d) * 0.08;
+  return [
+    box(w / 2, d / 2),
+    line([-w / 2, 0], [w / 2, 0]),
+    circle([-0.36 * w, -0.36 * d], r),
+    circle([0.36 * w, -0.36 * d], r),
+    circle([-0.36 * w, 0.36 * d], r),
+    circle([0.36 * w, 0.36 * d], r),
+  ];
+};
+
+// Recamiere: Sofa-ähnlich, aber nur eine (rechte) Armlehne statt zweier
+const recamiere: Bauer = (w, d) => {
+  const m = Math.min(w, d);
+  return [
+    poly([
+      [-w / 2, -d / 2],
+      [w / 2, -d / 2],
+      [w / 2, -d / 2 + 0.22 * d],
+      [-w / 2, -d / 2 + 0.22 * d],
+    ]),
+    poly([
+      [w / 2 - 0.14 * w, -d / 2],
+      [w / 2, -d / 2],
+      [w / 2, d / 2],
+      [w / 2 - 0.14 * w, d / 2],
+    ]),
+    roundRect(-w / 2, -d / 2 + 0.22 * d, w / 2 - 0.14 * w, d / 2, m * 0.08),
+  ];
+};
+
+// Barhocker: Kreis in Kontur (rund, klein) mit Fussring
+const barhocker: Bauer = (w, d) => {
+  const m = Math.min(w, d);
+  return [circle([0, 0], m * 0.46), circle([0, 0], m * 0.3)];
+};
+
+// Vorratsschrank: Kontur + Front + Türtrennung (hoher Schrank)
+const vorratsschrank: Bauer = (w, d) => [
+  box(w / 2, d / 2),
+  line([-w / 2, d / 2 - 0.18 * d], [w / 2, d / 2 - 0.18 * d]),
+  line([0, d / 2 - 0.18 * d], [0, d / 2]),
+];
+
+// Weinkühlschrank: Kontur + Glasfront-Doppellinie + Flaschen-Punkte
+const weinkuehlschrank: Bauer = (w, d) => {
+  const r = Math.min(w, d) * 0.06;
+  return [
+    box(w / 2, d / 2),
+    line([-w / 2 + 0.1 * w, -d / 2 + 0.14 * d], [w / 2 - 0.1 * w, -d / 2 + 0.14 * d]),
+    line([-w / 2 + 0.1 * w, d / 2 - 0.14 * d], [w / 2 - 0.1 * w, d / 2 - 0.14 * d]),
+    circle([-0.22 * w, 0], r),
+    circle([0, 0], r),
+    circle([0.22 * w, 0], r),
+  ];
+};
+
 /** funktionsTyp → Symbol-Bauer. Aliase teilen sich einen Bauer. */
 const BAUER: Record<string, Bauer> = {
   // Bad
@@ -428,7 +547,22 @@ const BAUER: Record<string, Bauer> = {
   eckschrank,
   fuellstueck,
   dunstabzug,
+  midischrank,
+  vorratsschrank,
+  weinkuehlschrank,
+  // Wohnen / Schlafen (Ergänzung)
+  pouf,
+  vitrine,
+  konsolentisch,
+  barwagen,
+  servierwagen,
+  recamiere,
+  barhocker,
+  // Bad (Ergänzung)
+  waeschekorb,
+  badhocker,
   // Gemeinsam
+  abfalleimer,
   pflanze,
   deko,
 };

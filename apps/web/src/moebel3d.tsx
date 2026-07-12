@@ -77,6 +77,24 @@ export const MATERIAL_FARBE: Record<string, string> = {
   badteppich: "#C9A38A",
   // Grün
   pflanze: "#6F8F6A",
+  // ── Neue Kits (hohe Volumetrie) ──────────────────────────────────
+  // Naturton – geflochtener Wäschekorb (warmes Rattan/Beige)
+  waeschekorb: "#CBB393",
+  // Holz-Möbel
+  badhocker: "#B9906B",
+  midischrank: "#B9906B",
+  vitrine: "#B9906B",
+  konsolentisch: "#B9906B",
+  barhocker: "#B9906B",
+  servierwagen: "#B9906B",
+  vorratsschrank: "#B9906B",
+  // Polster/Textil – Salbei (wie Sofa/Sessel)
+  pouf: "#9BA494",
+  recamiere: "#9BA494",
+  // Geräte/Metall – Edelstahl
+  abfalleimer: "#B9BEBE",
+  barwagen: "#B9BEBE",
+  weinkuehlschrank: "#B9BEBE",
 };
 
 /** Salbei-Fallback für alle nicht kartierten Typen (Spiegel, Leuchten, Deko …). */
@@ -1593,6 +1611,394 @@ const fuellstueck: Bauer = (w, d, h) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════
+// NEUE KITS (hohe Volumetrie) – zusätzliche Möbeltypen
+// ───────────────────────────────────────────────────────────────────
+// Gleiche Konvention wie oben: alle Masse als Bruchteile von w/d/h, bbox-treu
+// (durch clampTeil/passtInBbox abgesichert), Wandseite = Rückwand bei -z.
+
+// Wäschekorb: geflochtener Korb – leicht konischer Rotationskörper-Korpus,
+// Bodenscheibe, angedeutete Geflecht-Ringe (Torus), Rand + flacher Deckel mit Knauf.
+const waeschekorb: Bauer = (w, d, h) => {
+  const r0 = Math.min(w, d);
+  return [
+    // Korpus (Rotationskörper, leicht konisch – unten schmaler)
+    drehteil(
+      [
+        [r0 * 0.36, -h * 0.45],
+        [r0 * 0.4, -h * 0.2],
+        [r0 * 0.44, h * 0.08],
+        [r0 * 0.46, h * 0.3],
+      ],
+      [0, 0, 0],
+      "koerper",
+    ),
+    // Bodenscheibe
+    zyl(r0 * 0.36, r0 * 0.34, h * 0.05, [0, -h / 2 + h * 0.03, 0], "dunkel"),
+    // Geflecht-Ringe (Andeutung, Torus)
+    ring(r0 * 0.41, r0 * 0.016, "y", [0, -h * 0.16, 0], "dunkel"),
+    ring(r0 * 0.45, r0 * 0.016, "y", [0, h * 0.06, 0], "dunkel"),
+    // Oberer Rand (Torus)
+    ring(r0 * 0.46, r0 * 0.03, "y", [0, h * 0.3, 0], "hell"),
+    // Deckel (flach)
+    zyl(r0 * 0.47, r0 * 0.47, h * 0.06, [0, h / 2 - h * 0.05, 0], "hell"),
+    // Deckelknauf
+    zyl(w * 0.05, w * 0.05, h * 0.05, [0, h / 2 - h * 0.03, 0], "dunkel"),
+  ];
+};
+
+// Badhocker: kleiner Hocker – gerundete Sitzfläche + heller Sitzakzent +
+// 4 leicht konische Holzbeine + 2 Querstreben.
+const badhocker: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d, h) * 0.12;
+  const bx = w / 2 - w * 0.14;
+  const bz = d / 2 - d * 0.14;
+  const bein = (x: number, z: number): Teil =>
+    zyl(w * 0.035, w * 0.045, h * 0.84, [x, -h / 2 + h * 0.42, z], "dunkel");
+  return [
+    // Sitzfläche (gerundet)
+    rbox([w, h * 0.16, d], [0, h / 2 - h * 0.08, 0], rr, "koerper"),
+    // Sitz-Oberkante (heller Akzent)
+    rbox([w * 0.86, h * 0.05, d * 0.86], [0, h / 2 - h * 0.05, 0], rr * 0.6, "hell"),
+    bein(-bx, -bz),
+    bein(bx, -bz),
+    bein(-bx, bz),
+    bein(bx, bz),
+    // Querstreben (Holz)
+    box([w * 0.7, h * 0.04, d * 0.04], [0, -h / 2 + h * 0.22, -bz], "dunkel"),
+    box([w * 0.04, h * 0.04, d * 0.7], [-bx, -h / 2 + h * 0.22, 0], "dunkel"),
+  ];
+};
+
+// Abfalleimer (Treteimer): leicht konischer Zylinder-Korpus + Bodenscheibe +
+// dunkler Innenrand + gewölbter Chrom-Deckel (Rotationskörper) mit Scharnier +
+// Tretpedal und Pedal-Gestänge (Chrom).
+const abfalleimer: Bauer = (w, d, h) => {
+  const r = Math.min(w, d) * 0.5;
+  return [
+    // Korpus (leicht konisch)
+    zyl(r * 0.9, r * 0.82, h * 0.78, [0, -h / 2 + h * 0.4, 0], "koerper"),
+    // Bodenscheibe
+    zyl(r * 0.82, r * 0.8, h * 0.04, [0, -h / 2 + h * 0.02, 0], "dunkel"),
+    // Innenrand (dunkel)
+    zyl(r * 0.84, r * 0.84, h * 0.04, [0, -h / 2 + h * 0.78, 0], "dunkel"),
+    // Deckel (gewölbt, Chrom – Rotationskörper)
+    drehteil(
+      [
+        [r * 0.9, 0],
+        [r * 0.86, h * 0.04],
+        [r * 0.5, h * 0.08],
+        [0, h * 0.09],
+      ],
+      [0, -h / 2 + h * 0.8, 0],
+      "chrom",
+    ),
+    // Deckel-Scharnier hinten (Chrom)
+    zyl(w * 0.03, w * 0.03, d * 0.1, [0, -h / 2 + h * 0.82, -r * 0.7], "chrom"),
+    // Tretpedal (Chrom) unten vorne
+    box([w * 0.34, h * 0.03, d * 0.16], [0, -h / 2 + h * 0.03, d / 2 - d * 0.12], "chrom"),
+    // Pedal-Gestänge (Chrom, vertikal an der Rückseite)
+    zyl(w * 0.02, w * 0.02, h * 0.7, [0, -h / 2 + h * 0.38, -r * 0.75], "chrom"),
+  ];
+};
+
+// Midischrank (halbhoher Badschrank): gerundeter Korpus + helle Deckplatte +
+// zurückgesetzter Sockel + einflügelige erhabene Tür mit seitlicher Fuge +
+// vertikaler Chrom-Griff.
+const midischrank: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.06;
+  return [
+    // Korpus (gerundet)
+    rbox([w, h * 0.86, d], [0, -h / 2 + h * 0.47, 0], rr, "koerper"),
+    // Deckplatte (hell)
+    rbox([w, h * 0.06, d], [0, h / 2 - h * 0.03, 0], rr * 0.6, "hell"),
+    // Sockel zurückgesetzt (dunkel)
+    box([w * 0.9, h * 0.08, d * 0.86], [0, -h / 2 + h * 0.04, 0], "dunkel"),
+    // Türfront (leicht erhaben, gerundet)
+    rbox([w * 0.9, h * 0.72, d * 0.04], [0, -h / 2 + h * 0.48, d / 2 - d * 0.02], rr * 0.5, "hell"),
+    // Türfuge (senkrecht, Anschlag links)
+    box(
+      [w * 0.014, h * 0.72, d * 0.02],
+      [-w * 0.42, -h / 2 + h * 0.48, d / 2 - d * 0.008],
+      "dunkel",
+    ),
+    // Vertikaler Chrom-Griff (rechte Türkante)
+    zyl(w * 0.016, w * 0.016, h * 0.3, [w * 0.4, -h / 2 + h * 0.48, d / 2 - d * 0.03], "chrom"),
+  ];
+};
+
+// Pouf: weicher gerundeter Sitzwürfel (grosser Radius) + heller gepolsterter
+// Deckel + zwei Ziernähte (Torus) + Tuft-Knopf in der Mitte.
+const pouf: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d, h) * 0.42;
+  const r0 = Math.min(w, d);
+  return [
+    // Weicher Sitzwürfel (grosser Radius)
+    rbox([w, h, d], [0, 0, 0], rr, "koerper"),
+    // Heller Deckel (gepolsterte Oberseite)
+    rbox([w * 0.82, h * 0.2, d * 0.82], [0, h / 2 - h * 0.14, 0], rr * 0.5, "hell"),
+    // Ziernaht oben (Torus)
+    ring(r0 * 0.38, r0 * 0.02, "y", [0, h * 0.22, 0], "dunkel"),
+    // Ziernaht Mitte (Torus)
+    ring(r0 * 0.46, r0 * 0.022, "y", [0, 0, 0], "dunkel"),
+    // Tuft-Knopf Mitte
+    kugel(r0 * 0.05, [0, h / 2 - h * 0.06, 0], "dunkel"),
+  ];
+};
+
+// Vitrine: Schrank mit echten Glastüren (glas) – gerundeter Korpus + Deckplatte +
+// Sockel + dunkle Rückwand + angedeutete Böden dahinter + Mittelfuge +
+// 2 Glastüren + Chrom-Griffe.
+const vitrine: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.04;
+  const boeden = 3;
+  const teile: Teil[] = [
+    // Korpus/Rahmen (gerundet)
+    rbox([w, h * 0.92, d], [0, -h / 2 + h * 0.5, 0], rr, "koerper"),
+    // Deckplatte (hell)
+    rbox([w, h * 0.06, d], [0, h / 2 - h * 0.03, 0], rr * 0.6, "hell"),
+    // Sockel zurückgesetzt
+    box([w * 0.92, h * 0.08, d * 0.8], [0, -h / 2 + h * 0.04, 0], "dunkel"),
+    // Rückwand (dunkel)
+    box([w * 0.9, h * 0.8, d * 0.03], [0, -h / 2 + h * 0.5, -d / 2 + d * 0.06], "dunkel"),
+  ];
+  // Böden hinter dem Glas (angedeutet, hell)
+  for (let i = 0; i < boeden; i++) {
+    const y = -h / 2 + h * 0.2 + (i * (h * 0.56)) / (boeden - 1);
+    teile.push(box([w * 0.84, h * 0.02, d * 0.7], [0, y, -d * 0.04], "hell"));
+  }
+  return [
+    ...teile,
+    // Türfuge (senkrecht, mittig)
+    box([w * 0.012, h * 0.78, d * 0.02], [0, -h / 2 + h * 0.5, d / 2 - d * 0.02], "dunkel"),
+    // Linke Glastür (echt transparent)
+    box([w * 0.46, h * 0.78, d * 0.03], [-w * 0.24, -h / 2 + h * 0.5, d / 2 - d * 0.02], "glas"),
+    // Rechte Glastür
+    box([w * 0.46, h * 0.78, d * 0.03], [w * 0.24, -h / 2 + h * 0.5, d / 2 - d * 0.02], "glas"),
+    // Chrom-Griff links
+    zyl(w * 0.014, w * 0.014, h * 0.3, [-w * 0.03, -h / 2 + h * 0.5, d / 2 - d * 0.035], "chrom"),
+    // Chrom-Griff rechts
+    zyl(w * 0.014, w * 0.014, h * 0.3, [w * 0.03, -h / 2 + h * 0.5, d / 2 - d * 0.035], "chrom"),
+  ];
+};
+
+// Konsolentisch: schmaler Wandtisch – dünne gerundete Platte + umlaufende Zarge +
+// gerundeter Unterboden/Ablage + 4 schlanke Chrom-Beine.
+const konsolentisch: Bauer = (w, d, h) => {
+  const rr = Math.min(w * 0.03, d * 0.06, h * 0.05);
+  const bx = w / 2 - w * 0.06;
+  const bz = d / 2 - d * 0.12;
+  const bein = (x: number, z: number): Teil =>
+    zyl(w * 0.016, w * 0.02, h * 0.9, [x, -h / 2 + h * 0.45, z], "chrom");
+  return [
+    // Platte (dünn, gerundet)
+    rbox([w, h * 0.07, d], [0, h / 2 - h * 0.035, 0], rr, "koerper"),
+    // Zarge vorne
+    box([w * 0.9, h * 0.06, d * 0.04], [0, h / 2 - h * 0.12, d / 2 - d * 0.1], "dunkel"),
+    // Zarge hinten
+    box([w * 0.9, h * 0.06, d * 0.04], [0, h / 2 - h * 0.12, -d / 2 + d * 0.1], "dunkel"),
+    // Unterboden/Ablage (gerundet)
+    rbox([w * 0.86, h * 0.05, d * 0.7], [0, -h / 2 + h * 0.16, 0], rr * 0.6, "hell"),
+    bein(-bx, -bz),
+    bein(bx, -bz),
+    bein(-bx, bz),
+    bein(bx, bz),
+  ];
+};
+
+// Barwagen: Servierwagen mit Chrom-Gestell + 2 Glasetagen (Chrom-Rahmen +
+// Glasboden) + 4 Chrom-Streben + 4 Rollen + gebogener Chrom-Schiebegriff (Torus).
+const barwagen: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.03;
+  const px = w / 2 - w * 0.08;
+  const pz = d / 2 - d * 0.1;
+  const post = (x: number, z: number): Teil =>
+    zyl(w * 0.014, w * 0.014, h * 0.74, [x, -h / 2 + h * 0.5, z], "chrom");
+  const rolle = (x: number, z: number): Teil =>
+    zyl(w * 0.035, w * 0.035, h * 0.06, [x, -h / 2 + h * 0.03, z], "chrom");
+  return [
+    // Untere Etage – Chrom-Rahmen
+    rbox([w * 0.94, h * 0.03, d * 0.94], [0, -h / 2 + h * 0.16, 0], rr, "chrom"),
+    // Untere Etage – Glasboden
+    box([w * 0.86, h * 0.015, d * 0.86], [0, -h / 2 + h * 0.16, 0], "glas"),
+    // Obere Etage – Chrom-Rahmen
+    rbox([w * 0.94, h * 0.03, d * 0.94], [0, h / 2 - h * 0.14, 0], rr, "chrom"),
+    // Obere Etage – Glasboden
+    box([w * 0.86, h * 0.015, d * 0.86], [0, h / 2 - h * 0.14, 0], "glas"),
+    post(-px, -pz),
+    post(px, -pz),
+    post(-px, pz),
+    post(px, pz),
+    rolle(-px, -pz),
+    rolle(px, -pz),
+    rolle(-px, pz),
+    rolle(px, pz),
+    // Schiebegriff (Chrom-Bügel, Torus)
+    ring(d * 0.28, w * 0.014, "x", [0, h / 2 - h * 0.02, 0], "chrom"),
+  ];
+};
+
+// Recamiere (Daybed): gerundeter Basisrahmen + weiche Liegefläche + einseitiges
+// Kopf-Bolster + geschwungene (hintere) Rückenlehne mit Polster + Zierkissen +
+// 4 Chrom-Füsse.
+const recamiere: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d, h) * 0.12;
+  const fuss = (x: number, z: number): Teil =>
+    zyl(w * 0.016, w * 0.022, h * 0.24, [x, -h / 2 + h * 0.12, z], "chrom");
+  return [
+    // Basisrahmen (gerundet)
+    rbox([w, h * 0.34, d], [0, -h / 2 + h * 0.32, 0], rr, "koerper"),
+    // Liegefläche/Polster (weich, hell)
+    rbox([w * 0.94, h * 0.2, d * 0.9], [0, -h / 2 + h * 0.56, 0], rr, "hell"),
+    // Kopf-Bolster (einseitig, +x) – weich gerundet
+    rbox([w * 0.16, h * 0.44, d * 0.84], [w / 2 - w * 0.08, -h / 2 + h * 0.62, 0], rr, "koerper"),
+    // Geschwungene Rückenlehne (nur hintere Seite, -z)
+    rbox(
+      [w * 0.58, h * 0.4, d * 0.14],
+      [w * 0.1, -h / 2 + h * 0.68, -d / 2 + d * 0.07],
+      rr,
+      "koerper",
+    ),
+    // Rücken-Polster (weich)
+    rbox(
+      [w * 0.5, h * 0.28, d * 0.1],
+      [w * 0.1, -h / 2 + h * 0.68, -d / 2 + d * 0.13],
+      rr * 0.8,
+      "hell",
+    ),
+    // Zierkissen (Akzent) am Kopfende
+    rbox([w * 0.14, h * 0.2, d * 0.36], [w * 0.28, -h / 2 + h * 0.74, d * 0.02], rr, "dunkel"),
+    // 4 Chrom-Füsse
+    fuss(-w * 0.42, -d * 0.38),
+    fuss(w * 0.42, -d * 0.38),
+    fuss(-w * 0.42, d * 0.38),
+    fuss(w * 0.42, d * 0.38),
+  ];
+};
+
+// Barhocker: hoher Hocker – flacher Chrom-Tellerfuss (Rotationskörper) +
+// Chrom-Säule + Fussring (Torus) + Chrom-Sitzträger + runde gepolsterte
+// Sitzfläche + heller Polster-Deckel.
+const barhocker: Bauer = (w, d, h) => {
+  const r = Math.min(w, d);
+  return [
+    // Tellerfuss (Rotationskörper, chrom, flach)
+    drehteil(
+      [
+        [r * 0.46, -h * 0.48],
+        [r * 0.48, -h * 0.45],
+        [r * 0.16, -h * 0.43],
+        [r * 0.08, -h * 0.4],
+      ],
+      [0, 0, 0],
+      "chrom",
+    ),
+    // Chrom-Säule
+    zyl(r * 0.07, r * 0.09, h * 0.86, [0, -h / 2 + h * 0.42, 0], "chrom"),
+    // Fussring (Torus)
+    ring(r * 0.32, r * 0.03, "y", [0, -h / 2 + h * 0.28, 0], "chrom"),
+    // Sitzträger (Chrom-Teller)
+    zyl(r * 0.2, r * 0.2, h * 0.03, [0, h / 2 - h * 0.16, 0], "chrom"),
+    // Runde Sitzfläche (gepolstert)
+    zyl(r * 0.46, r * 0.46, h * 0.1, [0, h / 2 - h * 0.09, 0], "koerper"),
+    // Sitzpolster-Oberseite (hell)
+    zyl(r * 0.42, r * 0.44, h * 0.05, [0, h / 2 - h * 0.05, 0], "hell"),
+  ];
+};
+
+// Servierwagen: wie Barwagen, aber Küchen-Anmutung – 2 Holz-Tabletts (gerundet,
+// mit hellem Rand) auf Chrom-Gestell + 4 Streben + 4 Rollen + Chrom-Schiebebügel
+// (2 Stützen + Querstange).
+const servierwagen: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.04;
+  const px = w / 2 - w * 0.08;
+  const pz = d / 2 - d * 0.1;
+  const post = (x: number, z: number): Teil =>
+    zyl(w * 0.016, w * 0.016, h * 0.72, [x, -h / 2 + h * 0.49, z], "chrom");
+  const rolle = (x: number, z: number): Teil =>
+    zyl(w * 0.035, w * 0.035, h * 0.06, [x, -h / 2 + h * 0.03, z], "chrom");
+  return [
+    // Untere Etage (Holz-Tablett, gerundet)
+    rbox([w * 0.96, h * 0.05, d * 0.96], [0, -h / 2 + h * 0.16, 0], rr, "koerper"),
+    // Obere Etage (Holz-Tablett)
+    rbox([w * 0.96, h * 0.05, d * 0.96], [0, h / 2 - h * 0.2, 0], rr, "koerper"),
+    // Obere Etage – Tablettrand (hell)
+    rbox([w * 0.84, h * 0.03, d * 0.84], [0, h / 2 - h * 0.17, 0], rr * 0.6, "hell"),
+    post(-px, -pz),
+    post(px, -pz),
+    post(-px, pz),
+    post(px, pz),
+    rolle(-px, -pz),
+    rolle(px, -pz),
+    rolle(-px, pz),
+    rolle(px, pz),
+    // Schiebebügel: 2 Chrom-Stützen + Querstange
+    zyl(w * 0.014, w * 0.014, h * 0.14, [-px, h / 2 - h * 0.07, pz], "chrom"),
+    zyl(w * 0.014, w * 0.014, h * 0.14, [px, h / 2 - h * 0.07, pz], "chrom"),
+    box([w * 0.9, h * 0.03, d * 0.04], [0, h / 2 - h * 0.02, pz], "chrom"),
+  ];
+};
+
+// Vorratsschrank: hoher Küchenschrank – gerundeter Korpus + zurückgesetzter
+// Sockel + obere Abschlussleiste + Mittelfuge + 2 erhabene Türfronten +
+// vertikale Chrom-Griffe.
+const vorratsschrank: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.04;
+  return [
+    // Korpus (gerundet)
+    rbox([w, h * 0.9, d], [0, -h / 2 + h * 0.5, 0], rr, "koerper"),
+    // Sockel zurückgesetzt
+    box([w * 0.94, h * 0.06, d * 0.8], [0, -h / 2 + h * 0.03, 0], "dunkel"),
+    // Abschlussleiste oben (gerundet)
+    rbox([w, h * 0.05, d], [0, h / 2 - h * 0.025, 0], rr * 0.5, "hell"),
+    // Türfuge (senkrecht, mittig)
+    box([w * 0.012, h * 0.82, d * 0.02], [0, h * 0.02, d / 2 - d * 0.008], "dunkel"),
+    // Linke Türfront (erhaben, gerundet)
+    rbox(
+      [w * 0.46, h * 0.82, d * 0.04],
+      [-w * 0.245, h * 0.02, d / 2 - d * 0.02],
+      rr * 0.5,
+      "hell",
+    ),
+    // Rechte Türfront
+    rbox([w * 0.46, h * 0.82, d * 0.04], [w * 0.245, h * 0.02, d / 2 - d * 0.02], rr * 0.5, "hell"),
+    // Chrom-Griff links (vertikal)
+    zyl(w * 0.014, w * 0.014, h * 0.34, [-w * 0.03, h * 0.02, d / 2 - d * 0.03], "chrom"),
+    // Chrom-Griff rechts
+    zyl(w * 0.014, w * 0.014, h * 0.34, [w * 0.03, h * 0.02, d / 2 - d * 0.03], "chrom"),
+  ];
+};
+
+// Weinkühlschrank: kompaktes Gerät – gerundeter Edelstahl-Korpus + Sockel +
+// erhabener Chrom-Türrahmen + getönte Glasfront + vertikaler Chrom-Griff +
+// dunkle Bedienleiste mit Glas-LED + angedeutete Flaschen-Reihen (helle Querlinien).
+const weinkuehlschrank: Bauer = (w, d, h) => {
+  const rr = Math.min(w, d) * 0.05;
+  const reihen = 4;
+  const teile: Teil[] = [
+    // Korpus (gerundet, Edelstahl)
+    rbox([w, h * 0.94, d], [0, -h / 2 + h * 0.49, 0], rr, "koerper"),
+    // Sockel zurückgesetzt
+    box([w * 0.9, h * 0.05, d * 0.8], [0, -h / 2 + h * 0.025, 0], "dunkel"),
+    // Chrom-Türrahmen (erhaben)
+    rbox([w * 0.94, h * 0.8, d * 0.03], [0, h * 0.02, d / 2 - d * 0.02], rr * 0.4, "chrom"),
+    // Getönte Glas-Front (Tür)
+    rbox([w * 0.82, h * 0.72, d * 0.02], [0, h * 0.02, d / 2 - d * 0.012], rr * 0.3, "glas"),
+    // Vertikaler Chrom-Griff
+    zyl(w * 0.016, w * 0.016, h * 0.5, [w * 0.36, h * 0.02, d / 2 - d * 0.03], "chrom"),
+    // Bedienleiste oben (dunkel)
+    box([w * 0.94, h * 0.06, d * 0.02], [0, h / 2 - h * 0.05, d / 2 - d * 0.01], "dunkel"),
+    // Status-LED (Glas)
+    box([w * 0.05, h * 0.03, d * 0.015], [-w * 0.34, h / 2 - h * 0.05, d / 2 - d * 0.006], "glas"),
+  ];
+  // Angedeutete Flaschen-Reihen (helle Querlinien hinter dem Glas)
+  for (let i = 0; i < reihen; i++) {
+    const y = -h * 0.24 + (i * (h * 0.5)) / (reihen - 1);
+    teile.push(box([w * 0.7, h * 0.02, d * 0.04], [0, y, d * 0.02], "hell"));
+  }
+  return teile;
+};
+
+// ═══════════════════════════════════════════════════════════════════
 // VARIANTEN – mehrere 3D-Bausätze je funktionsTyp
 // ───────────────────────────────────────────────────────────────────
 // Ein funktionsTyp (z.B. wc) kann optisch verschiedene Möbel meinen. Das
@@ -1740,9 +2146,19 @@ const BAUSAETZE: Record<string, Bauer> = {
   badteppich: matte,
   urinal,
   bidet,
+  waeschekorb,
+  badhocker,
+  abfalleimer,
+  midischrank,
   // ── Wohnen ────────────────────────────────────────────────────────
   sofa,
   sessel,
+  pouf,
+  vitrine,
+  konsolentisch,
+  barwagen,
+  recamiere,
+  barhocker,
   esstisch: tisch,
   couchtisch: tisch,
   beistelltisch: tisch,
@@ -1784,6 +2200,9 @@ const BAUSAETZE: Record<string, Bauer> = {
   tumbler,
   eckschrank,
   fuellstueck,
+  servierwagen,
+  vorratsschrank,
+  weinkuehlschrank,
   // ── Varianten (per modell3d im Katalog-Item wählbar) ──────────────
   "wc-wandhaengend": wcWandhaengend,
   "lavabo-aufsatz": lavaboAufsatz,

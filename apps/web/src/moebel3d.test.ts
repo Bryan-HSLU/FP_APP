@@ -322,6 +322,79 @@ describe("Flagship-Küche-Modelle – Volumetrie & Materialien", () => {
   });
 });
 
+describe("Neue 3D-Kits – Registrierung, Volumetrie & bbox-Treue", () => {
+  const NEUE_KITS = [
+    "waeschekorb",
+    "badhocker",
+    "abfalleimer",
+    "midischrank",
+    "pouf",
+    "vitrine",
+    "konsolentisch",
+    "barwagen",
+    "recamiere",
+    "barhocker",
+    "servierwagen",
+    "vorratsschrank",
+    "weinkuehlschrank",
+  ];
+
+  // Repräsentative Masse inkl. extremer Seitenverhältnisse (schlank/hoch, breit/flach).
+  const MASSE_NEU: [number, number, number][] = [
+    [0.6, 0.5, 0.85],
+    [0.4, 0.4, 0.5],
+    [0.3, 0.3, 1.4], // schmal & hoch
+    [1.9, 0.6, 0.7], // breit & niedrig (Wagen/Recamiere)
+    [0.15, 0.6, 2.0], // extrem schlank & hoch
+    [0.9, 0.9, 0.9],
+  ];
+
+  it("registriert jeden neuen Typ (kein Box-Fallback) und hat eine MATERIAL_FARBE", () => {
+    for (const typ of NEUE_KITS) {
+      // Registriert = bausatzSchluessel bleibt der Typ und liefert nicht die nackte Box.
+      expect(bausatzSchluessel(typ)).toBe(typ);
+      expect(typ in MATERIAL_FARBE, `${typ} in MATERIAL_FARBE`).toBe(true);
+      expect(materialFarbe(typ), `${typ} hat gültige Farbe`).toMatch(/^#[0-9a-f]{6}$/i);
+    }
+  });
+
+  it("liefert je Kit genug Teile (>=5) und bleibt in jeder bbox (auch extreme Masse)", () => {
+    for (const typ of NEUE_KITS) {
+      for (const [w, d, h] of MASSE_NEU) {
+        const teile = bauteile(typ, w, d, h);
+        expect(teile.length, `${typ} genug Teile (>=5)`).toBeGreaterThanOrEqual(5);
+        expect(passtInBbox(teile, w, d, h), `${typ} ${w}×${d}×${h} in bbox`).toBe(true);
+      }
+    }
+  });
+
+  it("nutzt Volumetrie-Primitive statt einer nackten Box", () => {
+    for (const typ of NEUE_KITS) {
+      const teile = bauteile(typ, 0.6, 0.5, 0.85);
+      const formen = new Set(teile.map((t) => t.form));
+      expect(teile.length, `${typ} ist mehrteilig`).toBeGreaterThan(1);
+      const hatVolumetrie =
+        formen.has("rundbox") ||
+        formen.has("lathe") ||
+        formen.has("torus") ||
+        formen.has("zylinder") ||
+        formen.has("kugel");
+      expect(hatVolumetrie, `${typ} nutzt Volumetrie (rundbox/lathe/torus/zyl/kugel)`).toBe(true);
+    }
+  });
+
+  it("verbaut passende Materialien: Glas an Vitrine/Barwagen/Weinkühler, Chrom an Wagen/Geräten", () => {
+    const rollen = (typ: string, w = 0.6, d = 0.5, hg = 0.85) =>
+      new Set(bauteile(typ, w, d, hg).map((t) => t.rolle));
+    for (const typ of ["vitrine", "barwagen", "weinkuehlschrank"]) {
+      expect(rollen(typ).has("glas"), `${typ} hat Glas`).toBe(true);
+    }
+    for (const typ of ["abfalleimer", "midischrank", "barwagen", "servierwagen", "barhocker"]) {
+      expect(rollen(typ).has("chrom"), `${typ} nutzt Chrom`).toBe(true);
+    }
+  });
+});
+
 describe("Farbableitung – Chrom-Rolle", () => {
   it("leitet Chrom als hellen Metallton aus der Basis-/Ampelfarbe ab", () => {
     // Aus der Ampelfarbe abgeleitet → Status dominiert weiter (kein Eigenwert).

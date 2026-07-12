@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Vec2 } from "@fp/shared/rules";
 import { computeTransform } from "./plan2d.ts";
-import { hatSymbol, symbolScreenPrims } from "./symbole2d.ts";
+import { hatSymbol, symbolScreenPrims, type ScreenPrim } from "./symbole2d.ts";
 
 const RAUM: Vec2[] = [
   [0, 0],
@@ -50,6 +50,23 @@ const KATALOG_TYPEN = [
   "wandbild",
 ];
 
+// Neu ergänzte funktionsTypen (13 zusätzliche Möbeltypen, siehe Auftrag).
+const NEUE_TYPEN = [
+  "waeschekorb",
+  "badhocker",
+  "abfalleimer",
+  "midischrank",
+  "pouf",
+  "vitrine",
+  "konsolentisch",
+  "barwagen",
+  "recamiere",
+  "barhocker",
+  "servierwagen",
+  "vorratsschrank",
+  "weinkuehlschrank",
+];
+
 describe("hatSymbol / Katalog-Abdeckung", () => {
   it("deckt alle Katalog-funktionsTypen ab (kein Box-Fallback)", () => {
     for (const typ of KATALOG_TYPEN) {
@@ -95,29 +112,75 @@ describe("symbolScreenPrims", () => {
     const w = 0.8;
     const d = 0.6;
     const center: Vec2 = [1.5, 1.2];
-    const halbBreite = (w / 2) * T.scale;
-    const halbTiefe = (d / 2) * T.scale;
-    const [cx, cy] = [center[0] * T.scale + T.offsetX, center[1] * T.scale + T.offsetY];
     const prims = symbolScreenPrims("badewanne", center, w, d, 0, T)!;
-    const punkte: [number, number][] = [];
-    for (const p of prims) {
-      if (p.kind === "circle") {
-        punkte.push([p.cx - p.r, p.cy - p.r], [p.cx + p.r, p.cy + p.r]);
-      } else if (p.kind === "line") {
-        punkte.push([p.x1, p.y1], [p.x2, p.y2]);
-      } else {
-        for (const paar of p.points.split(" ")) {
-          const [x, y] = paar.split(",").map(Number);
-          punkte.push([x!, y!]);
-        }
+    erwartePunkteInBBox(prims, center, w, d);
+  });
+});
+
+/** Sammelt alle projizierten Punkte (inkl. Kreis-Bounding-Box) eines Symbols. */
+function punkteVon(prims: ScreenPrim[]): [number, number][] {
+  const punkte: [number, number][] = [];
+  for (const p of prims) {
+    if (p.kind === "circle") {
+      punkte.push([p.cx - p.r, p.cy - p.r], [p.cx + p.r, p.cy + p.r]);
+    } else if (p.kind === "line") {
+      punkte.push([p.x1, p.y1], [p.x2, p.y2]);
+    } else {
+      for (const paar of p.points.split(" ")) {
+        const [x, y] = paar.split(",").map(Number);
+        punkte.push([x!, y!]);
       }
     }
-    const tol = 0.5;
-    for (const [x, y] of punkte) {
-      expect(x).toBeGreaterThanOrEqual(cx - halbBreite - tol);
-      expect(x).toBeLessThanOrEqual(cx + halbBreite + tol);
-      expect(y).toBeGreaterThanOrEqual(cy - halbTiefe - tol);
-      expect(y).toBeLessThanOrEqual(cy + halbTiefe + tol);
+  }
+  return punkte;
+}
+
+/** Prüft, dass alle Symbolpunkte im Screen-Rechteck der w×d-bbox liegen (Toleranz für Rundung). */
+function erwartePunkteInBBox(prims: ScreenPrim[], center: Vec2, w: number, d: number): void {
+  const halbBreite = (w / 2) * T.scale;
+  const halbTiefe = (d / 2) * T.scale;
+  const [cx, cy] = [center[0] * T.scale + T.offsetX, center[1] * T.scale + T.offsetY];
+  const tol = 0.5;
+  for (const [x, y] of punkteVon(prims)) {
+    expect(x).toBeGreaterThanOrEqual(cx - halbBreite - tol);
+    expect(x).toBeLessThanOrEqual(cx + halbBreite + tol);
+    expect(y).toBeGreaterThanOrEqual(cy - halbTiefe - tol);
+    expect(y).toBeLessThanOrEqual(cy + halbTiefe + tol);
+  }
+}
+
+describe("neue Möbeltypen (13 Ergänzungen)", () => {
+  it("haben alle ein Symbol (kein Box-Fallback)", () => {
+    for (const typ of NEUE_TYPEN) {
+      expect(hatSymbol(typ), `Symbol fehlt für ${typ}`).toBe(true);
+    }
+  });
+
+  it("liefern je funktionsTyp Primitive und bleiben in der w×d-Box", () => {
+    const center: Vec2 = [1.5, 1.2];
+    const w = 0.6;
+    const d = 0.5;
+    for (const typ of NEUE_TYPEN) {
+      const prims = symbolScreenPrims(typ, center, w, d, 0, T);
+      expect(prims, `keine Primitive für ${typ}`).not.toBeNull();
+      expect(prims!.length, `leeres Symbol für ${typ}`).toBeGreaterThan(0);
+      erwartePunkteInBBox(prims!, center, w, d);
+    }
+  });
+
+  it("bleiben auch bei Rotation (yaw 40°) in der bbox", () => {
+    const center: Vec2 = [1.5, 1.2];
+    const w = 0.5;
+    const d = 0.7;
+    for (const typ of NEUE_TYPEN) {
+      const prims = symbolScreenPrims(typ, center, w, d, 40, T)!;
+      // Rotierte bbox ist grösser als die achsparallele – hier reicht die
+      // Diagonale als Toleranzradius (grobe, aber wirksame Plausibilitätsprüfung).
+      const diag = Math.sqrt(w * w + d * d) * T.scale;
+      const [cx, cy] = [center[0] * T.scale + T.offsetX, center[1] * T.scale + T.offsetY];
+      for (const [x, y] of punkteVon(prims)) {
+        expect(Math.hypot(x - cx, y - cy)).toBeLessThanOrEqual(diag / 2 + 1);
+      }
     }
   });
 });
