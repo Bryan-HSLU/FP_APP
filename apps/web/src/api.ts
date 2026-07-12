@@ -1,5 +1,6 @@
 /** API-Client zum lokalen Engines-Dienst (Vite-Proxy: /api → FastAPI :8000). */
 import type { CatalogItemInput, RoomInput } from "@fp/shared/rules";
+import type { FlaechenKonzept } from "./oberflaechen";
 
 export interface Placement {
   id: string;
@@ -93,6 +94,9 @@ export interface SolveOpts {
   normProfile?: string;
   form?: string;
   zoneId?: string;
+  /** Flächen-Wünsche des Kurators (Call C); der Server reicht sie unverändert
+   *  in der Antwort zurück (der Client rendert daraus die Optik). */
+  flaechen?: FlaechenKonzept | null;
 }
 
 export class ApiFehler extends Error {
@@ -119,6 +123,8 @@ async function call<T>(pfad: string, init?: RequestInit): Promise<T> {
 export interface KuratorAntwort {
   auswahl: string[];
   relationaleAbsichten: { itemId: string; relation: string }[];
+  /** Flächen-Konzept (Boden-/Wand-Material je Wand). Fehlt bei Teil-Fallback. */
+  flaechen?: FlaechenKonzept | null;
   begruendung?: string;
 }
 
@@ -185,7 +191,13 @@ export const api = {
       body: JSON.stringify({ room, styleProfile: stilprofil ?? undefined, normProfile, zoneId }),
     }),
   solve: (room: Room, seed: number, opts: SolveOpts = {}) =>
-    call<{ plan: Plan; room: Room; hinweis?: string; arbeitsdreieck?: Arbeitsdreieck }>("/solve", {
+    call<{
+      plan: Plan;
+      room: Room;
+      hinweis?: string;
+      arbeitsdreieck?: Arbeitsdreieck;
+      flaechen?: FlaechenKonzept | null;
+    }>("/solve", {
       method: "POST",
       body: JSON.stringify({
         room,
@@ -197,6 +209,7 @@ export const api = {
         normProfile: opts.normProfile,
         form: opts.form,
         zoneId: opts.zoneId,
+        flaechen: opts.flaechen ?? undefined,
       }),
     }),
   evaluate: (room: Room, plan: Plan) =>

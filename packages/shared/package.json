@@ -6,7 +6,8 @@
   "description": "Verträge (JSON-Schemas) + generierte TS-Typen + TS-Regel-Interpreter + goldene Fixtures",
   "exports": {
     ".": "./src/index.ts",
-    "./rules": "./src/rules/index.ts"
+    "./rules": "./src/rules/index.ts",
+    "./generated": "./src/generated/index.ts"
   },
   "scripts": {
     "lint": "eslint src scripts && prettier --check src scripts \"schemas/**/*.json\" \"fixtures/**/*.json\" --no-error-on-unmatched-pattern",

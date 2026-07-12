@@ -36,6 +36,7 @@ import {
   leiteOberflaechen,
   variantenFuer,
   wendeVariantenAn,
+  type FlaechenKonzept,
   type OberflaechenWahl,
 } from "./oberflaechen";
 import type { Begehungsmodus } from "./viewer3d-logik";
@@ -83,6 +84,9 @@ export function App() {
     boden: null,
     wand: null,
   });
+  // Flächen-Konzept des Kurators (Boden-/Wand-Material je Wand), aus /solve.
+  // Fehlt es (Küche/Baseline/alte Pläne) → null → stilabgeleiteter Fallback im 3D.
+  const [flaechen, setFlaechen] = useState<FlaechenKonzept | null>(null);
   // Scan-Upload (M7 Schritt 4): Raumtyp des hochgeladenen Scan-Bundles.
   const [scanRoomType, setScanRoomType] = useState("bad");
   // Scan-Korrektur-Modus (M7 Schritt 6): geladener Scan wartet auf Korrektur.
@@ -129,6 +133,7 @@ export function App() {
       setPlanRoom(null);
       setDreieck(null);
       setFlaeche(null);
+      setFlaechen(null);
       setOberflaechenWahl({ boden: null, wand: null });
       // Für Küchen den Katalog/Regeln des effektiven Raumtyps laden.
       const istKueche =
@@ -188,7 +193,13 @@ export function App() {
       setKv(null);
       setLadenVorschlag(true);
       try {
-        let res: { plan: Plan; room: Room; hinweis?: string; arbeitsdreieck?: Arbeitsdreieck };
+        let res: {
+          plan: Plan;
+          room: Room;
+          hinweis?: string;
+          arbeitsdreieck?: Arbeitsdreieck;
+          flaechen?: FlaechenKonzept | null;
+        };
         if (kuecheInfo.istKueche) {
           // Küche: lineare Baugruppe – Form + Normprofil (+ Zone) an den Solver.
           let f = form;
@@ -213,9 +224,16 @@ export function App() {
             kurator = k.kurator;
             setBegruendung(`${k.port}: ${k.kurator.begruendung ?? ""}`);
           }
-          res = await api.solve(room, s, { kurator, stilprofilRef: stilprofil?.id });
+          // Flächen-Wünsche des Kurators mit an /solve geben; der Server reicht
+          // sie unverändert zurück (res.flaechen) → Optik im 3D-Viewer.
+          res = await api.solve(room, s, {
+            kurator,
+            stilprofilRef: stilprofil?.id,
+            flaechen: kurator?.flaechen,
+          });
         }
         setPlan(res.plan);
+        setFlaechen(res.flaechen ?? null);
         setPlanRoom(res.room);
         setDreieck(res.arbeitsdreieck ?? null);
         setSeed(s);
@@ -574,6 +592,7 @@ export function App() {
               gewaehlteFlaeche={flaeche}
               onSelectFlaeche={waehleFlaeche}
               oberflaechenWahl={oberflaechenWahl}
+              flaechen={flaechen}
               modus={viewer3dModus}
               onModus={setViewer3dModus}
             />

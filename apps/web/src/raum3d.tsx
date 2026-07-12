@@ -9,7 +9,7 @@
  */
 import { useMemo } from "react";
 import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from "three";
-import type { BodenSpez, WandSpez } from "./oberflaechen";
+import type { BodenSpez, FlaechenLook, WandZonen } from "./oberflaechen";
 import { clipZone, oeffnungsPose, wandSegmente, type WandOeffnung, type WandRef } from "./raum3d";
 
 // Holz-/Metalltöne für Tür & Fenster – bewusst fixe, warme bzw. neutrale Töne
@@ -149,22 +149,22 @@ function WandSegment({
  * Eine Wand als Menge massiver Segment-Quader (Türen/Fenster bleiben als Löcher
  * frei) plus die eingesetzten Tür-/Fensterobjekte an ihrer Weltpose.
  *
- * Bad-Fliesensockel: ist `spez.muster="fliesen"`, wird die Wand in zwei
- * Höhenzonen gerendert – unten [0, fliesenHoehe] mit Fliesentextur (etwas
- * opaker, damit die Fliesen lesbar sind), oben Uni. Bewusst per Höhen-Clip statt
- * echtem CSG-Zonenschnitt: robust, dependency-frei, Löcher bleiben korrekt.
+ * Zwei Höhenzonen ({@link WandZonen}): unten [0, zone.hoeheM] im Material der
+ * Zone (etwas opaker, damit das Muster lesbar ist), darüber/dahinter der
+ * Basis-Look. So bilden sich Bad-Fliesensockel (halbhoch), Sockelleisten
+ * (sockel) und raumhohe Akzentwände (voll = Zone deckt die ganze Höhe) mit
+ * derselben Logik ab. Bewusst per Höhen-Clip statt echtem CSG-Zonenschnitt:
+ * robust, dependency-frei, Löcher bleiben korrekt.
  */
 export function WandMitOeffnungen({
   wand,
   oeffnungen,
-  spez,
-  fliesenTextur,
+  basis,
+  zone,
 }: {
   wand: WandRef & { height?: number; thickness?: number; kind?: string };
   oeffnungen: WandOeffnung[];
-  spez: WandSpez;
-  fliesenTextur: CanvasTexture | null;
-}) {
+} & WandZonen) {
   const dx = wand.end[0] - wand.start[0];
   const dz = wand.end[1] - wand.start[1];
   const laenge = Math.hypot(dx, dz);
@@ -177,14 +177,23 @@ export function WandMitOeffnungen({
     (wand.start[1] + wand.end[1]) / 2,
   ];
   const alle = wandSegmente(laenge, hoehe, oeffnungen);
-  const fliesenH = spez.muster === "fliesen" ? Math.min(spez.fliesenHoehe_m ?? 1.2, hoehe) : 0;
-  const sockel = fliesenH > 0 ? clipZone(alle, 0, fliesenH) : [];
-  const oben = fliesenH > 0 ? clipZone(alle, fliesenH, hoehe) : alle;
+  const zoneH = zone ? Math.min(zone.hoeheM, hoehe) : 0;
+  const unten = zoneH > 0 ? clipZone(alle, 0, zoneH) : [];
+  const oben = zoneH > 0 ? clipZone(alle, zoneH, hoehe) : alle;
+  // Texturen je Look memoisieren (Wände unterscheiden sich jetzt pro Wand).
+  const basisTex = useMemo(
+    () => flaechenTextur(basis),
+    [basis.muster, basis.farbe, basis.fugenfarbe],
+  );
+  const zoneTex = useMemo(
+    () => (zone ? flaechenTextur(zone.look) : null),
+    [zone?.look.muster, zone?.look.farbe, zone?.look.fugenfarbe],
+  );
 
   const segMesh = (
     q: { x: number; y: number; w: number; h: number },
     i: number,
-    farbe: string,
+    look: FlaechenLook,
     opacity: number,
     textur: CanvasTexture | null,
   ) => (
@@ -192,10 +201,10 @@ export function WandMitOeffnungen({
       key={`s${textur ? "f" : "u"}-${i}`}
       position={[q.x - laenge / 2, q.y, 0]}
       size={[q.w, q.h, dicke]}
-      farbe={farbe}
+      farbe={look.farbe}
       opacity={opacity}
       textur={textur}
-      tileMasse={0.3}
+      tileMasse={look.masse_m}
     />
   );
 
@@ -203,8 +212,8 @@ export function WandMitOeffnungen({
     <group>
       {/* Wand-Segmente im Wand-Lokalraum (gedreht wie die frühere Wand-Box). */}
       <group position={mid} rotation={[0, -yaw, 0]}>
-        {oben.map((q, i) => segMesh(q, i, spez.farbe, 0.5, null))}
-        {sockel.map((q, i) => segMesh(q, i, spez.farbe, 0.75, fliesenTextur))}
+        {oben.map((q, i) => segMesh(q, i, basis, 0.5, basisTex))}
+        {zone && unten.map((q, i) => segMesh(q, i, zone.look, 0.75, zoneTex))}
       </group>
       {/* Tür-/Fensterobjekte an ihrer Weltpose (identische Gruppe, keine Vorrotation). */}
       {oeffnungen.map((o, i) => {
@@ -253,26 +262,27 @@ function alsTextur(canvas: HTMLCanvasElement): CanvasTexture {
 }
 
 /**
- * Bodentextur je Muster. `repeat` wird gesetzt (Fläche/Mass): shapeGeometry-UVs
- * liegen in Metern, daher repeat = 1/masse → eine Kachel je `masse_m`.
+ * Zeichnet ein kachelbares Muster in `ctx` (0…s). Gemeinsame Basis für Boden-
+ * und Wandtexturen, damit alle Looks aus demselben Generator kommen. Rückgabe
+ * `false` = uni (kein Muster → Aufrufer liefert `null`, Material nutzt die Farbe).
  */
-export function bodenTextur(spez: BodenSpez): CanvasTexture | null {
-  if (spez.muster === "uni") return null;
-  const c = neueCanvas(256);
-  if (!c) return null;
-  const { canvas, ctx } = c;
-  const s = 256;
-  ctx.fillStyle = spez.grundfarbe;
+function zeichneMuster(
+  ctx: CanvasRenderingContext2D,
+  muster: FlaechenLook["muster"],
+  farbe: string,
+  fugenfarbe: string,
+  s: number,
+): boolean {
+  if (muster === "uni") return false;
+  ctx.fillStyle = farbe;
   ctx.fillRect(0, 0, s, s);
-
-  if (spez.muster === "parkett") {
-    // Dielen: durchgehende Fuge unten + versetzte Stossfuge → tileable.
+  if (muster === "parkett" || muster === "holz") {
+    // Dielen/Lamellen: durchgehende Fuge unten + versetzte Stossfuge → tileable.
     const g = Math.max(2, s * 0.02);
-    ctx.fillStyle = spez.fugenfarbe;
+    ctx.fillStyle = fugenfarbe;
     ctx.fillRect(0, s - g, s, g); // Längsfuge (Dielenkante)
     ctx.fillRect(s * 0.5 - g / 2, 0, g, s); // Stossfuge
-    // dezente Maserung
-    ctx.strokeStyle = spez.fugenfarbe;
+    ctx.strokeStyle = fugenfarbe; // dezente Maserung
     ctx.globalAlpha = 0.12;
     for (let i = 1; i < 4; i++) {
       ctx.beginPath();
@@ -284,30 +294,34 @@ export function bodenTextur(spez: BodenSpez): CanvasTexture | null {
   } else {
     // fliesen / stein: Fugenraster (rechts + unten → beim Kacheln durchgehend).
     const g = Math.max(2, s * 0.04);
-    ctx.fillStyle = spez.fugenfarbe;
+    ctx.fillStyle = fugenfarbe;
     ctx.fillRect(s - g, 0, g, s);
     ctx.fillRect(0, s - g, s, g);
   }
+  return true;
+}
 
-  const tex = alsTextur(canvas);
+/**
+ * Bodentextur je Muster. `repeat` wird gesetzt (Fläche/Mass): shapeGeometry-UVs
+ * liegen in Metern, daher repeat = 1/masse → eine Kachel je `masse_m`.
+ */
+export function bodenTextur(spez: BodenSpez): CanvasTexture | null {
+  const c = neueCanvas(256);
+  if (!c) return null;
+  if (!zeichneMuster(c.ctx, spez.muster, spez.grundfarbe, spez.fugenfarbe, 256)) return null;
+  const tex = alsTextur(c.canvas);
   const rep = 1 / Math.max(0.05, spez.masse_m);
   tex.repeat.set(rep, rep);
   return tex;
 }
 
-/** Fliesen-Basistextur für Wände (Wiederholung setzt {@link WandSegment} je Segment). */
-export function wandTextur(spez: WandSpez): CanvasTexture | null {
-  if (spez.muster !== "fliesen") return null;
-  const c = neueCanvas(128);
+/**
+ * Wand-/Zonentextur aus einem {@link FlaechenLook}. Kein `repeat` – die
+ * Wiederholung setzt {@link WandSegment} je Segment aus `tileMasse`.
+ */
+export function flaechenTextur(look: FlaechenLook): CanvasTexture | null {
+  const c = neueCanvas(256);
   if (!c) return null;
-  const { canvas, ctx } = c;
-  const s = 128;
-  ctx.fillStyle = spez.farbe;
-  ctx.fillRect(0, 0, s, s);
-  const g = Math.max(2, s * 0.05);
-  // etwas dunklere Fuge relativ zur Fliesenfarbe
-  ctx.fillStyle = "#c9c9c2";
-  ctx.fillRect(s - g, 0, g, s);
-  ctx.fillRect(0, s - g, s, g);
-  return alsTextur(canvas);
+  if (!zeichneMuster(c.ctx, look.muster, look.farbe, look.fugenfarbe, 256)) return null;
+  return alsTextur(c.canvas);
 }

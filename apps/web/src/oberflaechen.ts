@@ -11,6 +11,8 @@
  * materialitaet/farbigkeit. Ohne Stilprofil bleibt die heutige neutrale Optik.
  */
 
+import type { kuratorVertrag } from "@fp/shared/generated";
+
 /** Nur die vom Viewer benötigte Sicht aufs Stilprofil (entkoppelt von Stil.tsx). */
 export interface StilprofilSicht {
   styleVector: Record<string, number>;
@@ -248,6 +250,156 @@ export function wendeVariantenAn(
   const b = wahl.boden ? satz.boden.find((v) => v.id === wahl.boden) : undefined;
   const w = wahl.wand ? satz.wand.find((v) => v.id === wahl.wand) : undefined;
   return { boden: b?.spez ?? basis.boden, wand: w?.spez ?? basis.wand };
+}
+
+// ── Flächen-Konzept des Kurators (Pipeline v2, Call C) ──────────────────────
+// Der Kurator liefert optional ein `flaechen`-Objekt (pro Wand Material +
+// Bereich, plus Boden-Material). Es ist die *fachliche* Vorgabe und schlägt die
+// stilabgeleitete Optik. Fehlt es (Baseline/alte Pläne) → exakt das bisherige
+// Verhalten (Fallback bleibt). Reine, DOM-freie Ableitung – testbar in Node.
+
+export type MaterialSlug = kuratorVertrag.MaterialSlug;
+/** Voll aufgelöstes Flächen-Konzept (nie undefined) für die Resolver unten. */
+export type FlaechenKonzept = NonNullable<kuratorVertrag.KuratorResponse["flaechen"]>;
+/** Ein Wand-Eintrag im Flächen-Konzept (wandIndex/material/bereich/hoeheM/akzent). */
+type WandEintrag = NonNullable<FlaechenKonzept["waende"]>[number];
+
+/**
+ * Einheitlicher, texturfähiger Flächen-Look – gemeinsame Sprache für Boden UND
+ * Wandzonen (die Textur-Generatoren in `raum3d.tsx` lesen nur diesen Typ). `holz`
+ * ist die Wand-Variante der Boden-«parkett»-Lamellen; `uni` = flache Farbe.
+ */
+export interface FlaechenLook {
+  muster: "fliesen" | "parkett" | "holz" | "stein" | "uni";
+  farbe: string;
+  fugenfarbe: string;
+  /** Kachel-/Lamellenmass (m) – steuert die Textur-Wiederholung je Segment. */
+  masse_m: number;
+}
+
+/** Untere Materialzone [0, hoeheM] + Basis-Look darüber/dahinter (= Fallback). */
+export interface WandZonen {
+  /** Look der (oberen) Restfläche – bei «voll» durch die Zone verdeckt. */
+  basis: FlaechenLook;
+  /** Optionale Materialzone ab Boden; `null` = die Basis füllt die ganze Wand. */
+  zone: { look: FlaechenLook; hoeheM: number } | null;
+}
+
+// Default-Bandhöhen je Bereich (m), wenn der Kurator kein hoeheM mitgibt.
+const HOEHE_HALBHOCH = 1.2;
+const HOEHE_SOCKEL = 0.1;
+// «voll» = Materialzone über die ganze Wand; ein grosszügiger Wert deckt jede
+// realistische Raumhöhe (clipZone kürzt auf die echte Höhe).
+const HOEHE_VOLL = 100;
+
+/** Hex-Farbe kanalweise mit `faktor` skalieren (0.85 = leicht abdunkeln). */
+function skaliere(hex: string, faktor: number): string {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m?.[1]) return hex;
+  const n = Number.parseInt(m[1], 16);
+  const k = (c: number): string =>
+    clamp(Math.round(c * faktor), 0, 255)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${k((n >> 16) & 0xff)}${k((n >> 8) & 0xff)}${k(n & 0xff)}`;
+}
+
+// Geerdete Looks je Material-Slug (Farben/Muster wie die bestehenden Canvas-
+// Looks). Boden nutzt daraus die BodenSpez (holz → parkett-Lamellen), Wände den
+// FlaechenLook direkt (holz bleibt holz).
+const MATERIAL_LOOK: Record<MaterialSlug, FlaechenLook> = {
+  "fliesen-hell": { muster: "fliesen", farbe: "#e8e2d6", fugenfarbe: "#c9c9c2", masse_m: 0.3 },
+  "fliesen-gruen": { muster: "fliesen", farbe: "#b6c2a6", fugenfarbe: "#93a184", masse_m: 0.3 },
+  "fliesen-anthrazit": { muster: "fliesen", farbe: "#3f4448", fugenfarbe: "#2b2f32", masse_m: 0.3 },
+  "putz-weiss": { muster: "uni", farbe: "#eceae4", fugenfarbe: fuge("#eceae4"), masse_m: 0.3 },
+  "putz-warm": { muster: "uni", farbe: "#d8cfbf", fugenfarbe: fuge("#d8cfbf"), masse_m: 0.3 },
+  "holz-hell": { muster: "holz", farbe: "#d9c3a0", fugenfarbe: fuge("#d9c3a0"), masse_m: 0.15 },
+  "holz-dunkel": { muster: "holz", farbe: "#6f4f34", fugenfarbe: fuge("#6f4f34"), masse_m: 0.15 },
+  "parkett-eiche": { muster: "holz", farbe: "#b08d5b", fugenfarbe: fuge("#b08d5b"), masse_m: 0.15 },
+  beton: { muster: "stein", farbe: "#9a9a95", fugenfarbe: "#89897f", masse_m: 0.8 },
+  naturstein: { muster: "stein", farbe: "#b7a98f", fugenfarbe: fuge("#b7a98f"), masse_m: 0.6 },
+};
+
+/** Look eines Material-Slugs (Kopie, damit Aufrufer sie gefahrlos abwandeln). */
+export function materialLook(slug: MaterialSlug): FlaechenLook {
+  return { ...MATERIAL_LOOK[slug] };
+}
+
+/** Akzent-Variante: dezent dunkler/kräftiger (Boden bleibt unberührt, nur Wände). */
+export function akzentLook(look: FlaechenLook): FlaechenLook {
+  return {
+    ...look,
+    farbe: skaliere(look.farbe, 0.85),
+    fugenfarbe: skaliere(look.fugenfarbe, 0.85),
+  };
+}
+
+/** BodenSpez aus einem Material-Slug (holz-Lamellen → parkett-Muster des Bodens). */
+export function bodenSpezAusSlug(slug: MaterialSlug): BodenSpez {
+  const l = materialLook(slug);
+  const muster: BodenSpez["muster"] = l.muster === "holz" ? "parkett" : l.muster;
+  return { muster, grundfarbe: l.farbe, fugenfarbe: l.fugenfarbe, masse_m: l.masse_m };
+}
+
+/**
+ * WandSpez → Zonen. Die heutige Bad-Logik «Fliesensockel unten, Uni oben» wird
+ * so 1:1 zu {basis: uni(farbe), zone: fliesen bis fliesenHoehe} – die Optik der
+ * Stil-/Varianten-Ableitung bleibt unverändert.
+ */
+export function wandSpezZuZonen(spez: WandSpez): WandZonen {
+  const basis: FlaechenLook = {
+    muster: "uni",
+    farbe: spez.farbe,
+    fugenfarbe: fuge(spez.farbe),
+    masse_m: 0.3,
+  };
+  if (spez.muster === "fliesen") {
+    return {
+      basis,
+      zone: {
+        look: { muster: "fliesen", farbe: spez.farbe, fugenfarbe: "#c9c9c2", masse_m: 0.3 },
+        hoeheM: spez.fliesenHoehe_m ?? HOEHE_HALBHOCH,
+      },
+    };
+  }
+  return { basis, zone: null };
+}
+
+/** Boden-Look: Kurator-Material schlägt die stilabgeleitete BodenSpez, sonst Fallback. */
+export function loeseBodenSpez(
+  fallback: BodenSpez,
+  flaechen: FlaechenKonzept | null | undefined,
+): BodenSpez {
+  const slug = flaechen?.boden?.material;
+  return slug ? bodenSpezAusSlug(slug) : fallback;
+}
+
+/**
+ * Zonen je Wand (Index = Position in room.shell.walls). Ein `waende`-Eintrag mit
+ * passendem `wandIndex` bestimmt Material + Bereich; ohne Eintrag gilt der
+ * Fallback-Look (Stil-/Varianten-Ableitung). Der Bereich über der Materialzone
+ * bleibt der Fallback-Basis-Look («darüber Putz-/Fallback-Look»).
+ */
+export function loeseWandZonen(
+  fallback: WandSpez,
+  flaechen: FlaechenKonzept | null | undefined,
+  wandAnzahl: number,
+): WandZonen[] {
+  const fallbackZonen = wandSpezZuZonen(fallback);
+  const proWand = new Map<number, WandEintrag>();
+  for (const w of flaechen?.waende ?? []) proWand.set(w.wandIndex, w);
+  return Array.from({ length: wandAnzahl }, (_, i) => {
+    const eintrag = proWand.get(i);
+    if (!eintrag) return fallbackZonen;
+    const roh = materialLook(eintrag.material);
+    const look = eintrag.akzent ? akzentLook(roh) : roh;
+    const bereich = eintrag.bereich ?? "voll";
+    const hoeheM =
+      bereich === "voll"
+        ? HOEHE_VOLL
+        : (eintrag.hoeheM ?? (bereich === "sockel" ? HOEHE_SOCKEL : HOEHE_HALBHOCH));
+    return { basis: fallbackZonen.basis, zone: { look, hoeheM } };
+  });
 }
 
 export function leiteOberflaechen(

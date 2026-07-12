@@ -16,11 +16,15 @@ import { DressingLayer3D } from "./dressing3d.tsx";
 import { materialFarbe, Moebel3D } from "./moebel3d.tsx";
 import {
   leiteOberflaechen,
+  loeseBodenSpez,
+  loeseWandZonen,
   wendeVariantenAn,
-  type OberflaechenSpez,
-  type OberflaechenWahl,
+  type BodenSpez,
+  type FlaechenKonzept,
+  type WandZonen,
 } from "./oberflaechen";
-import { bodenTextur, WandMitOeffnungen, wandTextur } from "./raum3d.tsx";
+import type { OberflaechenWahl } from "./oberflaechen";
+import { bodenTextur, WandMitOeffnungen } from "./raum3d.tsx";
 import type { WandOeffnung } from "./raum3d";
 import type { Stilprofil } from "./Stil";
 import { THEME } from "./theme";
@@ -48,20 +52,20 @@ type Status = "verletzt" | "knapp";
 
 function Boden({
   room,
-  spez,
+  boden,
   gewaehlt,
   onFlaeche,
 }: {
   room: Room;
-  spez: OberflaechenSpez;
+  boden: BodenSpez;
   gewaehlt: boolean;
   onFlaeche?: (f: FlaechenWahl, e: ThreeEvent<MouseEvent>) => void;
 }) {
   const shape = new Shape();
   const poly = room.shell.floor.polygon;
   const textur = useMemo(
-    () => bodenTextur(spez.boden),
-    [spez.boden.muster, spez.boden.grundfarbe, spez.boden.fugenfarbe, spez.boden.masse_m],
+    () => bodenTextur(boden),
+    [boden.muster, boden.grundfarbe, boden.fugenfarbe, boden.masse_m],
   );
   const start = poly[0];
   if (!start) return null;
@@ -76,7 +80,7 @@ function Boden({
     >
       <shapeGeometry args={[shape]} />
       <meshStandardMaterial
-        color={textur ? "#ffffff" : spez.boden.grundfarbe}
+        color={textur ? "#ffffff" : boden.grundfarbe}
         map={textur ?? undefined}
         side={2}
         emissive={gewaehlt ? FARBE_GEWAEHLT : "#000000"}
@@ -86,15 +90,29 @@ function Boden({
   );
 }
 
+/** Gewählte Wandfläche solid einfärben (Highlight) – Muster aus, damit das Orange
+ *  auch auf texturierten Zonen sichtbar bleibt. */
+const HIGHLIGHT: WandZonen = {
+  basis: { muster: "uni", farbe: FARBE_GEWAEHLT, fugenfarbe: FARBE_GEWAEHLT, masse_m: 0.3 },
+  zone: null,
+};
+// Rein defensiver Fallback (loeseWandZonen liefert immer genau `wandAnzahl`
+// Einträge – dieser greift nur, falls doch ein Index fehlt).
+const NEUTRAL: WandZonen = {
+  basis: { muster: "uni", farbe: "#d8d2c4", fugenfarbe: "#9b9689", masse_m: 0.3 },
+  zone: null,
+};
+
 function Waende({
   room,
-  spez,
+  zonen,
   sichtbar,
   gewaehlt,
   onFlaeche,
 }: {
   room: Room;
-  spez: OberflaechenSpez;
+  /** Zonen je Wand, Index = Position in room.shell.walls (aus loeseWandZonen). */
+  zonen: WandZonen[];
   sichtbar: boolean;
   gewaehlt: boolean;
   onFlaeche?: (f: FlaechenWahl, e: ThreeEvent<MouseEvent>) => void;
@@ -112,26 +130,21 @@ function Waende({
     });
     proWand.set(eintrag.hostWall, liste);
   }
-  const fliesenTex = useMemo(
-    () => wandTextur(spez.wand),
-    [spez.wand.muster, spez.wand.farbe, spez.wand.fliesenHoehe_m],
-  );
   if (!sichtbar) return null;
-  // Hervorhebung der gewählten Wandfläche: leichtes Orange über den Wandton.
-  const spezAktiv: OberflaechenSpez["wand"] = gewaehlt
-    ? { ...spez.wand, farbe: FARBE_GEWAEHLT }
-    : spez.wand;
   return (
     <group onClick={onFlaeche ? (e) => onFlaeche("wand", e) : undefined}>
-      {room.shell.walls.map((w) => (
-        <WandMitOeffnungen
-          key={w.id}
-          wand={w as Parameters<typeof WandMitOeffnungen>[0]["wand"]}
-          oeffnungen={proWand.get(w.id) ?? []}
-          spez={spezAktiv}
-          fliesenTextur={fliesenTex}
-        />
-      ))}
+      {room.shell.walls.map((w, i) => {
+        const z = gewaehlt ? HIGHLIGHT : (zonen[i] ?? NEUTRAL);
+        return (
+          <WandMitOeffnungen
+            key={w.id}
+            wand={w as Parameters<typeof WandMitOeffnungen>[0]["wand"]}
+            oeffnungen={proWand.get(w.id) ?? []}
+            basis={z.basis}
+            zone={z.zone}
+          />
+        );
+      })}
     </group>
   );
 }
@@ -430,6 +443,7 @@ export function Viewer3D({
   gewaehlteFlaeche,
   onSelectFlaeche,
   oberflaechenWahl,
+  flaechen,
   modus,
   onModus,
 }: {
@@ -453,6 +467,9 @@ export function Viewer3D({
   onSelectFlaeche?: (f: FlaechenWahl | null) => void;
   /** Lokale, rein visuelle Oberflächen-Variantenwahl (überschreibt die Stil-Spez). */
   oberflaechenWahl?: OberflaechenWahl | null;
+  /** Flächen-Konzept des Kurators (Boden-/Wand-Material je Wand). Fehlt es
+   *  (Baseline/alte Pläne) → stilabgeleiteter Fallback, exakt wie bisher. */
+  flaechen?: FlaechenKonzept | null;
   /** Begehungsmodus (in App gehalten, damit die Möbel-Pfeiltasten dort ruhen). */
   modus: Begehungsmodus;
   onModus: (m: Begehungsmodus) => void;
@@ -471,6 +488,10 @@ export function Viewer3D({
 
   const basis = leiteOberflaechen(stilprofil ?? null, room.roomType);
   const spez = wendeVariantenAn(basis, room.roomType, oberflaechenWahl);
+  // Flächen-Konzept anwenden: Kurator-Material schlägt die Stil-/Varianten-Optik;
+  // ohne `flaechen` bleiben bodenSpez/wandZonen exakt die stilabgeleitete Optik.
+  const bodenSpez = loeseBodenSpez(spez.boden, flaechen);
+  const wandZonen = loeseWandZonen(spez.wand, flaechen, room.shell.walls.length);
 
   // Raum-/Preset-Wechsel: Kamera-Pose neu berechnen; bboxKey erzwingt Reset.
   const bboxKey = `${bbox.cx.toFixed(2)}:${bbox.cz.toFixed(2)}:${bbox.breite.toFixed(2)}`;
@@ -517,13 +538,13 @@ export function Viewer3D({
           <directionalLight position={[4, 6, 3]} intensity={0.8} />
           <Boden
             room={room}
-            spez={spez}
+            boden={bodenSpez}
             gewaehlt={gewaehlteFlaeche === "boden"}
             onFlaeche={flaecheKlick}
           />
           <Waende
             room={room}
-            spez={spez}
+            zonen={wandZonen}
             sichtbar={waende}
             gewaehlt={gewaehlteFlaeche === "wand"}
             onFlaeche={flaecheKlick}
