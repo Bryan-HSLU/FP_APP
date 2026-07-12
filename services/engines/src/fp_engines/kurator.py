@@ -178,7 +178,17 @@ class BaselineKurator:
         for typ in P1_PFLICHT.get(room["roomType"], []):
             nimm(typ)
         p1_typen = set(P1_PFLICHT.get(room["roomType"], []))
-        for typ in sorted(set(slots) - p1_typen):
+        # Rest nach priorityClass (P1 Kern → P2 Funktion → P3 Ergänzung), innerhalb
+        # der Klasse alphabetisch (deterministisch). Ohne diese Ordnung würden bei
+        # Raumtypen ohne P1_PFLICHT-Eintrag (wohnen/kueche) alphabetisch frühe
+        # P3-Ergänzungen (z.B. «barwagen», «recamiere») die knappe Flächen-
+        # Daumenregel aufbrauchen, bevor spätere P1-Kernmöbel («sofa») drankommen.
+        _RANG = {"P1": 0, "P2": 1, "P3": 2}
+
+        def _slot_rang(typ: str) -> int:
+            return min(_RANG.get(i["priorityClass"], 3) for i in slots[typ])
+
+        for typ in sorted(set(slots) - p1_typen, key=lambda t: (_slot_rang(t), t)):
             nimm(typ)
 
         return {

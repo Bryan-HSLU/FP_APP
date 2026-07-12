@@ -1283,5 +1283,309 @@
       "bandbreitePct": 30
     },
     "normProfileVariante": "eu60"
+  },
+  {
+    "id": "992dbfa2-4f72-4275-b2bd-a9e3f9e13c31",
+    "schemaVersion": "0.1.0",
+    "name": "Barhocker Eiche",
+    "kategorie": "kueche-barhocker",
+    "funktionsTyp": "barhocker",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.4,
+      "d": 0.4,
+      "h": 0.75
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.6,
+      "epoche": 0.1
+    },
+    "attributTags": [
+      "material:holz"
+    ],
+    "anschluesse": [],
+    "relationalRules": [
+      "near:unterschrank:1.2"
+    ],
+    "preis": {
+      "value": 140,
+      "currency": "CHF",
+      "stand": "2026-07-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "ff78d524-7130-4628-bc27-2b5a49af7b06",
+    "schemaVersion": "0.1.0",
+    "name": "Barhocker Metall Schwarz",
+    "kategorie": "kueche-barhocker",
+    "funktionsTyp": "barhocker",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.4,
+      "d": 0.4,
+      "h": 0.75
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": -0.6,
+      "kontur": 0.6,
+      "epoche": 0.7
+    },
+    "attributTags": [
+      "material:metall"
+    ],
+    "anschluesse": [],
+    "relationalRules": [
+      "near:unterschrank:1.2"
+    ],
+    "preis": {
+      "value": 120,
+      "currency": "CHF",
+      "stand": "2026-07-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "8a29497d-52d2-46ea-b645-26e8845113bc",
+    "schemaVersion": "0.1.0",
+    "name": "Servierwagen Buche",
+    "kategorie": "kueche-servierwagen",
+    "funktionsTyp": "servierwagen",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.75,
+      "d": 0.45,
+      "h": 0.85
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.6,
+      "epoche": 0.1
+    },
+    "attributTags": [
+      "material:holz"
+    ],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 190,
+      "currency": "CHF",
+      "stand": "2026-07-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "6dd91d08-ed7c-4121-a94e-d879394e4e5f",
+    "schemaVersion": "0.1.0",
+    "name": "Servierwagen Edelstahl",
+    "kategorie": "kueche-servierwagen",
+    "funktionsTyp": "servierwagen",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.75,
+      "d": 0.45,
+      "h": 0.85
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "epoche": 0.6,
+      "kontur": 0.5,
+      "materialitaet": 0.2
+    },
+    "attributTags": [
+      "material:metall"
+    ],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 230,
+      "currency": "CHF",
+      "stand": "2026-07-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "47162add-5bee-45bd-b3a4-345107296467",
+    "schemaVersion": "0.1.0",
+    "name": "Vorratsschrank Eiche",
+    "kategorie": "kueche-vorratsschrank",
+    "funktionsTyp": "vorratsschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 1.9
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.5,
+      "epoche": 0.2
+    },
+    "attributTags": [
+      "material:holz"
+    ],
+    "anschluesse": [],
+    "relationalRules": [
+      "against-wall"
+    ],
+    "preis": {
+      "value": 820,
+      "currency": "CHF",
+      "stand": "2026-07-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "202dae20-e602-4839-b817-01bfdea783f1",
+    "schemaVersion": "0.1.0",
+    "name": "Vorratsschrank Weiss matt",
+    "kategorie": "kueche-vorratsschrank",
+    "funktionsTyp": "vorratsschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "kueche",
+    "masse": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 1.9
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": 0.8,
+      "opulenz": -0.3,
+      "epoche": 0.6
+    },
+    "attributTags": [
+      "material:mdf"
+    ],
+    "anschluesse": [],
+    "relationalRules": [
+      "against-wall"
+    ],
+    "preis": {
+      "value": 760,
+      "currency": "CHF",
+      "stand": "2026-07-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "ebc32660-6d56-48d4-8cdc-66b08403433d",
+    "schemaVersion": "0.1.0",
+    "name": "Weinkühlschrank Edelstahl",
+    "kategorie": "kueche-weinkuehlschrank",
+    "funktionsTyp": "weinkuehlschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "elektro",
+    "masse": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 0.85
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "epoche": 0.6,
+      "kontur": 0.5,
+      "materialitaet": 0.2
+    },
+    "attributTags": [
+      "material:metall"
+    ],
+    "anschluesse": [
+      "elektro"
+    ],
+    "relationalRules": [
+      "against-wall"
+    ],
+    "preis": {
+      "value": 1290,
+      "currency": "CHF",
+      "stand": "2026-07-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "0e9137cc-3072-4d73-93ea-e2b8b28ca2ad",
+    "schemaVersion": "0.1.0",
+    "name": "Weinkühlschrank Schwarz Glas",
+    "kategorie": "kueche-weinkuehlschrank",
+    "funktionsTyp": "weinkuehlschrank",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "elektro",
+    "masse": {
+      "w": 0.6,
+      "d": 0.6,
+      "h": 0.85
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": -0.6,
+      "opulenz": 0.4,
+      "epoche": 0.8
+    },
+    "attributTags": [
+      "material:glas"
+    ],
+    "anschluesse": [
+      "elektro"
+    ],
+    "relationalRules": [
+      "against-wall"
+    ],
+    "preis": {
+      "value": 1450,
+      "currency": "CHF",
+      "stand": "2026-07-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
   }
 ]

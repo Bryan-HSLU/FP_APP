@@ -1239,5 +1239,305 @@
       "min": 1.6,
       "max": 1.9
     }
+  },
+  {
+    "id": "dec2fcb4-d6bd-4875-be62-a3d0e9e67188",
+    "schemaVersion": "0.1.0",
+    "name": "Wäschekorb Rattan Natur",
+    "kategorie": "moebel-waeschekorb",
+    "funktionsTyp": "waeschekorb",
+    "roomTypes": [
+      "bad"
+    ],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.4,
+      "d": 0.4,
+      "h": 0.55
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.6,
+      "epoche": -0.2
+    },
+    "attributTags": [
+      "material:rattan"
+    ],
+    "anschluesse": [],
+    "relationalRules": [
+      "corner"
+    ],
+    "preis": {
+      "value": 70,
+      "currency": "CHF",
+      "stand": "2026-07-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "dd465d81-007a-4ff4-9381-9461355f6f10",
+    "schemaVersion": "0.1.0",
+    "name": "Wäschekorb Metall Weiss",
+    "kategorie": "moebel-waeschekorb",
+    "funktionsTyp": "waeschekorb",
+    "roomTypes": [
+      "bad"
+    ],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.4,
+      "d": 0.4,
+      "h": 0.55
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": 0.6,
+      "epoche": 0.6,
+      "kontur": 0.5
+    },
+    "attributTags": [
+      "material:metall"
+    ],
+    "anschluesse": [],
+    "relationalRules": [
+      "corner"
+    ],
+    "preis": {
+      "value": 95,
+      "currency": "CHF",
+      "stand": "2026-07-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "067a3f37-08ca-47a3-ab5d-9ff6d0ec468c",
+    "schemaVersion": "0.1.0",
+    "name": "Badhocker Teak",
+    "kategorie": "moebel-badhocker",
+    "funktionsTyp": "badhocker",
+    "roomTypes": [
+      "bad"
+    ],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.35,
+      "d": 0.35,
+      "h": 0.45
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.9,
+      "temperatur": 0.7,
+      "epoche": -0.1
+    },
+    "attributTags": [
+      "material:holz"
+    ],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 120,
+      "currency": "CHF",
+      "stand": "2026-07-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "2b27bcd2-6a14-455b-b3a6-4378a045b96a",
+    "schemaVersion": "0.1.0",
+    "name": "Badbank Schwarz matt",
+    "kategorie": "moebel-badhocker",
+    "funktionsTyp": "badhocker",
+    "roomTypes": [
+      "bad"
+    ],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.9,
+      "d": 0.35,
+      "h": 0.45
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": -0.6,
+      "epoche": 0.7,
+      "kontur": 0.6
+    },
+    "attributTags": [
+      "material:metall"
+    ],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 210,
+      "currency": "CHF",
+      "stand": "2026-07-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "f6f70a79-f148-4581-b405-1497e6bf03dd",
+    "schemaVersion": "0.1.0",
+    "name": "Abfalleimer Bambus",
+    "kategorie": "moebel-abfalleimer",
+    "funktionsTyp": "abfalleimer",
+    "roomTypes": [
+      "bad"
+    ],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.25,
+      "d": 0.25,
+      "h": 0.35
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.6,
+      "farbigkeit": -0.2
+    },
+    "attributTags": [
+      "material:bambus"
+    ],
+    "anschluesse": [],
+    "relationalRules": [
+      "near:lavabo:1.0"
+    ],
+    "preis": {
+      "value": 45,
+      "currency": "CHF",
+      "stand": "2026-07-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "6ce59909-38cb-439a-a606-c16c00992a36",
+    "schemaVersion": "0.1.0",
+    "name": "Abfalleimer Edelstahl Sensor",
+    "kategorie": "moebel-abfalleimer",
+    "funktionsTyp": "abfalleimer",
+    "roomTypes": [
+      "bad"
+    ],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.25,
+      "d": 0.25,
+      "h": 0.35
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "epoche": 0.7,
+      "kontur": 0.5,
+      "materialitaet": 0.2
+    },
+    "attributTags": [
+      "material:metall"
+    ],
+    "anschluesse": [],
+    "relationalRules": [
+      "near:lavabo:1.0"
+    ],
+    "preis": {
+      "value": 110,
+      "currency": "CHF",
+      "stand": "2026-07-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "f1e4c97a-4de9-43d1-90b6-3bdbe734cc5a",
+    "schemaVersion": "0.1.0",
+    "name": "Midischrank Eiche",
+    "kategorie": "moebel-midischrank",
+    "funktionsTyp": "midischrank",
+    "roomTypes": [
+      "bad"
+    ],
+    "gewerk": "schreiner",
+    "masse": {
+      "w": 0.4,
+      "d": 0.35,
+      "h": 1.2
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "materialitaet": 0.8,
+      "temperatur": 0.6,
+      "epoche": 0.2
+    },
+    "attributTags": [
+      "material:holz"
+    ],
+    "anschluesse": [],
+    "relationalRules": [
+      "against-wall"
+    ],
+    "preis": {
+      "value": 480,
+      "currency": "CHF",
+      "stand": "2026-07-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
+  },
+  {
+    "id": "72f89dab-2c63-4f83-8aa1-31537f27774d",
+    "schemaVersion": "0.1.0",
+    "name": "Midischrank Weiss matt",
+    "kategorie": "moebel-midischrank",
+    "funktionsTyp": "midischrank",
+    "roomTypes": [
+      "bad"
+    ],
+    "gewerk": "schreiner",
+    "masse": {
+      "w": 0.4,
+      "d": 0.35,
+      "h": 1.2
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "mount": "boden",
+    "achsenTags": {
+      "helligkeit": 0.7,
+      "opulenz": -0.3,
+      "epoche": 0.6
+    },
+    "attributTags": [
+      "material:mdf"
+    ],
+    "anschluesse": [],
+    "relationalRules": [
+      "against-wall"
+    ],
+    "preis": {
+      "value": 420,
+      "currency": "CHF",
+      "stand": "2026-07-12",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    }
   }
 ]
