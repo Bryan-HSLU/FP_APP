@@ -179,3 +179,74 @@ describe("sceneDressing – Regressions-Guard (Plan bleibt unberührt)", () => {
     expect(JSON.parse(JSON.stringify(plan))).toEqual(snapshot);
   });
 });
+
+// ── an_decke (Deckenleuchte über einem Möbel-Anker) ────────────────────────
+describe("sceneDressing – an_decke (Deckenleuchte)", () => {
+  const esstisch: KatalogItem = {
+    id: "tisch",
+    funktionsTyp: "esstisch",
+    masse: { w: 1.6, d: 0.9, h: 0.75 },
+  } as unknown as KatalogItem;
+  const katalogMitTisch = [...catalog, esstisch];
+
+  const planMitTisch = {
+    placements: [
+      ...plan.placements,
+      { id: "p3", catalogItemId: "tisch", pose: { pos: [1.5, 1.2], yawDeg: 30 } },
+    ],
+    meta: { seed: 1 },
+  } as unknown as Plan;
+
+  const pendelleuchte = item("pendel", "pendelleuchte", ["esstisch"], "an_decke", "C", {
+    w: 0.35,
+    d: 0.35,
+    h: 0.5,
+  });
+
+  it("hängt mittig über dem Anker, Oberkante an der Wandhöhe (raummodell height)", () => {
+    const raumMitHoehe = {
+      ...room,
+      shell: {
+        ...room.shell,
+        walls: room.shell.walls.map((w: unknown) => ({ ...(w as object), height: 2.6 })),
+      },
+    } as unknown as Room;
+    const platz = sceneDressing(
+      raumMitHoehe,
+      planMitTisch,
+      katalogMitTisch,
+      warm,
+      [pendelleuchte],
+      1,
+    ).find((p) => p.dressingItemId === "pendel");
+    expect(platz).toBeDefined();
+    expect(platz?.pos[0]).toBeCloseTo(1.5);
+    expect(platz?.pos[2]).toBeCloseTo(1.2);
+    // Oberkante (pos.y + h/2) sitzt an der Deckenhöhe.
+    expect((platz?.pos[1] ?? 0) + 0.5 / 2).toBeCloseTo(2.6);
+  });
+
+  it("fällt ohne Wandhöhe im Raummodell auf 2.4 m Deckenhöhe zurück", () => {
+    const platz = sceneDressing(room, planMitTisch, katalogMitTisch, warm, [pendelleuchte], 1).find(
+      (p) => p.dressingItemId === "pendel",
+    );
+    expect((platz?.pos[1] ?? 0) + 0.5 / 2).toBeCloseTo(2.4);
+  });
+
+  it("wird ohne passenden Anker im Raum nicht platziert", () => {
+    const ohneTisch = sceneDressing(room, plan, catalog, warm, [pendelleuchte], 1);
+    expect(ohneTisch.find((p) => p.dressingItemId === "pendel")).toBeUndefined();
+  });
+
+  it("ist deterministisch (gleicher Seed ⇒ gleiche Platzierung)", () => {
+    const a = sceneDressing(room, planMitTisch, katalogMitTisch, warm, [pendelleuchte], 3);
+    const b = sceneDressing(room, planMitTisch, katalogMitTisch, warm, [pendelleuchte], 3);
+    expect(a).toEqual(b);
+  });
+
+  it("verändert den übergebenen Plan nicht (nur lesend)", () => {
+    const snapshot = JSON.parse(JSON.stringify(planMitTisch));
+    sceneDressing(room, planMitTisch, katalogMitTisch, warm, [pendelleuchte], 2);
+    expect(JSON.parse(JSON.stringify(planMitTisch))).toEqual(snapshot);
+  });
+});

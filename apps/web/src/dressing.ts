@@ -14,6 +14,7 @@
 import { footprint, overlapDepth, pointInPolygon, type Quad, type Vec2 } from "@fp/shared/rules";
 import type { DressingItem, KatalogItem, Placement, Plan, Room } from "./api";
 import { stilNaehe } from "./stilnaehe";
+import { RAUMHOEHE_FALLBACK } from "./viewer3d-logik";
 
 /** Stil-Variante eines Deko-Objekts (steuert Material/Farbe, nicht die Geometrie). */
 export type DressingVariante = "warm" | "kuehl";
@@ -72,6 +73,10 @@ const DRESSING_FARBE: Record<string, { warm: string; kuehl: string }> = {
   gewuerzglaeser: { warm: "#CBB79A", kuehl: "#BCC6CC" },
   kraeutertopf: { warm: "#5E8A54", kuehl: "#6E877D" },
   geschirrtuch: { warm: "#E0D2B8", kuehl: "#C6CFD3" },
+  // Licht (Schirmfarbe der Fassung; der Diffusor selbst leuchtet fix warmweiss,
+  // siehe DIFFUSOR_FARBE in dressing3d.tsx)
+  pendelleuchte: { warm: "#C9A574", kuehl: "#8C9096" },
+  tischleuchte: { warm: "#D8C7A8", kuehl: "#B9C0C4" },
 };
 const DRESSING_FARBE_FALLBACK = { warm: "#C9A38A", kuehl: "#AEB4B8" };
 
@@ -146,6 +151,14 @@ interface WandAnker {
   innen: Vec2;
   laenge: number;
   yawDeg: number;
+}
+
+/** Deckenhöhe des Raums (Vertrag: Raummodell-Schema, `shell.walls[].height`).
+ *  Gleiche Konvention wie im 3D-Viewer (`Viewer3D.tsx`, `raumHoehe`): erste
+ *  Wand ist massgebend (Räume sind hier durchgehend gleich hoch); ohne
+ *  verwertbare Wandhöhe gilt der Standard-Fallback (2.4 m). */
+function raumhoehe(room: Room): number {
+  return (room.shell.walls[0] as { height?: number } | undefined)?.height ?? RAUMHOEHE_FALLBACK;
 }
 
 function katalogKarte(catalog: KatalogItem[]): Map<string, KatalogItem> {
@@ -288,6 +301,7 @@ export function sceneDressing(
   const hindernisse = [...planFootprints(plan.placements, byId), ...tuerZonen(room)];
   const ecken = eckAnker(room);
   const waende = wandAnker(room);
+  const hoehe = raumhoehe(room);
 
   // Wie viele Deko-Objekte schon auf einem Möbel-Anker sitzen (zum Verteilen).
   const belegung = new Map<string, number>();
@@ -304,7 +318,9 @@ export function sceneDressing(
         ? platziereEcke(item, ecken, eckenBelegt, hindernisse, floor, rng)
         : item.platzierung === "an_wand"
           ? platziereWand(item, waende, rng)
-          : platziereMoebel(item, anker, belegung, floor, rng);
+          : item.platzierung === "an_decke"
+            ? platziereDecke(item, anker, hoehe, rng)
+            : platziereMoebel(item, anker, belegung, floor, rng);
     if (!platz) continue; // Kein passender Anker → weglassen (nie erzwingen).
     ergebnis.push({
       id: `${item.id}:${platz.ankerRef}`,
@@ -453,6 +469,27 @@ function platziereWand(
     pos: [pos[0], mountHeight + item.masse.h / 2, pos[1]],
     yawDeg: w.yawDeg,
     ankerRef: `wand-${w.wallId}`,
+  };
+}
+
+/** Deckenhängende Deko (an_decke): hängt mittig über einem Möbel-Anker
+ *  (Zentrum x/z aus dem Plan), Oberkante an der Deckenhöhe – `masse.h` ist
+ *  die volle Hängelänge inkl. Schirm. Kein Anker im Raum → nicht platziert
+ *  (nie erzwingen, wie bei den anderen Ankerarten). Keine Kollisionsprüfung
+ *  nötig (hängt frei über dem Boden-Footprint des Ankers). */
+function platziereDecke(
+  item: DressingItem,
+  anker: MoebelAnker[],
+  hoehe: number,
+  rng: () => number,
+): Platzierungsergebnis | null {
+  const kandidaten = anker.filter((a) => item.anchorTypes.includes(a.funktionsTyp));
+  if (kandidaten.length === 0) return null;
+  const a = kandidaten[Math.floor(rng() * kandidaten.length)] as MoebelAnker;
+  return {
+    pos: [a.center[0], hoehe - item.masse.h / 2, a.center[1]],
+    yawDeg: a.yawDeg,
+    ankerRef: `decke-${a.placementId}`,
   };
 }
 

@@ -56,7 +56,7 @@ export interface DressingItem {
   funktionsTyp: string;
   /** funktionsTypen aus dem Plan ODER die Schlüsselworte "wand"/"ecke". */
   anchorTypes: string[];
-  platzierung: "auf_oberflaeche" | "an_wand" | "freie_ecke" | "an_moebel";
+  platzierung: "auf_oberflaeche" | "an_wand" | "freie_ecke" | "an_moebel" | "an_decke";
   masse: { w: number; d: number; h: number };
   achsenTags: Record<string, number>;
   attributTags: string[];

@@ -22,15 +22,42 @@ import { Suspense, useMemo } from "react";
 import { Vector2 } from "three";
 import type { DressingItem, KatalogItem, Plan, Room } from "./api";
 import { sceneDressing, type DressingPlatzierung } from "./dressing";
-import { dressingBauteile } from "./dressing3d-kits";
+import { DRESSING_LICHT_TYPEN, dressingBauteile } from "./dressing3d-kits";
 import { rolleFarbe, type Rolle, type Teil } from "./moebel3d.tsx";
 
 // raycast=noop: Klicks gehen «durch» die Deko → Möbelauswahl/Deselektion bleiben.
 const noRaycast = () => null;
 
+/** Warmweisser Leuchtton des Diffusors (Licht-Kits) – bewusst fix, nicht
+ *  stilabhängig, damit die Leuchte in jeder Stilvariante als «an» erkennbar
+ *  bleibt (siehe DRESSING_LICHT_TYPEN in dressing3d-kits.ts). */
+const DIFFUSOR_FARBE = "#fff2d6";
+const DIFFUSOR_EMISSIVE = "#ffb763";
+
 /** Oberflächen-Physik je Rolle – spiegelt {@link ./moebel3d.tsx} (glas transparent,
- *  chrom poliert), damit Deko und Möbel denselben Material-Look tragen. */
-function DressingMaterial({ rolle, farbwert }: { rolle: Rolle; farbwert: string }) {
+ *  chrom poliert), damit Deko und Möbel denselben Material-Look tragen.
+ *  `leuchtet` (additiv, nur für Licht-Kits): der Diffusor-Bauteil bekommt statt
+ *  der normalen Materialrolle eine warmweisse Emissiv-Fläche. */
+function DressingMaterial({
+  rolle,
+  farbwert,
+  leuchtet,
+}: {
+  rolle: Rolle;
+  farbwert: string;
+  leuchtet?: boolean;
+}) {
+  if (leuchtet) {
+    return (
+      <meshStandardMaterial
+        color={DIFFUSOR_FARBE}
+        emissive={DIFFUSOR_EMISSIVE}
+        emissiveIntensity={1.1}
+        roughness={0.4}
+        metalness={0}
+      />
+    );
+  }
   if (rolle === "glas") {
     return <meshStandardMaterial color={farbwert} transparent opacity={0.32} roughness={0.05} />;
   }
@@ -44,9 +71,17 @@ function DressingMaterial({ rolle, farbwert }: { rolle: Rolle; farbwert: string 
 /** Ein Bauteil als Mesh – Raycasting deaktiviert (Deko blockiert nie Auswahl).
  *  Deckt dieselben Primitive wie {@link ./moebel3d.tsx} ab (box/rundbox/zylinder/
  *  kugel/lathe/torus), damit die volumetrischen Deko-Kits vollständig rendern. */
-function DressingTeilMesh({ teil, farbe }: { teil: Teil; farbe: string }) {
+function DressingTeilMesh({
+  teil,
+  farbe,
+  leuchtet,
+}: {
+  teil: Teil;
+  farbe: string;
+  leuchtet?: boolean;
+}) {
   const farbwert = rolleFarbe(teil.rolle, farbe);
-  const material = <DressingMaterial rolle={teil.rolle} farbwert={farbwert} />;
+  const material = <DressingMaterial rolle={teil.rolle} farbwert={farbwert} leuchtet={leuchtet} />;
   if (teil.form === "box") {
     return (
       <mesh position={teil.pos} raycast={noRaycast}>
@@ -114,15 +149,35 @@ function DressingTeilMesh({ teil, farbe }: { teil: Teil; farbe: string }) {
   );
 }
 
-/** Prozedurale Deko (Platzhalter): Primitiv-Kit in der bbox der Deko-Masse. */
+/** Prozedurale Deko (Platzhalter): Primitiv-Kit in der bbox der Deko-Masse.
+ *  Additiv für Licht-Typen (DRESSING_LICHT_TYPEN, z.B. pendelleuchte/
+ *  tischleuchte): der Diffusor-Bauteil (rolle "hell") leuchtet emissiv und
+ *  bekommt eine kleine, warme Punktlichtquelle an seiner Position – die
+ *  restliche Kit-/Material-Logik bleibt unverändert. */
 function DressingProzedural({ platz }: { platz: DressingPlatzierung }) {
   const { w, d, h } = platz.masse;
   const teile = dressingBauteile(platz.funktionsTyp, w, d, h);
+  const istLicht = DRESSING_LICHT_TYPEN.has(platz.funktionsTyp);
+  const diffusor = istLicht ? teile.find((t) => t.rolle === "hell") : undefined;
   return (
     <>
       {teile.map((teil, i) => (
-        <DressingTeilMesh key={i} teil={teil} farbe={platz.farbe} />
+        <DressingTeilMesh
+          key={i}
+          teil={teil}
+          farbe={platz.farbe}
+          leuchtet={istLicht && teil.rolle === "hell"}
+        />
       ))}
+      {diffusor && (
+        <pointLight
+          position={diffusor.pos}
+          color="#ffcf94"
+          intensity={0.5}
+          distance={3.5}
+          decay={2}
+        />
+      )}
     </>
   );
 }

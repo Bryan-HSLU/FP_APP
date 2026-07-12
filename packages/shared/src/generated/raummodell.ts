@@ -10,13 +10,7 @@ export type RoomType = "bad" | "kueche" | "wohnen" | "schlafen" | "essen" | "flu
  * @maxItems 2
  */
 export type Vec2 = [number, number];
-export type AnschlussTyp =
-  | "wasser"
-  | "abwasser"
-  | "elektro"
-  | "starkstrom"
-  | "lueftung"
-  | "heizung";
+export type AnschlussTyp = "wasser" | "abwasser" | "elektro" | "starkstrom" | "lueftung" | "heizung";
 
 /**
  * Vertrag 1: Output Raum-Engine → Input Solver/Viewer. y-up, rechtshändig, Meter; Grundriss in der x/z-Ebene. Quelle: Brain → Domaenenmodell-Schema-Spezifikation.
@@ -70,7 +64,7 @@ export interface Raummodell {
         thickness: number;
         kind: "massiv" | "offen" | "virtuell";
         openings?: Uuid[];
-      }[],
+      }[]
     ];
     /**
      * Wird aus den Wand-Segmenten ABGELEITET/validiert, nicht doppelt gepflegt.

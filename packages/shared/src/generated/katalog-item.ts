@@ -20,7 +20,7 @@ export interface KatalogItem {
    */
   roomTypes: [
     "bad" | "kueche" | "wohnen" | "schlafen" | "essen" | "flur" | "sonstig",
-    ...("bad" | "kueche" | "wohnen" | "schlafen" | "essen" | "flur" | "sonstig")[],
+    ...("bad" | "kueche" | "wohnen" | "schlafen" | "essen" | "flur" | "sonstig")[]
   ];
   gewerk:
     | "sanitaer"

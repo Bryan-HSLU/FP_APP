@@ -82,5 +82,19 @@
     "achsenTags": { "temperatur": 0.6, "materialitaet": 0.7, "farbigkeit": 0.3 },
     "attributTags": ["material:textil", "farbe:beige"],
     "assetStatus": "placeholder"
+  },
+  {
+    "id": "67902b9a-f5ad-4ebf-a529-222c4dfd4a9a",
+    "schemaVersion": "0.1.0",
+    "name": "Pendelleuchte über Kochinsel",
+    "roomTypes": ["kueche"],
+    "klasse": "C",
+    "funktionsTyp": "pendelleuchte",
+    "anchorTypes": ["esstisch", "unterschrank"],
+    "platzierung": "an_decke",
+    "masse": { "w": 0.35, "d": 0.35, "h": 0.5 },
+    "achsenTags": { "temperatur": 0.5, "materialitaet": 0.5, "kontur": -0.2 },
+    "attributTags": ["material:metall", "farbe:schwarz"],
+    "assetStatus": "placeholder"
   }
 ]

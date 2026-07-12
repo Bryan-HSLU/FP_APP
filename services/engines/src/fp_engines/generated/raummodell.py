@@ -1,4 +1,4 @@
-# AUTOGENERIERT aus packages/shared/schemas – nicht von Hand ändern (pnpm codegen).
+# AUTOGENERIERT aus packages/shared/schemas – nicht von Hand ändern.
 
 from __future__ import annotations
 

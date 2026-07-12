@@ -1,6 +1,7 @@
 /* AUTOGENERIERT aus packages/shared/schemas – nicht von Hand ändern (pnpm codegen). */
 
 export * as bildKatalogItem from "./bild-katalog-item.ts";
+export * as dressingItem from "./dressing-item.ts";
 export * as katalogItem from "./katalog-item.ts";
 export * as kuratorVertrag from "./kurator-vertrag.ts";
 export * as plan from "./plan.ts";
