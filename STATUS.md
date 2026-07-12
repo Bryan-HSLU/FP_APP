@@ -6,7 +6,22 @@
 > Abweichungen gibt es. Meilenstein-Definitionen: Brain →
 > `vault/50_Umsetzung/Bauplan-Meilensteine.md`.
 
-**Stand: 2026-07-09**
+**Stand: 2026-07-12**
+
+### Katalog-Ausbau: 13 neue Möbeltypen (2026-07-12)
+- **26 neue Katalog-Items** (je 2 Stil-Varianten, alle P3): Bad waeschekorb/
+  badhocker/abfalleimer/midischrank · Wohnen pouf/vitrine/konsolentisch/
+  barwagen/recamiere · Küche barhocker/servierwagen/vorratsschrank/
+  weinkuehlschrank (elektro). relationalRules nutzen die neue Grammatik
+  (group:sitzgruppe, against-wall, near, corner).
+- **Voll dargestellt:** 13 volumetrische 3D-Kits (`moebel3d.tsx`) + 13
+  2D-Plan-Symbole (`symbole2d.ts`) + MATERIAL_FARBE.
+- **Baseline-Fix** (`kurator.py`): Rest-Slots nach priorityClass P1→P2→P3 statt
+  alphabetisch (latenter Bug: P3-Deko konnte Kernmöbeln die Flächen-Daumenregel
+  aufbrauchen). Solvability-Regression: alle 10 Raum-Fixtures × Seeds 0–5 →
+  0 ❌, kein NoFeasiblePlacement (kleine Räume lassen P3 erwartungsgemäss weg).
+- **Offen:** weitere Wunschlisten-Typen (z.B. Dusch-WC, Raumteiler, Kücheninsel
+  als eigenes Möbel) bei Bedarf nach demselben Muster.
 
 ### 3D-Volumetrie + Scene-Dressing für ALLE Raumtypen komplett (2026-07-09)
 - **Modelle** in höherer Volumetrie (rundbox/lathe/torus + Glas/Chrom) für
