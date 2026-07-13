@@ -165,6 +165,44 @@ def test_solve_reicht_farben_bis_placement_durch() -> None:
     assert sofa_pl and all(p["farbe"] == slug for p in sofa_pl)
 
 
+def test_solve_default_ohne_varianteninfo() -> None:
+    """Welle 5: DEFAULT (kein varianten-Flag) ⇒ Verhalten wie bisher, kein varianteInfo."""
+    client = TestClient(app)
+    room = _room("raummodell.wohnen-sample")
+    body = client.post("/solve", json={"room": room, "seed": 1}).json()
+    assert "varianteInfo" not in body
+
+
+def test_solve_varianten_liefert_beste_und_info() -> None:
+    """Welle 5: varianten=true ⇒ Plan mit 0 ❌ + kompaktes varianteInfo (K=3)."""
+    client = TestClient(app)
+    room = _room("raummodell.wohnen-sample")
+    res = client.post("/solve", json={"room": room, "seed": 1, "varianten": True})
+    assert res.status_code == 200
+    body = res.json()
+    assert body["plan"]["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+    info = body["varianteInfo"]
+    assert info["anzahl"] == 3
+    assert len(info["varianten"]) == 3
+    assert 0 <= info["gewaehlt"] < 3
+    # best ≥ Variante 0: gewählte (platziert, −knapp, relationScore) ist nie schlechter.
+    g, v0 = info["varianten"][info["gewaehlt"]], info["varianten"][0]
+    assert (g["platziert"], -g["knapp"], g["relationScore"]) >= (
+        v0["platziert"],
+        -v0["knapp"],
+        v0["relationScore"],
+    )
+
+
+def test_solve_varianten_determinismus() -> None:
+    """Welle 5: 2× varianten=true mit gleichem seed ⇒ identische Wahl + varianteInfo."""
+    client = TestClient(app)
+    room = _room("raummodell.wohnen-sample")
+    a = client.post("/solve", json={"room": room, "seed": 2, "varianten": True}).json()
+    b = client.post("/solve", json={"room": room, "seed": 2, "varianten": True}).json()
+    assert a["varianteInfo"] == b["varianteInfo"]
+
+
 def test_flaechen_pruefen_konform() -> None:
     """Welle 3: /flaechen/pruefen meldet keine Verstösse bei konformer Wahl."""
     client = TestClient(app)

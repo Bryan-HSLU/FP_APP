@@ -240,6 +240,8 @@ export function App() {
             stilprofilRef: stilprofil?.id,
             flaechen: kurator?.flaechen,
             farben: kurator?.farben,
+            // Welle 5: K-Varianten – die App bekommt die beste von 3 Varianten.
+            varianten: true,
           });
         }
         setPlan(res.plan);

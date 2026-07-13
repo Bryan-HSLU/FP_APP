@@ -105,6 +105,27 @@ export interface SolveOpts {
   flaechen?: FlaechenKonzept | null;
   /** Farbwahl je Item (Welle 3): itemId→Slug → placement.farbe im Plan. */
   farben?: Record<string, FarbSlug> | null;
+  /** K-Varianten (Welle 5): true → Server erzeugt K=3 Varianten und liefert die
+   *  beste (+ varianteInfo). Nur Nicht-Küche. Default false. */
+  varianten?: boolean;
+}
+
+/** Auswahl-Spur der K-Varianten (Welle 5), additiv in der /solve-Response-Hülle.
+ *  Rein informativ – der `plan` ist bereits die gewählte beste Variante. */
+export interface VarianteInfo {
+  /** Index der gewählten Variante in `varianten`. */
+  gewaehlt: number;
+  anzahl: number;
+  varianten: {
+    index: number;
+    seed: number;
+    /** Anzahl platzierter Items (Überlebensrate). */
+    platziert: number;
+    /** Anzahl «knappe» harte Regeln (weniger = mehr Norm-Luft). */
+    knapp: number;
+    /** Weiche Relations-/Stil-Zufriedenheit (höher = besser). */
+    relationScore: number;
+  }[];
 }
 
 export class ApiFehler extends Error {
@@ -209,6 +230,7 @@ export const api = {
       hinweis?: string;
       arbeitsdreieck?: Arbeitsdreieck;
       flaechen?: FlaechenKonzept | null;
+      varianteInfo?: VarianteInfo;
     }>("/solve", {
       method: "POST",
       body: JSON.stringify({
@@ -223,6 +245,7 @@ export const api = {
         zoneId: opts.zoneId,
         flaechen: opts.flaechen ?? undefined,
         farben: opts.farben ?? undefined,
+        varianten: opts.varianten ?? undefined,
       }),
     }),
   /** Manuelle Flächen-Wahl (Welle 3) gegen die Norm prüfen + korrigieren lassen.

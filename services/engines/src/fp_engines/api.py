@@ -320,6 +320,10 @@ class SolveRequest(BaseModel):
     auswahl: list[str] | None = None
     relationaleAbsichten: list[dict[str, Any]] = []
     anordnung: list[dict[str, Any]] | None = None
+    # K-Varianten (Welle 5): true → K=3 Solver-Läufe, beste wird gewählt; Response
+    # trägt zusätzlich `varianteInfo`. DEFAULT false → Verhalten exakt wie bisher
+    # (bestehende Golden-/Determinismus-Tests unberührt). Nur Nicht-Küche.
+    varianten: bool = False
     flaechen: dict[str, Any] | None = None
     # Kurator-Farbwahl je Item (Welle 3): itemId→Farb-Slug → placement.farbe.
     farben: dict[str, str] | None = None
@@ -343,6 +347,7 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
             },
         )
     created = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    variante_info: dict[str, Any] | None = None
     try:
         if raum["roomType"] == "kueche":
             # Küche = lineare Baugruppe (Formwahl + Slot-Füllung).
@@ -376,20 +381,40 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
             else:
                 auswahl, absichten = req.auswahl, req.relationaleAbsichten
                 anordnung = req.anordnung
-            plan = solve(
-                raum,
-                auswahl,
-                absichten,
-                katalog,
-                rules,
-                seed=req.seed,
-                norm_profile=req.normProfile,
-                stilprofil_ref=req.stilprofilRef,
-                style_profile=req.stilprofil,
-                anordnung=anordnung,
-                farben=req.farben,
-                created_at=created,
-            )
+            if req.varianten:
+                # Welle 5: K=3 Varianten, beste deterministisch gewählt; die
+                # Auswahl-Spur (varianteInfo) geht in die Response-Hülle.
+                from fp_engines.varianten import loese_mit_varianten
+
+                plan, variante_info = loese_mit_varianten(
+                    raum,
+                    auswahl,
+                    absichten,
+                    katalog,
+                    rules,
+                    seed=req.seed,
+                    norm_profile=req.normProfile,
+                    stilprofil_ref=req.stilprofilRef,
+                    style_profile=req.stilprofil,
+                    anordnung=anordnung,
+                    farben=req.farben,
+                    created_at=created,
+                )
+            else:
+                plan = solve(
+                    raum,
+                    auswahl,
+                    absichten,
+                    katalog,
+                    rules,
+                    seed=req.seed,
+                    norm_profile=req.normProfile,
+                    stilprofil_ref=req.stilprofilRef,
+                    style_profile=req.stilprofil,
+                    anordnung=anordnung,
+                    farben=req.farben,
+                    created_at=created,
+                )
     except NoFeasiblePlacement as e:
         # Ehrliches Solver-Ergebnis (Engineering-Grundlagen §1) – kein 500.
         return JSONResponse(
@@ -408,6 +433,10 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
         dreieck = arbeitsdreieck(plan["placements"], {c["id"]: c for c in katalog})
         if dreieck is not None:
             extra["arbeitsdreieck"] = dreieck
+    # K-Varianten-Spur (Welle 5) additiv in der Response-Hülle (nicht im Plan-
+    # Artefakt → keine Schema-Änderung). Nur gesetzt, wenn varianten=true lief.
+    if variante_info is not None:
+        extra["varianteInfo"] = variante_info
     # Flächen-Wünsche (Kurator Call C) additiv durchreichen; Frontend-Konsum ist
     # eine spätere Welle. None = Client leitet die Optik deterministisch ab.
     return JSONResponse(
