@@ -474,6 +474,31 @@ def _merke_platzierung(
             ctx.gruppen_pos.setdefault(r.group_id, []).append(pos)
 
 
+def baue_rel_map(
+    relationale_absichten: list[dict[str, Any]],
+    anordnung: list[dict[str, Any]] | None,
+) -> dict[str, list[Relation]]:
+    """itemId → geparste Relationen; `anordnung.relationen` überschreibt je Item.
+
+    Ein Item kann MEHRERE Absichten tragen (z.B. Sofa = group + facing) → Liste
+    je itemId. Kaputte/unbekannte Relationen filtert der Parser weg (ignoriert).
+    Die weiche `anordnung`-Ebene (Kurator-Pipeline v2) gewinnt je Item über die
+    `relationaleAbsichten`. Eine Quelle für die Platzierung (solve) UND die
+    Varianten-Bewertung (fp_engines.varianten) – damit beide dieselben Relationen
+    sehen, kein Drift.
+    """
+    rel_map: dict[str, list[Relation]] = {}
+    for a in relationale_absichten:
+        rel = parse_relation(a.get("relation"))
+        if rel is not None:
+            rel_map.setdefault(a["itemId"], []).append(rel)
+    for a in anordnung or []:
+        iid = a.get("itemId")
+        if iid is not None and a.get("relationen"):
+            rel_map[iid] = parse_relationen(list(a["relationen"]))
+    return rel_map
+
+
 def solve(
     room: dict[str, Any],
     auswahl_ids: list[str],
@@ -511,16 +536,12 @@ def solve(
     p1 = [i for i in items if i["priorityClass"] == "P1"]
     p2 = [i for i in items if i["priorityClass"] == "P2"]
     p3 = [i for i in items if i["priorityClass"] == "P3"]
-    # Ein Item kann MEHRERE Absichten tragen (z.B. Sofa = group + facing) → Liste
-    # je itemId. Kaputte/unbekannte Relationen filtert der Parser weg (ignoriert).
-    rel_map: dict[str, list[Relation]] = {}
-    for a in relationale_absichten:
-        rel = parse_relation(a.get("relation"))
-        if rel is not None:
-            rel_map.setdefault(a["itemId"], []).append(rel)
+    # Relationen (relationaleAbsichten + anordnung-Override) zentral aufbauen –
+    # dieselbe Quelle wie die Varianten-Bewertung (kein Drift).
+    rel_map = baue_rel_map(relationale_absichten, anordnung)
 
-    # Anordnung (weich) einweben: relationen überschreiben je Item (anordnung
-    # gewinnt), wandIndex/prioritaet sammeln. Ungültiges wird robust ignoriert.
+    # Anordnung (weich) einweben: wandIndex/prioritaet sammeln (relationen sind
+    # schon in rel_map). Ungültiges wird robust ignoriert.
     wand_wunsch: dict[str, int] = {}
     prio: dict[str, int] = {}
     n_walls = len(room["shell"]["walls"])
@@ -528,8 +549,6 @@ def solve(
         iid = a.get("itemId")
         if iid is None:
             continue
-        if a.get("relationen"):
-            rel_map[iid] = parse_relationen(list(a["relationen"]))
         wi = a.get("wandIndex")
         if isinstance(wi, int) and not isinstance(wi, bool) and 0 <= wi < n_walls:
             wand_wunsch[iid] = wi
