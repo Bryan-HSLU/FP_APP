@@ -2378,16 +2378,42 @@ export function passtInBbox(teile: Teil[], w: number, d: number, h: number, eps 
  */
 function TeilMaterial({ rolle, farbwert }: { rolle: Rolle; farbwert: string }) {
   if (rolle === "glas") {
-    return <meshStandardMaterial color={farbwert} transparent opacity={0.22} roughness={0.05} />;
+    // Mit Environment-Map spiegelt das Glas die Umgebung leicht → wirkt tief
+    // statt milchig. envMapIntensity moderat, damit es nicht überstrahlt.
+    return (
+      <meshStandardMaterial
+        color={farbwert}
+        transparent
+        opacity={0.24}
+        roughness={0.05}
+        metalness={0}
+        envMapIntensity={1.0}
+      />
+    );
   }
   if (rolle === "chrom") {
-    // Ohne Environment-Map bleibt metalness bewusst moderat, damit das Metall
-    // nicht schwarz kippt, aber klar glänzt (scharfes Highlight vom
-    // directionalLight). Der helle Grundton (rolleFarbe) trägt den Chrom-Look.
-    return <meshStandardMaterial color={farbwert} metalness={0.6} roughness={0.14} />;
+    // Jetzt MIT Environment-Map: volles metalness + niedrige roughness = echtes
+    // poliertes Chrom, das die Studio-Umgebung spiegelt (kein mattes Metall mehr).
+    return (
+      <meshStandardMaterial
+        color={farbwert}
+        metalness={1.0}
+        roughness={0.08}
+        envMapIntensity={1.1}
+      />
+    );
   }
+  // Keramik/Holz: matt, fangen aber dezent das Umgebungslicht auf (envMapIntensity
+  // niedrig, damit die Basis-/Ampelfarbe klar dominiert).
   const roughness = rolle === "dunkel" ? 0.62 : rolle === "hell" ? 0.5 : 0.55;
-  return <meshStandardMaterial color={farbwert} metalness={0.03} roughness={roughness} />;
+  return (
+    <meshStandardMaterial
+      color={farbwert}
+      metalness={0.03}
+      roughness={roughness}
+      envMapIntensity={0.45}
+    />
+  );
 }
 
 /** Rendert ein einzelnes Bauteil als Mesh (lokale Koordinaten der Gruppe). */

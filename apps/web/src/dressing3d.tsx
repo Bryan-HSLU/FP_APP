@@ -59,13 +59,37 @@ function DressingMaterial({
     );
   }
   if (rolle === "glas") {
-    return <meshStandardMaterial color={farbwert} transparent opacity={0.32} roughness={0.05} />;
+    return (
+      <meshStandardMaterial
+        color={farbwert}
+        transparent
+        opacity={0.32}
+        roughness={0.05}
+        metalness={0}
+        envMapIntensity={1.0}
+      />
+    );
   }
   if (rolle === "chrom") {
-    return <meshStandardMaterial color={farbwert} metalness={0.6} roughness={0.14} />;
+    // Wie moebel3d: mit Environment-Map echtes poliertes Chrom (spiegelt Umgebung).
+    return (
+      <meshStandardMaterial
+        color={farbwert}
+        metalness={1.0}
+        roughness={0.08}
+        envMapIntensity={1.1}
+      />
+    );
   }
   const roughness = rolle === "dunkel" ? 0.62 : rolle === "hell" ? 0.5 : 0.55;
-  return <meshStandardMaterial color={farbwert} metalness={0.03} roughness={roughness} />;
+  return (
+    <meshStandardMaterial
+      color={farbwert}
+      metalness={0.03}
+      roughness={roughness}
+      envMapIntensity={0.45}
+    />
+  );
 }
 
 /** Ein Bauteil als Mesh – Raycasting deaktiviert (Deko blockiert nie Auswahl).

@@ -7,10 +7,10 @@
  *  `viewer3d-logik.ts` (getestet); hier bleibt nur das r3f-Rendering/Verdrahten.
  *  Box-Platzhalter-Prinzip und die dominierende Norm-Ampel sind unverändert.
  */
-import { OrbitControls } from "@react-three/drei";
+import { ContactShadows, Environment, Lightformer, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState, type ComponentRef, type CSSProperties } from "react";
-import { Euler, Shape, Vector3, type Camera } from "three";
+import { ACESFilmicToneMapping, Euler, Shape, Vector3, type Camera } from "three";
 import type { DressingItem, KatalogItem, Placement, Plan, Room } from "./api";
 import { DressingLayer3D } from "./dressing3d.tsx";
 import { materialFarbe, Moebel3D } from "./moebel3d.tsx";
@@ -321,6 +321,65 @@ function lookAtDir(camera: Camera, dir: Vector3): void {
   camera.lookAt(ziel);
 }
 
+/**
+ * Prozedurale Studio-Environment – komplett OFFLINE, ohne Netz-HDRI.
+ *
+ * Warum kein `<Environment preset=…>`: die drei-Presets laden HDRIs von
+ * polyhaven/GitHub – auf dem HF-Space (strikte CSP, kein verlässliches Netz)
+ * schlägt das fehl. Stattdessen rendert drei aus den `<Lightformer>`-Kindern
+ * eine eigene kleine Umgebungs-Szene (einmalig, `frames={1}`) in eine
+ * Cube-Map. Das gibt Chrom echte Reflexe und Glas Tiefe, ohne jeglichen
+ * externen Asset.
+ *
+ * Lichtaufbau (Softbox-Studio): grosse warmweisse Deckenfläche als Hauptlicht,
+ * zwei kühlere Seitenstreifen für plastische Kanten-Reflexe, dezenter warmer
+ * Boden-Bounce. `background={false}` (Default): die Environment beleuchtet/
+ * spiegelt nur – der neutrale Canvas-Hintergrund bleibt, damit die Ampelfarben
+ * klar lesbar bleiben. `resolution` klein gehalten (Performance-Wächter).
+ */
+function Studioumgebung() {
+  return (
+    <Environment resolution={128} frames={1} environmentIntensity={0.55}>
+      {/* Hauptlicht: grosse weiche Deckenfläche, warmweiss, von oben herab */}
+      <Lightformer
+        form="rect"
+        intensity={1.3}
+        color="#fff2e0"
+        position={[0, 6, 0]}
+        rotation={[Math.PI / 2, 0, 0]}
+        scale={[14, 14, 1]}
+      />
+      {/* Kühler Seitenstreifen links – plastische Kanten an Chrom/Glas */}
+      <Lightformer
+        form="rect"
+        intensity={0.75}
+        color="#dbe6ff"
+        position={[-7, 2.5, 0]}
+        rotation={[0, Math.PI / 2, 0]}
+        scale={[9, 5, 1]}
+      />
+      {/* Kühler Seitenstreifen rechts */}
+      <Lightformer
+        form="rect"
+        intensity={0.75}
+        color="#dbe6ff"
+        position={[7, 2.5, 0]}
+        rotation={[0, -Math.PI / 2, 0]}
+        scale={[9, 5, 1]}
+      />
+      {/* Dezenter, warmer Boden-Bounce (schwach) – füllt Unterseiten auf */}
+      <Lightformer
+        form="rect"
+        intensity={0.3}
+        color="#efe4d4"
+        position={[0, -4, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        scale={[14, 14, 1]}
+      />
+    </Environment>
+  );
+}
+
 // ── Bedienleiste ────────────────────────────────────────────────────────────
 
 const PRESETS: [Ansichtspreset, string][] = [
@@ -528,14 +587,36 @@ export function Viewer3D({
       )}
       <div style={{ flex: 1, minHeight: 0 }}>
         <Canvas
+          // dpr gedeckelt (≤2) + ACESFilmic-Tonemapping für ein wärmeres, weniger
+          // flaches Bild; leichte Exposure-Anhebung. outputColorSpace bleibt der
+          // r3f-Default (sRGB). Kein Post-Processing (bewusst schlank).
+          dpr={[1, 2]}
+          gl={{ toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
           camera={{ position: orbitPose.position, fov: 50 }}
           onPointerMissed={() => {
             onSelect(null);
             onSelectFlaeche?.(null);
           }}
         >
-          <ambientLight intensity={0.7} />
-          <directionalLight position={[4, 6, 3]} intensity={0.8} />
+          {/* Prozedurale Environment → echte Reflexe auf Chrom/Glas (offline). */}
+          <Studioumgebung />
+          {/* Ambient dezenter (Environment liefert jetzt das Fülllicht); ein
+           *  gerichtetes Licht bleibt für scharfe Highlights/Modellierung. */}
+          <ambientLight intensity={0.35} />
+          <directionalLight position={[4, 6, 3]} intensity={0.9} />
+          {/* Weicher Kontaktschatten unter den Objekten: EINE Depth-Pass-Textur
+           *  statt teurer Shadow-Maps je Licht – stabil & günstig für viele
+           *  kleine Möbel-Meshes, keine Bias-/Flacker-Probleme mit den
+           *  halbtransparenten Wänden. Auf Bodenhöhe zentriert. */}
+          <ContactShadows
+            position={[bbox.cx, 0.01, bbox.cz]}
+            scale={Math.max(bbox.breite, bbox.tiefe, 2) + 1}
+            resolution={1024}
+            far={raumHoehe}
+            blur={2.4}
+            opacity={0.38}
+            color="#243D35"
+          />
           <Boden
             room={room}
             boden={bodenSpez}
