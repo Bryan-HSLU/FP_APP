@@ -8,6 +8,40 @@
 
 **Stand: 2026-07-13**
 
+### Kurator-Pipeline v3 – 5 Wellen (2026-07-13, ADR-0013)
+Vorgabe: Brain `Kurator-Pipeline-v3-Konzept` + `ADR-0013-kurator-pipeline-v3`.
+Eiserne Regel: jede neue KI-Freiheit ↔ neue deterministische Kontrolle.
+- **W1 Kohärenz/Norm:** Call A liefert zuerst `konzept` (Vertrag v0.4), Konzept
+  → B+C; Stilprofil neu in B, Auswahl neu in C; **Platz-Budget hart** in
+  `_validiere` (Daumenregel wie Baseline, Unsatisfiability-Guard);
+  **Norm-Kontext aus `data/rules/flaechen.json` pro Raum gerendert**
+  (`norm_kontext_flaechen`: konkrete Nasswand-Indizes; Norm-Prosa aus der
+  Prompt-.md entfernt – eine Quelle); neu `kueche-wand-spritzzone` (1.2 m,
+  zu-verifizieren); Relations-Ziel-Validierung; Few-Shots; temp 0.3 + seed.
+- **W2 Daten:** alle 125 Katalog-Items volle 8 Achsen + `farbVarianten`
+  (16 farbSlug-Enum im Katalog-Schema); 3 falsch getaggte Wohnen-Bilder +
+  Eckschrank-Copy-Paste-Tags korrigiert.
+- **W3 Farben (KI+UI):** Vertrag v0.5 `farben` (itemId→farbSlug, Cross-File-
+  `$ref` aufs Katalog-Enum – Codegen löst auf, kein Duplikat; 2 Testdateien
+  auf Registry-Validierung umgestellt); `placement.farbe` (Plan additiv);
+  eigener Validierungsschritt + Repair + Bereinigung (CURATOR_FARBEN_BEREINIGT);
+  Client `farben.ts` (MANUELL>KI>Default, Default = erste farbVariante);
+  Farb-Picker am selektierten Objekt + Flächen-Material-Picker; manuelle
+  Flächen laufen durch `POST /flaechen/pruefen` (Python bleibt Norm-Quelle).
+  Bewusst: Wand-Material gilt für alle Wände (keine Einzelwand-Selektion).
+- **W4 Eval:** `kurator_eval.py` = 3 Räume × 3 Profile × 5 Seeds; Metriken
+  Überlebensrate/Auslastung/Palette-Treffer/Norm-Korrektur-Rate/Invariante;
+  deterministischer Report `services/engines/reports/kurator_eval.json`.
+  **Baseline-Messlatte: 0.867 / 0.886 / 0.855, 0 ❌ in 45 Läufen.** LLM-Lauf
+  mit FP_KURATOR_URL wiederholen → muss Baseline schlagen (Gate).
+- **W5 K-Varianten:** `varianten.py` (K=3 Sub-Seeds deterministisch, bestes
+  lexikografisch: platziert → −knapp → Relations-/Stil-Score → Index);
+  `/solve` Flag `varianten` (Default false), App nutzt true (Bad/Wohnen;
+  Küche ausgenommen). **Fund:** `constraintReport.softScore` ist bei
+  bad/wohnen immer 0.0 (nur Küche patcht ergonomie) → knapp-Zähler ist das
+  echte Soft-Signal. Offen: LLM-Eval-Lauf; «3 Vorschläge zeigen» (UI-Bonus);
+  Einzelwand-Material-Selektion.
+
 ### CI-Fix + 2D-Wand-Semantik + 3D-Polish + Ladebildschirme (2026-07-13)
 - **CI grün:** Prettier-Format der Codegen-Ausgabe gefixt; Merke: Gates immer
   mit den ROOT-Kommandos fahren (`pnpm lint/typecheck/test` deckt alle
