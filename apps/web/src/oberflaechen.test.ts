@@ -139,6 +139,8 @@ const ALLE_SLUGS: MaterialSlug[] = [
   "parkett-eiche",
   "beton",
   "naturstein",
+  "tapete-hell",
+  "taefer-holz",
 ];
 const istHex = (s: string) => /^#[0-9a-f]{6}$/i.test(s);
 const summe = (hex: string) =>
@@ -167,6 +169,17 @@ describe("materialLook / bodenSpezAusSlug – alle 10 Slugs liefern gültige Spe
     expect(bodenSpezAusSlug("holz-hell").muster).toBe("parkett");
     expect(bodenSpezAusSlug("parkett-eiche").muster).toBe("parkett");
     expect(bodenSpezAusSlug("fliesen-gruen").muster).toBe("fliesen");
+  });
+
+  it("neue Bekleidungs-Slugs: tapete-hell = uni-Wandton, taefer-holz = Holzlamellen", () => {
+    const tapete = materialLook("tapete-hell");
+    expect(tapete.muster).toBe("uni");
+    expect(istHex(tapete.farbe)).toBe(true);
+    const taefer = materialLook("taefer-holz");
+    expect(taefer.muster).toBe("holz");
+    // Wandbekleidung degradiert sinnvoll als Boden-Slug (taefer → parkett, tapete → uni).
+    expect(bodenSpezAusSlug("taefer-holz").muster).toBe("parkett");
+    expect(bodenSpezAusSlug("tapete-hell").muster).toBe("uni");
   });
 
   it("materialLook liefert eine Kopie (Mutation färbt das Original nicht)", () => {

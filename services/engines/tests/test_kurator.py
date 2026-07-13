@@ -13,12 +13,16 @@ import httpx
 import pytest
 
 from fp_engines.kurator import (
+    FLAECHEN_REGELN,
     MATERIAL_SLUGS,
     BaselineKurator,
     LlmKurator,
     _validiere,
     _validiere_anordnung,
     _validiere_flaechen,
+    korrigiere_flaechen,
+    nasswaende,
+    pruefe_flaechen,
     vorfilter,
 )
 
@@ -50,10 +54,15 @@ def _anordnung_ok() -> dict[str, Any]:
 
 
 def _flaechen_ok() -> dict[str, Any]:
+    """Norm-konformes Flächen-Konzept fürs Sample-Bad: wasserfester Boden +
+    ALLE Nasswände voll gefliest (das Sample hat rundum Anschluss-Fixpunkte)."""
     return {
         "flaechen": {
-            "boden": {"material": MATERIAL_SLUGS[0]},
-            "waende": [{"wandIndex": 0, "material": MATERIAL_SLUGS[0], "bereich": "voll"}],
+            "boden": {"material": "fliesen-hell"},
+            "waende": [
+                {"wandIndex": i, "material": "fliesen-hell", "bereich": "voll"}
+                for i in sorted(nasswaende(ROOM))
+            ],
         }
     }
 
@@ -220,3 +229,198 @@ def test_llm_http_fehler_anordnung_teilfallback(monkeypatch: pytest.MonkeyPatch)
     ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
     assert "CURATOR_ANORDNUNG_FALLBACK" in ergebnis["begruendung"]
     assert ergebnis["flaechen"] == _flaechen_ok()["flaechen"]
+
+
+# --- Flächen-Normkontrolle (Call C, hart) -----------------------------------
+
+
+def _bad_room(fixpoints: list[dict[str, Any]]) -> dict[str, Any]:
+    """Minimal-Bad (3×2 m, 4 Wände) mit frei setzbaren Fixpunkten – nur die von
+    pruefe_flaechen/nasswaende gelesenen Felder."""
+    return {
+        "roomType": "bad",
+        "shell": {
+            "walls": [
+                {"id": "w0", "start": [0, 0], "end": [3, 0]},
+                {"id": "w1", "start": [3, 0], "end": [3, 2]},
+                {"id": "w2", "start": [3, 2], "end": [0, 2]},
+                {"id": "w3", "start": [0, 2], "end": [0, 0]},
+            ]
+        },
+        "fixpoints": fixpoints,
+    }
+
+
+ROOM_NASS0 = _bad_room([{"type": "wasser", "wall": "w0"}])  # nur Wand 0 nass
+KUECHE_ROOM = {"roomType": "kueche", "shell": {"walls": []}, "fixpoints": []}
+WOHNEN_ROOM = {
+    "roomType": "wohnen",
+    "shell": {"walls": [{"id": "w0", "start": [0, 0], "end": [3, 0]}]},
+    "fixpoints": [],
+}
+
+
+def test_nasswaende_wandgebunden_und_geometrisch() -> None:
+    # wandgebunden: abwasser hängt an Wand 1.
+    r1 = _bad_room([{"type": "abwasser", "wall": "w1"}])
+    assert nasswaende(r1) == {1}
+    # geometrisch: Bodenablauf nahe Wand 0 (y=0), 0.3 m Abstand ≤ 0.5.
+    r2 = _bad_room([{"type": "wasser", "position": [1.5, 0.3]}])
+    assert nasswaende(r2) == {0}
+    # nicht-nasser Fixpunkt (elektro) zählt nicht.
+    r3 = _bad_room([{"type": "elektro", "wall": "w2"}])
+    assert nasswaende(r3) == set()
+
+
+def test_pruefe_flaechen_konform_ist_leer() -> None:
+    fl = {
+        "boden": {"material": "fliesen-hell"},
+        "waende": [{"wandIndex": 0, "material": "fliesen-hell", "bereich": "voll"}],
+    }
+    assert pruefe_flaechen(fl, ROOM_NASS0, FLAECHEN_REGELN) == []
+
+
+def test_pruefe_flaechen_parkett_boden_im_bad() -> None:
+    fl = {"boden": {"material": "parkett-eiche"}}
+    verstoesse = pruefe_flaechen(fl, ROOM_NASS0, FLAECHEN_REGELN)
+    assert any("bad-boden-wasserfest" in v and "Boden-Material" in v for v in verstoesse)
+
+
+def test_pruefe_flaechen_putz_an_nasswand() -> None:
+    fl = {
+        "boden": {"material": "fliesen-hell"},
+        "waende": [{"wandIndex": 0, "material": "putz-weiss", "bereich": "voll"}],
+    }
+    verstoesse = pruefe_flaechen(fl, ROOM_NASS0, FLAECHEN_REGELN)
+    assert any("bad-wand-nass" in v for v in verstoesse)
+
+
+def test_pruefe_flaechen_nasswand_zu_niedrig() -> None:
+    fl = {
+        "boden": {"material": "fliesen-hell"},
+        "waende": [
+            {"wandIndex": 0, "material": "fliesen-hell", "bereich": "halbhoch", "hoeheM": 1.2}
+        ],
+    }
+    verstoesse = pruefe_flaechen(fl, ROOM_NASS0, FLAECHEN_REGELN)
+    assert any("bad-wand-nass" in v and "gefordert" in v for v in verstoesse)
+
+
+def test_pruefe_flaechen_nasswand_fehlt() -> None:
+    fl = {"boden": {"material": "fliesen-hell"}, "waende": []}
+    verstoesse = pruefe_flaechen(fl, ROOM_NASS0, FLAECHEN_REGELN)
+    assert any("unverkleidet" in v for v in verstoesse)
+
+
+def test_pruefe_flaechen_putz_an_trockener_wand() -> None:
+    # Wand 1 (trocken) explizit mit Putz belegt → wand-alle greift.
+    fl = {
+        "boden": {"material": "fliesen-hell"},
+        "waende": [
+            {"wandIndex": 0, "material": "fliesen-hell", "bereich": "voll"},
+            {"wandIndex": 1, "material": "putz-weiss", "bereich": "voll"},
+        ],
+    }
+    verstoesse = pruefe_flaechen(fl, ROOM_NASS0, FLAECHEN_REGELN)
+    assert any("bad-wand-alle" in v for v in verstoesse)
+
+
+def test_pruefe_flaechen_kueche_parkett_boden() -> None:
+    fl = {"boden": {"material": "parkett-eiche"}}
+    verstoesse = pruefe_flaechen(fl, KUECHE_ROOM, FLAECHEN_REGELN)
+    assert any("kueche-boden-abwaschbar" in v for v in verstoesse)
+
+
+def test_pruefe_flaechen_wohnen_ohne_harte_regeln() -> None:
+    fl = {
+        "boden": {"material": "parkett-eiche"},
+        "waende": [{"wandIndex": 0, "material": "tapete-hell", "bereich": "voll"}],
+    }
+    assert pruefe_flaechen(fl, WOHNEN_ROOM, FLAECHEN_REGELN) == []
+
+
+# Property-artig: korrigiere_flaechen macht JEDEN Verstoss konform (pruefe == []).
+_VERSTOSS_FAELLE: list[tuple[dict[str, Any], dict[str, Any]]] = [
+    ({"boden": {"material": "parkett-eiche"}}, ROOM_NASS0),
+    ({"boden": {"material": "fliesen-hell"}, "waende": []}, ROOM_NASS0),
+    (
+        {
+            "boden": {"material": "holz-hell"},
+            "waende": [{"wandIndex": 0, "material": "putz-weiss"}],
+        },
+        ROOM_NASS0,
+    ),
+    (
+        {
+            "boden": {"material": "fliesen-hell"},
+            "waende": [
+                {"wandIndex": 0, "material": "fliesen-hell", "bereich": "halbhoch", "hoeheM": 1.0}
+            ],
+        },
+        ROOM_NASS0,
+    ),
+    ({"boden": {"material": "tapete-hell"}}, KUECHE_ROOM),
+    ({"boden": {"material": "parkett-eiche"}}, ROOM),  # Sample-Bad: 4 Nasswände
+]
+
+
+@pytest.mark.parametrize(("fl", "room"), _VERSTOSS_FAELLE)
+def test_korrigiere_flaechen_macht_konform(fl: dict[str, Any], room: dict[str, Any]) -> None:
+    assert pruefe_flaechen(fl, room, FLAECHEN_REGELN)  # vorher: Verstoss
+    korrigiert = korrigiere_flaechen(fl, room, FLAECHEN_REGELN)
+    assert pruefe_flaechen(korrigiert, room, FLAECHEN_REGELN) == []  # nachher: sauber
+    # Korrektur arbeitet auf Kopie – Original bleibt unverändert.
+    assert fl != korrigiert or not pruefe_flaechen(fl, room, FLAECHEN_REGELN)
+
+
+def _flaechen_verstoss() -> dict[str, Any]:
+    """Strukturell valide, aber normwidrig fürs Sample-Bad: Parkett-Boden, keine
+    Nasswände."""
+    return {"flaechen": {"boden": {"material": "parkett-eiche"}, "waende": []}}
+
+
+def test_llm_flaechen_normrepair(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Call C strukturell ok, aber normwidrig → 1 Norm-Repair, LLM liefert
+    konform → Marker NORMREPAIR, Flächen vom LLM übernommen."""
+    port = _llm_mit_antworten(
+        monkeypatch, [_auswahl_ok(), _anordnung_ok(), _flaechen_verstoss(), _flaechen_ok()]
+    )
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert "CURATOR_FLAECHEN_NORMREPAIR" in ergebnis["begruendung"]
+    assert ergebnis["flaechen"] == _flaechen_ok()["flaechen"]
+    assert pruefe_flaechen(ergebnis["flaechen"], ROOM, FLAECHEN_REGELN) == []
+
+
+def test_llm_flaechen_normkorrektur(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Call C bleibt nach dem Norm-Repair normwidrig → deterministische Korrektur
+    + Marker NORMKORREKTUR; das Ergebnis ist garantiert normkonform."""
+    port = _llm_mit_antworten(
+        monkeypatch,
+        [_auswahl_ok(), _anordnung_ok(), _flaechen_verstoss(), _flaechen_verstoss()],
+    )
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert "CURATOR_FLAECHEN_NORMKORREKTUR" in ergebnis["begruendung"]
+    assert ergebnis["flaechen"]["boden"]["material"] == "fliesen-hell"
+    assert pruefe_flaechen(ergebnis["flaechen"], ROOM, FLAECHEN_REGELN) == []
+
+
+def test_llm_flaechen_norm_repair_hinweis_enthaelt_regel(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Der Norm-Repair-Prompt gibt die konkrete verletzte Regel-ID ans LLM zurück."""
+    gesendet: list[list[dict[str, str]]] = []
+
+    antworten = [_auswahl_ok(), _anordnung_ok(), _flaechen_verstoss(), _flaechen_ok()]
+    rest = list(antworten)
+
+    def fake_post(url: str, **kwargs: Any) -> httpx.Response:
+        gesendet.append(kwargs["json"]["messages"])
+        inhalt = rest.pop(0)
+        body = {"choices": [{"message": {"content": json.dumps(inhalt)}}]}
+        return httpx.Response(200, json=body, request=httpx.Request("POST", url))
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    port = LlmKurator(url="http://test/v1", model="test", api_key=None)
+    port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+
+    # Der 4. Call ist der Norm-Repair; sein User-Hinweis nennt die Regel-ID.
+    repair_hinweis = gesendet[3][-1]["content"]
+    assert "bad-boden-wasserfest" in repair_hinweis

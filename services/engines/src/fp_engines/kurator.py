@@ -8,13 +8,18 @@ Repair-Retry (max. 1) und Fallback:
 - **Call B – Anordnung:** weiche Anordnungs-Anweisungen je Item (wandIndex,
   relationen, prioritaet). Scheitert B → **Teil-Fallback**: `anordnung` aus den
   Katalog-`relationalRules` (ohne wandIndex).
-- **Call C – Flächen:** Boden-/Wand-Material-Wünsche (nur geerdete Slugs).
-  Scheitert C → **Teil-Fallback**: `flaechen = None` (Client leitet ab).
+- **Call C – Flächen:** Boden-/Wand-Material-Wünsche (nur geerdete Slugs). Zwei
+  harte Kontrollen «davor UND danach»: strukturell (Slugs/Bereiche) UND
+  normativ (`pruefe_flaechen` gegen `data/rules/flaechen.json`: wasserfester
+  Bad-Boden, verfliesste Nasswände usw.). Bei Norm-Verstoss 1 Repair-Retry,
+  sonst deterministische `korrigiere_flaechen` (macht konform statt verwerfen).
+  Scheitert der Call strukturell/per HTTP → **Teil-Fallback** `flaechen = None`.
 
 Doppelte Erdung bleibt: das Modell sieht nur vorgefilterte IDs / erlaubte Slugs
 UND jede Antwort wird gegen genau diese Mengen validiert – Halluzination ist
-konstruktiv ausgeschlossen. Die Norm-Garantie hängt weiterhin einzig am
-Feasibility-Filter des Solvers, nie an dieser weichen Ebene.
+konstruktiv ausgeschlossen. Die Möbel-Norm-Garantie hängt weiterhin einzig am
+Feasibility-Filter des Solvers; die **Flächen-Norm** (Material je Zone) wird
+zusätzlich hart über `pruefe_flaechen`/`korrigiere_flaechen` erzwungen.
 
 Drei Port-Implementierungen (ADR-0007, austauschbar):
 - `baseline`  – deterministisches Scoring mit Seed-Rauschen, immer verfügbar.
@@ -48,6 +53,7 @@ PROMPT_AUSWAHL = PROMPT_DIR / "kurator-rolle.md"
 PROMPT_ANORDNUNG = PROMPT_DIR / "kurator-anordnung.md"
 PROMPT_FLAECHEN = PROMPT_DIR / "kurator-flaechen.md"
 SCHEMA_DATEI = REPO_ROOT / "packages" / "shared" / "schemas" / "kurator-vertrag.schema.json"
+FLAECHEN_REGELN_DATEI = REPO_ROOT / "data" / "rules" / "flaechen.json"
 KANDIDATEN_JE_SLOT = 6  # Top 5–8 laut Konzept; kein RAG nötig im POC
 
 log = logging.getLogger("fp.kurator")
@@ -68,6 +74,21 @@ def _material_slugs() -> list[str]:
 
 
 MATERIAL_SLUGS: list[str] = _material_slugs()
+
+
+def _lade_flaechen_regeln() -> list[dict[str, Any]]:
+    """Flächen-Normregeln (`data/rules/flaechen.json`) – deklaratives Format.
+
+    Bewusst **getrennt** vom Geometrie-Regelsatz und dem TS/Python-Paritätstest:
+    diese Datei liest einzig die Python-Seite, zur harten Kontrolle des KI-
+    Flächen-Calls (Call C). Format je Eintrag: `id`, `roomType`, `gilt`
+    (`boden`|`wand-nass`|`wand-alle`), `anforderung`, optional `minHoeheM`,
+    `erlaubteMaterialien` (Slugs), `severity`, `quelle`, `status`, `hinweis`.
+    """
+    return list(json.loads(FLAECHEN_REGELN_DATEI.read_text(encoding="utf-8")))
+
+
+FLAECHEN_REGELN: list[dict[str, Any]] = _lade_flaechen_regeln()
 
 
 def _cos(a: dict[str, float], b: dict[str, float]) -> float:
@@ -249,6 +270,193 @@ def _validiere_flaechen(antwort: dict[str, Any], n_walls: int, slugs: list[str])
             if ber is not None and ber not in ("voll", "halbhoch", "sockel"):
                 return f"bereich «{ber}» unbekannt."
     return None
+
+
+# --- Flächen-Normregeln (Daten) + harte Kontrolle des LLM-Outputs -----------
+
+
+def _punkt_segment_abstand(p: list[float], a: list[float], b: list[float]) -> float:
+    """Kürzester Abstand Punkt→Wandsegment (Grundriss x/z-Ebene, Meter)."""
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    laenge2 = dx * dx + dy * dy
+    if laenge2 == 0.0:
+        return math.hypot(p[0] - a[0], p[1] - a[1])
+    t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / laenge2
+    t = max(0.0, min(1.0, t))
+    return math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy))
+
+
+_NASS_TYPEN = frozenset({"wasser", "abwasser"})
+
+
+def nasswaende(room: dict[str, Any], schwelle_m: float = 0.5) -> set[int]:
+    """Indizes der Nassbereich-Wände (Proxy für Dusche/Wanne/Lavabo).
+
+    Heuristik: eine Wand gilt als «nass», wenn ein Wasser-/Abwasser-Fixpunkt an
+    ihr hängt (`fixpoint.wall` == Wand-ID) ODER geometrisch ≤ `schwelle_m`
+    (Default 0.5 m) an ihrem Segment liegt (boden-/freistehende Fixpunkte, z.B.
+    Dusch-Bodenablauf). Zum Call-C-Zeitpunkt steht die Möbel-PLATZIERUNG noch
+    nicht fest – die Anschluss-Fixpunkte des Raummodells sind aber der
+    verlässliche Proxy für den Nassbereich.
+    """
+    walls = room["shell"]["walls"]
+    id_index = {w["id"]: i for i, w in enumerate(walls)}
+    treffer: set[int] = set()
+    for f in room.get("fixpoints", []):
+        if f.get("type") not in _NASS_TYPEN:
+            continue
+        wid = f.get("wall")
+        if wid in id_index:
+            treffer.add(id_index[wid])
+            continue
+        pos = f.get("position")
+        if not pos:
+            continue
+        for i, w in enumerate(walls):
+            if _punkt_segment_abstand(pos, w["start"], w["end"]) <= schwelle_m:
+                treffer.add(i)
+    return treffer
+
+
+_BEREICH_DEFAULT_HOEHE: dict[str, float] = {"halbhoch": 1.2, "sockel": 0.1}
+
+
+def _wand_deckhoehe(eintrag: dict[str, Any]) -> float:
+    """Effektive Höhe der Materialzone ab Boden (m). «voll»/ohne bereich = ganze
+    Wand (∞); sonst hoeheM, sonst Bereichs-Default – identisch zum Client
+    (oberflaechen.ts: HALBHOCH 1.2, SOCKEL 0.1)."""
+    bereich = eintrag.get("bereich")
+    if bereich not in ("halbhoch", "sockel"):
+        return math.inf  # «voll»/ohne bereich/unbekannt = ganze Wand
+    h = eintrag.get("hoeheM")
+    if isinstance(h, int | float) and not isinstance(h, bool):
+        return float(h)
+    if bereich == "sockel":
+        return _BEREICH_DEFAULT_HOEHE["sockel"]
+    return _BEREICH_DEFAULT_HOEHE["halbhoch"]
+
+
+def pruefe_flaechen(
+    flaechen: dict[str, Any] | None,
+    room: dict[str, Any],
+    regeln: list[dict[str, Any]],
+) -> list[str]:
+    """Harte Flächen-Norm-Kontrolle (Call C) – deterministisch, quellenunabhängig.
+
+    Prüft das (strukturell bereits validierte) `flaechen`-Objekt gegen die
+    Flächen-Normregeln des Raumtyps und liefert die Liste konkreter Verstöße
+    (leer = konform). Gilt für JEDE Quelle (LLM heute, manuelle Eingaben
+    künftig). `gilt`-Semantik:
+
+    - `boden`: `boden.material` muss in `erlaubteMaterialien` liegen.
+    - `wand-nass`: jede Nasswand (siehe `nasswaende`) braucht einen Eintrag mit
+      erlaubtem Material, das ab Boden ≥ `minHoeheM` deckt (fehlender Eintrag,
+      falsches Material oder zu niedrige Zone = Verstoß).
+    - `wand-alle`: jeder EXPLIZIT belegte Wand-Eintrag muss ein erlaubtes
+      (wasserfestes) Material haben – die Zone liegt am Boden. Trockene Wände
+      bleiben unbelegt (Client-Fallback) statt mit Putz/Tapete belegt.
+
+    `flaechen=None`/leer → keine Verstöße (der Fallback-Pfad leitet selbst ab).
+    """
+    if not flaechen:
+        return []
+    aktiv = [r for r in regeln if r["roomType"] == room["roomType"]]
+    if not aktiv:
+        return []
+    boden_mat = (flaechen.get("boden") or {}).get("material")
+    pro_wand: dict[int, dict[str, Any]] = {w["wandIndex"]: w for w in flaechen.get("waende") or []}
+    nass = nasswaende(room)
+    verstoesse: list[str] = []
+    for regel in aktiv:
+        rid, gilt, anf = regel["id"], regel["gilt"], regel["anforderung"]
+        erlaubt = set(regel["erlaubteMaterialien"])
+        if gilt == "boden":
+            if boden_mat is not None and boden_mat not in erlaubt:
+                verstoesse.append(
+                    f"[{rid}] Boden-Material «{boden_mat}» nicht {anf} "
+                    f"(erlaubt: {sorted(erlaubt)})."
+                )
+        elif gilt == "wand-nass":
+            minh = float(regel.get("minHoeheM", 0.0))
+            for i in sorted(nass):
+                e = pro_wand.get(i)
+                if e is None:
+                    verstoesse.append(
+                        f"[{rid}] Nasswand {i} unverkleidet – braucht {anf}es Material "
+                        f"bis ≥ {minh} m."
+                    )
+                elif e["material"] not in erlaubt:
+                    verstoesse.append(
+                        f"[{rid}] Nasswand {i}: Material «{e['material']}» nicht {anf} "
+                        f"(erlaubt: {sorted(erlaubt)})."
+                    )
+                elif _wand_deckhoehe(e) < minh:
+                    verstoesse.append(
+                        f"[{rid}] Nasswand {i}: Verkleidung nur bis {_wand_deckhoehe(e)} m, "
+                        f"gefordert ≥ {minh} m (bereich «voll» oder hoeheM ≥ {minh})."
+                    )
+        elif gilt == "wand-alle":
+            for i, e in sorted(pro_wand.items()):
+                if e["material"] not in erlaubt:
+                    verstoesse.append(
+                        f"[{rid}] Wand {i}: Material «{e['material']}» am Boden nicht {anf} "
+                        f"(erlaubt: {sorted(erlaubt)}); trockene Wand sonst weglassen."
+                    )
+    return verstoesse
+
+
+def _konformes_material(erlaubt: set[str]) -> str:
+    """Konformer Standard-Slug: bevorzugt «fliesen-hell», sonst alphabetisch erster."""
+    return "fliesen-hell" if "fliesen-hell" in erlaubt else sorted(erlaubt)[0]
+
+
+def korrigiere_flaechen(
+    flaechen: dict[str, Any] | None,
+    room: dict[str, Any],
+    regeln: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Deterministische Norm-Korrektur: macht JEDEN Verstoß aus `pruefe_flaechen`
+    konform, statt das Flächen-Konzept komplett zu verwerfen.
+
+    Regel für Regel (Reihenfolge = Datei): verletzende Boden-/Wand-Materialien
+    werden auf ein konformes Material (i.d.R. «fliesen-hell») gesetzt, fehlende
+    Nasswände als «voll» ergänzt, zu niedrige Nassverkleidung auf «voll»
+    gehoben. Arbeitet auf einer tiefen Kopie und ist idempotent: danach gilt
+    `pruefe_flaechen(...) == []`.
+    """
+    fl: dict[str, Any] = json.loads(json.dumps(flaechen or {}))
+    aktiv = [r for r in regeln if r["roomType"] == room["roomType"]]
+    if any(r["gilt"].startswith("wand") for r in aktiv):
+        fl.setdefault("waende", [])
+    nass = nasswaende(room)
+    pro_wand: dict[int, dict[str, Any]] = {w["wandIndex"]: w for w in fl.get("waende", [])}
+    for regel in aktiv:
+        erlaubt = set(regel["erlaubteMaterialien"])
+        fix = _konformes_material(erlaubt)
+        gilt = regel["gilt"]
+        if gilt == "boden":
+            boden = fl.get("boden")
+            if boden and boden.get("material") is not None and boden["material"] not in erlaubt:
+                boden["material"] = fix
+        elif gilt == "wand-nass":
+            minh = float(regel.get("minHoeheM", 0.0))
+            for i in sorted(nass):
+                e = pro_wand.get(i)
+                if e is None:
+                    e = {"wandIndex": i, "material": fix, "bereich": "voll"}
+                    fl["waende"].append(e)
+                    pro_wand[i] = e
+                    continue
+                if e["material"] not in erlaubt:
+                    e["material"] = fix
+                if _wand_deckhoehe(e) < minh:
+                    e["bereich"] = "voll"
+                    e.pop("hoeheM", None)
+        elif gilt == "wand-alle":
+            for e in fl.get("waende", []):
+                if e["material"] not in erlaubt:
+                    e["material"] = fix
+    return fl
 
 
 # --- Kompakte Raumgeometrie für die Prompts ---------------------------------
@@ -563,6 +771,40 @@ class LlmKurator:
             log.warning("kurator[%s]: llm-aufruf fehlgeschlagen (%s)", name, e)
         return None
 
+    def _flaechen_norm_repair(
+        self,
+        basis_messages: list[dict[str, str]],
+        voriges: dict[str, Any],
+        verstoesse: list[str],
+        n_walls: int,
+        room: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        """Ein einziger Norm-Repair-Aufruf: gibt die konkreten Verstöße zurück ans
+        LLM und verlangt eine korrigierte Antwort. Rückgabe = strukturell UND
+        normkonformes `flaechen`-Objekt, sonst None (dann greift die
+        deterministische `korrigiere_flaechen`)."""
+        hinweis = (
+            "Deine Flächen-Antwort verletzt harte Normregeln:\n- "
+            + "\n- ".join(verstoesse)
+            + "\nKorrigiere GENAU diese Punkte und antworte erneut nur mit JSON."
+        )
+        messages = [
+            *basis_messages,
+            {"role": "assistant", "content": json.dumps({"flaechen": voriges})},
+            {"role": "user", "content": hinweis},
+        ]
+        try:
+            antwort = self._rufe_llm(messages)
+        except (httpx.HTTPError, json.JSONDecodeError, KeyError) as e:
+            log.warning("kurator[flaechen-norm]: repair-aufruf fehlgeschlagen (%s)", e)
+            return None
+        if _validiere_flaechen(antwort, n_walls, MATERIAL_SLUGS) is not None:
+            return None
+        flaechen: dict[str, Any] = antwort["flaechen"]
+        if pruefe_flaechen(flaechen, room, FLAECHEN_REGELN):
+            return None
+        return flaechen
+
     # --- Pipeline ------------------------------------------------------------
 
     def kuratiere(
@@ -603,17 +845,38 @@ class LlmKurator:
             anordnung = _baseline_anordnung(auswahl, by_id)
             begruendung += " (Teil-Fallback Anordnung: CURATOR_ANORDNUNG_FALLBACK)"
 
-        # Call C – Flächen. Scheitert C → Teil-Fallback flaechen=None.
+        # Call C – Flächen. Zwei Kontrollen, «davor UND danach»:
+        #   1. strukturell (_call_json: Slugs/Bereiche, +1 Repair) – scheitert das
+        #      oder der HTTP-Call → Teil-Fallback flaechen=None (Client leitet ab).
+        #   2. hart normativ (pruefe_flaechen gegen data/rules/flaechen.json):
+        #      bei Verstoß 1 Norm-Repair-Retry → sonst deterministische
+        #      korrigiere_flaechen (verwirft NICHT, sondern macht konform).
         antwort_c = self._call_json(
             self._prompt_flaechen(stilprofil, room),
             lambda a: _validiere_flaechen(a, n_walls, MATERIAL_SLUGS),
             "flaechen",
         )
-        if antwort_c is not None:
-            flaechen: dict[str, Any] | None = antwort_c["flaechen"]
-        else:
+        flaechen: dict[str, Any] | None
+        if antwort_c is None:
             flaechen = None
             begruendung += " (Teil-Fallback Flächen: CURATOR_FLAECHEN_FALLBACK)"
+        else:
+            flaechen = antwort_c["flaechen"]
+            verstoesse = pruefe_flaechen(flaechen, room, FLAECHEN_REGELN)
+            if verstoesse:
+                repariert = self._flaechen_norm_repair(
+                    self._prompt_flaechen(stilprofil, room),
+                    flaechen,
+                    verstoesse,
+                    n_walls,
+                    room,
+                )
+                if repariert is not None:
+                    flaechen = repariert
+                    begruendung += " (Norm-Repair Flächen: CURATOR_FLAECHEN_NORMREPAIR)"
+                else:
+                    flaechen = korrigiere_flaechen(flaechen, room, FLAECHEN_REGELN)
+                    begruendung += " (Norm-Korrektur Flächen: CURATOR_FLAECHEN_NORMKORREKTUR)"
 
         return {
             "auswahl": auswahl,

@@ -22,6 +22,12 @@ const mapping: { dir: string; schema: string; array: boolean }[] = [
   { dir: "dressing", schema: "dressing-item", array: true },
 ];
 
+/** Files in data/, die bewusst ein EIGENES Format haben (nicht die Schema-Vertrag
+ *  des jeweiligen Ordners). flaechen.json ist der Flächen-Normregelsatz (Kurator
+ *  Call C) – deklaratives Eigenformat, getrennt vom Geometrie-«regel»-Schema und
+ *  vom Paritätstest; die Python-Seite (kurator.pruefe_flaechen) prüft ihn. */
+const skip = new Set(["rules/flaechen.json"]);
+
 const validator = createValidator();
 let files = 0;
 let errors = 0;
@@ -30,6 +36,7 @@ for (const { dir, schema, array } of mapping) {
   const full = join(dataDir, dir);
   if (!existsSync(full)) continue;
   for (const name of readdirSync(full).filter((f) => f.endsWith(".json"))) {
+    if (skip.has(`${dir}/${name}`)) continue;
     files += 1;
     const raw: unknown = JSON.parse(readFileSync(join(full, name), "utf-8"));
     const instances = array ? (raw as unknown[]) : [raw];

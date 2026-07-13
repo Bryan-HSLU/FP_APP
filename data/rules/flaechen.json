@@ -1,0 +1,48 @@
+[
+  {
+    "id": "bad-boden-wasserfest",
+    "roomType": "bad",
+    "gilt": "boden",
+    "anforderung": "wasserfest",
+    "erlaubteMaterialien": ["fliesen-hell", "fliesen-gruen", "fliesen-anthrazit", "naturstein", "beton"],
+    "severity": "hard",
+    "quelle": "SIA 271 / DIN 18195 – Abdichtung Nassraum / Richtwert",
+    "status": "zu-verifizieren",
+    "hinweis": "Bad-Boden muss wasserfest sein (Fliesen/Naturstein/Beton) – kein Parkett/Holz/Putz/Tapete."
+  },
+  {
+    "id": "bad-wand-nass-wasserfest",
+    "roomType": "bad",
+    "gilt": "wand-nass",
+    "anforderung": "wasserfest",
+    "minHoeheM": 2.0,
+    "erlaubteMaterialien": ["fliesen-hell", "fliesen-gruen", "fliesen-anthrazit", "naturstein"],
+    "severity": "hard",
+    "quelle": "SIA 271 / DIN 18534 – Nassbereich Dusche/Wanne / Richtwert",
+    "status": "zu-verifizieren",
+    "hinweis": "Wände mit Wasser-/Abwasser-Anschluss (Dusche/Wanne/Lavabo) wasserfest verkleidet bis ≥ 2.0 m."
+  },
+  {
+    "id": "bad-wand-alle-sockel",
+    "roomType": "bad",
+    "gilt": "wand-alle",
+    "anforderung": "wasserfest",
+    "minHoeheM": 0.1,
+    "erlaubteMaterialien": ["fliesen-hell", "fliesen-gruen", "fliesen-anthrazit", "naturstein", "beton"],
+    "severity": "hard",
+    "quelle": "Praxis – Spritzwasser-/Sockelschutz Nassraum / Richtwert",
+    "status": "zu-verifizieren",
+    "hinweis": "Jede EXPLIZIT belegte Bad-Wand braucht ein wasserfestes Material am Boden (Sockel ≥ 0.1 m). Trockene Wände bleiben unbelegt (Client-Fallback), statt sie mit Putz/Tapete zu belegen."
+  },
+  {
+    "id": "kueche-boden-abwaschbar",
+    "roomType": "kueche",
+    "gilt": "boden",
+    "anforderung": "abwaschbar",
+    "erlaubteMaterialien": ["fliesen-hell", "fliesen-gruen", "fliesen-anthrazit", "beton", "naturstein"],
+    "severity": "hard",
+    "quelle": "Küchen-Detailkonzept / Praxis – strapazierfähiger, abwaschbarer Boden / Richtwert",
+    "status": "zu-verifizieren",
+    "hinweis": "Küchenboden strapazierfähig/abwaschbar (Fliesen/Beton/Naturstein). Parkett-Eiche zwar praxisüblich, hier bewusst streng als Richtwert ausgeschlossen."
+  }
+]

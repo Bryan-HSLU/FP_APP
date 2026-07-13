@@ -318,6 +318,12 @@ const MATERIAL_LOOK: Record<MaterialSlug, FlaechenLook> = {
   "parkett-eiche": { muster: "holz", farbe: "#b08d5b", fugenfarbe: fuge("#b08d5b"), masse_m: 0.15 },
   beton: { muster: "stein", farbe: "#9a9a95", fugenfarbe: "#89897f", masse_m: 0.8 },
   naturstein: { muster: "stein", farbe: "#b7a98f", fugenfarbe: fuge("#b7a98f"), masse_m: 0.6 },
+  // Allgemeine Wandbekleidungen (keine Platten): tapete = flächiger Putz-/Uni-Ton
+  // (warm, leicht anders getönt als putz-warm – die feine Streifen-Andeutung
+  // bleibt POC-seitig eine Tönung, kein eigener Muster-Generator); taefer =
+  // vertikale Holzlamellen wie die übrigen holz-Looks.
+  "tapete-hell": { muster: "uni", farbe: "#e6ded0", fugenfarbe: fuge("#e6ded0"), masse_m: 0.3 },
+  "taefer-holz": { muster: "holz", farbe: "#caa877", fugenfarbe: fuge("#caa877"), masse_m: 0.15 },
 };
 
 /** Look eines Material-Slugs (Kopie, damit Aufrufer sie gefahrlos abwandeln). */
@@ -334,7 +340,15 @@ export function akzentLook(look: FlaechenLook): FlaechenLook {
   };
 }
 
-/** BodenSpez aus einem Material-Slug (holz-Lamellen → parkett-Muster des Bodens). */
+/**
+ * BodenSpez aus einem Material-Slug (holz-Lamellen → parkett-Muster des Bodens).
+ *
+ * Reine Wandbekleidungen (`tapete-hell`, `taefer-holz`) sind **keine**
+ * Bodenmaterialien; als Boden-Slug landen sie hier nie über die Norm-Prüfung
+ * (`data/rules/flaechen.json` beschränkt Bad-/Küchen-Böden, `oberflaechen`
+ * bietet sie nicht als Bodenvariante an). Käme trotzdem einer durch, degradiert
+ * er sinnvoll: `taefer-holz` → Parkett, `tapete-hell` → schlichter Uni-Boden.
+ */
 export function bodenSpezAusSlug(slug: MaterialSlug): BodenSpez {
   const l = materialLook(slug);
   const muster: BodenSpez["muster"] = l.muster === "holz" ? "parkett" : l.muster;

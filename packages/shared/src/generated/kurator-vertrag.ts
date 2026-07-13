@@ -14,7 +14,9 @@ export type MaterialSlug =
   | "holz-dunkel"
   | "parkett-eiche"
   | "beton"
-  | "naturstein";
+  | "naturstein"
+  | "tapete-hell"
+  | "taefer-holz";
 
 /**
  * Vertrag 7: Schnittstelle zum KI-Kurator (ADR-0007). Erdung als Schema-Regel: Response-IDs müssen Teilmenge des katalogAuszug sein – sonst Retry/Fallback deterministische Baseline. v0.2 (additiv/minor): optionale Felder «anordnung» (weiche Anordnungs-Anweisungen je Item) und «flaechen» (Boden-/Wand-Material-Wünsche) – Kurator-Pipeline v2 (3 Calls).
@@ -65,7 +67,7 @@ export interface KuratorRequest {
         [k: string]: number;
       };
       attributTags?: string[];
-    }[],
+    }[]
   ];
   budget?: number;
   normProfile: "ch" | "eu";

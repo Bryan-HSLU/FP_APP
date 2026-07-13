@@ -23,7 +23,9 @@
         "holz-dunkel",
         "parkett-eiche",
         "beton",
-        "naturstein"
+        "naturstein",
+        "tapete-hell",
+        "taefer-holz"
       ]
     },
     "kuratorRequest": {

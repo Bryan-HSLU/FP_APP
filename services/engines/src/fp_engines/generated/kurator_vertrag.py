@@ -35,6 +35,8 @@ class MaterialSlug(Enum):
     parkett_eiche = "parkett-eiche"
     beton = "beton"
     naturstein = "naturstein"
+    tapete_hell = "tapete-hell"
+    taefer_holz = "taefer-holz"
 
 
 class RoomType(Enum):
