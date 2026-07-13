@@ -6,7 +6,20 @@
 > Abweichungen gibt es. Meilenstein-Definitionen: Brain →
 > `vault/50_Umsetzung/Bauplan-Meilensteine.md`.
 
-**Stand: 2026-07-12**
+**Stand: 2026-07-13**
+
+### CI-Fix + 2D-Wand-Semantik + 3D-Polish + Ladebildschirme (2026-07-13)
+- **CI grün:** Prettier-Format der Codegen-Ausgabe gefixt; Merke: Gates immer
+  mit den ROOT-Kommandos fahren (`pnpm lint/typecheck/test` deckt alle
+  Workspaces — apps/web allein reicht nicht).
+- **2D-Wand-Semantik korrigiert:** `floor.polygon` = INNENKANTE (nutzbare
+  Raumfläche, Solver-Realität) → Wand wächst jetzt nach AUSSEN
+  (`aussenPolygon`, Gehrung aussen); Boden = volles Polygon.
+- **3D-Rendering-Polish:** prozedurale Environment (Lightformer-Softbox,
+  offline/CSP-fest), ACES-Tonemapping, ContactShadows; Chrom echt spiegelnd,
+  Glas reflektierend. Kein Post-Processing (bewusst schlank).
+- **Ladebildschirme:** FP-Logo + Puls + Fortschrittsbalken an allen 4
+  Wartepunkten (v.a. Vorschlag/Kurator mit 3 KI-Calls); Piktogramme +20–30%.
 
 ### Kurator-Pipeline v2 + Licht + individuelle Flächen (2026-07-12)
 - **Kurator v2 – 3 KI-Calls** (`kurator.py`, Vertrag v0.2 additiv): A Auswahl ·
