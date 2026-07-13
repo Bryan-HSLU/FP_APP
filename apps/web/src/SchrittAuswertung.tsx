@@ -198,7 +198,7 @@ export function SchrittAuswertung({
             className={`${CSS.card} ${d.primaer ? CSS.cardAktiv : ""}`}
             style={{ padding: 16, display: "flex", flexDirection: "column", gap: 8 }}
           >
-            <Piktogramm name={d.pikto} aktiv={d.primaer} groesse={40} titel={d.titel} />
+            <Piktogramm name={d.pikto} aktiv={d.primaer} groesse={48} titel={d.titel} />
             <strong style={{ ...titel, fontSize: 14 }}>{d.titel}</strong>
             <span style={{ fontSize: 12.5, color: THEME.salbei, flex: 1 }}>{d.zeile}</span>
             <button
@@ -222,7 +222,7 @@ export function SchrittAuswertung({
             >
               <Piktogramm
                 name="export"
-                groesse={20}
+                groesse={24}
                 style={d.primaer ? { filter: "brightness(0) invert(1)" } : undefined}
               />
               Herunterladen

@@ -166,7 +166,7 @@ export function SchrittProjekt({
             gap: 8,
           }}
         >
-          <Piktogramm name="scan" groesse={24} /> Scan korrigieren
+          <Piktogramm name="scan" groesse={29} /> Scan korrigieren
         </button>
       )}
 
@@ -194,7 +194,7 @@ export function SchrittProjekt({
                     gap: 10,
                   }}
                 >
-                  <Piktogramm name={r.roomType as PiktogrammName} groesse={34} />
+                  <Piktogramm name={r.roomType as PiktogrammName} groesse={41} />
                   <strong style={{ color: THEME.gruen }}>{r.name}</strong>
                   <span style={{ fontSize: 12, color: THEME.salbei, marginLeft: "auto" }}>
                     {r.roomType}

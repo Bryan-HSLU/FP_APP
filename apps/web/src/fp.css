@@ -212,6 +212,46 @@ body {
   animation: fp-puls 1.4s ease-in-out infinite;
 }
 
+/* ---------- Ladezustand: Fortschrittsbalken (Ladezustand.tsx) ----------
+   Standard = unbestimmt (kein bekannter Endpunkt, meist ein KI-Call);
+   bestimmter Balken kommt über eine feste Füllungs-Breite (kein CSS nötig,
+   nur Inline-`width` per Prop `fortschritt`). */
+.fp-fortschrittsbalken {
+  position: relative;
+  width: min(220px, 70%);
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(36, 61, 53, 0.12);
+  overflow: hidden;
+}
+.fp-fortschrittsbalken-fuellung {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--fp-accent);
+  transition: width 200ms ease;
+}
+@keyframes fp-balken-unbestimmt {
+  0% {
+    left: -45%;
+    width: 40%;
+  }
+  50% {
+    width: 55%;
+  }
+  100% {
+    left: 100%;
+    width: 40%;
+  }
+}
+.fp-fortschrittsbalken-unbestimmt {
+  width: 40%;
+  transition: none;
+  animation: fp-balken-unbestimmt 1.3s ease-in-out infinite;
+}
+
 /* ---------- Responsive-Helfer ---------- */
 .fp-two-column {
   display: grid;
@@ -245,7 +285,8 @@ body {
   .fp-swipe-like,
   .fp-swipe-dislike,
   .fp-button,
-  .fp-auswahl {
+  .fp-auswahl,
+  .fp-fortschrittsbalken-unbestimmt {
     animation: none;
     transition: none;
   }

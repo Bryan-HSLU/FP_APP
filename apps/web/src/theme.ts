@@ -54,6 +54,11 @@ export const CSS = {
   fortschritt: "fp-fortschritt",
   /** Farbige Objekte (CI-Farbe) tragen Schlagschatten + Innenschein (Bryan). */
   farbig: "fp-farbig",
+  /** Ladebildschirm-Fortschrittsbalken (Ladezustand.tsx): Track, Füllung,
+   *  Füllung unbestimmt (animiert). */
+  fortschrittsbalken: "fp-fortschrittsbalken",
+  fortschrittsbalkenFuellung: "fp-fortschrittsbalken-fuellung",
+  fortschrittsbalkenUnbestimmt: "fp-fortschrittsbalken-unbestimmt",
 } as const;
 
 /** Harter Schlagschatten OHNE Blur (scharfe Kante) – Bryans Pitch-/Grafikstil.

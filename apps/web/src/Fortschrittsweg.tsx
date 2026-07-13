@@ -89,15 +89,15 @@ export function Fortschrittsweg({
             >
               <span
                 style={{
-                  width: 34,
-                  height: 34,
+                  width: 42,
+                  height: 42,
                   borderRadius: 999,
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
                   color: "#fff",
                   fontWeight: 600,
-                  fontSize: 15,
+                  fontSize: 18,
                   flex: "0 0 auto",
                   background: KREIS_FARBE[zustand],
                   boxShadow:

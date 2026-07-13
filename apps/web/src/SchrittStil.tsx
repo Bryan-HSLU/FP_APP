@@ -276,7 +276,7 @@ export function SchrittStil({
                     fontSize: 16,
                   }}
                 >
-                  <Piktogramm name="dislike" groesse={32} /> Gefällt nicht
+                  <Piktogramm name="dislike" groesse={39} /> Gefällt nicht
                 </button>
                 <button
                   type="button"
@@ -298,7 +298,7 @@ export function SchrittStil({
                 >
                   <Piktogramm
                     name="like"
-                    groesse={32}
+                    groesse={39}
                     style={{ filter: "brightness(0) invert(1)" }}
                   />{" "}
                   Gefällt mir
