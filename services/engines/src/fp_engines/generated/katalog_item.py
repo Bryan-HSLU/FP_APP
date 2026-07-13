@@ -120,6 +120,25 @@ class Semver(RootModel[constr(pattern=r"^\d+\.\d+\.\d+$")]):
     root: constr(pattern=r"^\d+\.\d+\.\d+$")
 
 
+class FarbSlug(Enum):
+    weiss = "weiss"
+    creme = "creme"
+    sand = "sand"
+    beige = "beige"
+    hellgrau = "hellgrau"
+    anthrazit = "anthrazit"
+    schwarz = "schwarz"
+    eiche_hell = "eiche-hell"
+    nussbaum = "nussbaum"
+    salbei = "salbei"
+    olive = "olive"
+    terracotta = "terracotta"
+    bordeaux = "bordeaux"
+    blaugrau = "blaugrau"
+    dunkelblau = "dunkelblau"
+    messing = "messing"
+
+
 class KatalogItem(BaseModel):
     """
     Vertrag 4: Möbel-/Objektkatalog (Stammdaten). Box-Platzhalter mit Auto-Upgrade: ohne gltfRef rendert der Viewer eine Box aus masse; Platzierungen referenzieren nur die ID.
@@ -158,6 +177,12 @@ class KatalogItem(BaseModel):
         description="Erlaubte Montagehöhe (Unterkante bzw. Oberkante je Konvention der Regel) bei mount=wand.",
     )
     achsenTags: dict[str, confloat(ge=-1.0, le=1.0)]
+    farbVarianten: list[FarbSlug] | None = Field(
+        None,
+        description="Wählbare Farbvarianten des generischen Objekts; erste = Default-Optik. Grundlage für KI-Farbwahl und UI-Picker (nur solange Eigen-Objekte, keine Hersteller-Assets).",
+        max_length=4,
+        min_length=1,
+    )
     attributTags: list[constr(pattern=r"^[a-z0-9-]+:[a-z0-9-]+$")]
     anschluesse: list[AnschluesseEnum]
     relationalRules: list[str]

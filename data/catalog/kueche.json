@@ -5,7 +5,9 @@
     "name": "Spülenschrank Edelstahl-Becken (CH 55)",
     "kategorie": "kueche-spuele",
     "funktionsTyp": "spuele",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -18,10 +20,18 @@
     "achsenTags": {
       "materialitaet": 0.3,
       "kontur": 0.4,
-      "epoche": 0.4
+      "epoche": 0.4,
+      "temperatur": -0.4,
+      "opulenz": -0.1,
+      "helligkeit": 0.2,
+      "farbigkeit": -0.5,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
-    "anschluesse": ["wasser", "abwasser"],
+    "anschluesse": [
+      "wasser",
+      "abwasser"
+    ],
     "relationalRules": [],
     "preis": {
       "value": 680,
@@ -30,7 +40,10 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "ch55"
+    "normProfileVariante": "ch55",
+    "farbVarianten": [
+      "hellgrau"
+    ]
   },
   {
     "id": "cccccccc-0002-4000-8000-000000000002",
@@ -38,7 +51,9 @@
     "name": "Spülenschrank Edelstahl-Becken (EU 60)",
     "kategorie": "kueche-spuele",
     "funktionsTyp": "spuele",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -51,10 +66,18 @@
     "achsenTags": {
       "materialitaet": 0.3,
       "kontur": 0.4,
-      "epoche": 0.4
+      "epoche": 0.4,
+      "temperatur": -0.4,
+      "opulenz": -0.1,
+      "helligkeit": 0.2,
+      "farbigkeit": -0.5,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
-    "anschluesse": ["wasser", "abwasser"],
+    "anschluesse": [
+      "wasser",
+      "abwasser"
+    ],
     "relationalRules": [],
     "preis": {
       "value": 720,
@@ -63,7 +86,10 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "eu60"
+    "normProfileVariante": "eu60",
+    "farbVarianten": [
+      "hellgrau"
+    ]
   },
   {
     "id": "cccccccc-0003-4000-8000-000000000003",
@@ -71,7 +97,9 @@
     "name": "Spülenschrank Granit-Becken Anthrazit (CH 55)",
     "kategorie": "kueche-spuele",
     "funktionsTyp": "spuele",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -84,10 +112,18 @@
     "achsenTags": {
       "helligkeit": -0.4,
       "opulenz": 0.3,
-      "materialitaet": 0.5
+      "materialitaet": 0.5,
+      "temperatur": -0.1,
+      "epoche": 0.3,
+      "kontur": 0.3,
+      "farbigkeit": -0.4,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
-    "anschluesse": ["wasser", "abwasser"],
+    "anschluesse": [
+      "wasser",
+      "abwasser"
+    ],
     "relationalRules": [],
     "preis": {
       "value": 890,
@@ -96,7 +132,10 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "ch55"
+    "normProfileVariante": "ch55",
+    "farbVarianten": [
+      "anthrazit"
+    ]
   },
   {
     "id": "cccccccc-0004-4000-8000-000000000004",
@@ -104,7 +143,9 @@
     "name": "Spülenschrank Granit-Becken Anthrazit (EU 60)",
     "kategorie": "kueche-spuele",
     "funktionsTyp": "spuele",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -117,10 +158,18 @@
     "achsenTags": {
       "helligkeit": -0.4,
       "opulenz": 0.3,
-      "materialitaet": 0.5
+      "materialitaet": 0.5,
+      "temperatur": -0.1,
+      "epoche": 0.3,
+      "kontur": 0.3,
+      "farbigkeit": -0.4,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
-    "anschluesse": ["wasser", "abwasser"],
+    "anschluesse": [
+      "wasser",
+      "abwasser"
+    ],
     "relationalRules": [],
     "preis": {
       "value": 930,
@@ -129,7 +178,10 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "eu60"
+    "normProfileVariante": "eu60",
+    "farbVarianten": [
+      "anthrazit"
+    ]
   },
   {
     "id": "cccccccc-0005-4000-8000-000000000005",
@@ -137,7 +189,9 @@
     "name": "Kochfeld-Unterschrank Induktion (CH 55)",
     "kategorie": "kueche-kochfeld",
     "funktionsTyp": "kochfeld",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -150,10 +204,17 @@
     "achsenTags": {
       "epoche": 0.7,
       "kontur": 0.5,
-      "helligkeit": 0.2
+      "helligkeit": 0.2,
+      "temperatur": -0.3,
+      "opulenz": 0.1,
+      "materialitaet": -0.4,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
-    "anschluesse": ["starkstrom"],
+    "anschluesse": [
+      "starkstrom"
+    ],
     "relationalRules": [],
     "preis": {
       "value": 1150,
@@ -162,7 +223,11 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "ch55"
+    "normProfileVariante": "ch55",
+    "farbVarianten": [
+      "schwarz",
+      "hellgrau"
+    ]
   },
   {
     "id": "cccccccc-0006-4000-8000-000000000006",
@@ -170,7 +235,9 @@
     "name": "Kochfeld-Unterschrank Induktion (EU 60)",
     "kategorie": "kueche-kochfeld",
     "funktionsTyp": "kochfeld",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -183,10 +250,17 @@
     "achsenTags": {
       "epoche": 0.7,
       "kontur": 0.5,
-      "helligkeit": 0.2
+      "helligkeit": 0.2,
+      "temperatur": -0.3,
+      "opulenz": 0.1,
+      "materialitaet": -0.4,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
-    "anschluesse": ["starkstrom"],
+    "anschluesse": [
+      "starkstrom"
+    ],
     "relationalRules": [],
     "preis": {
       "value": 1190,
@@ -195,7 +269,11 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "eu60"
+    "normProfileVariante": "eu60",
+    "farbVarianten": [
+      "schwarz",
+      "hellgrau"
+    ]
   },
   {
     "id": "cccccccc-0007-4000-8000-000000000007",
@@ -203,7 +281,9 @@
     "name": "Kochfeld-Unterschrank Glaskeramik (CH 55)",
     "kategorie": "kueche-kochfeld",
     "funktionsTyp": "kochfeld",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -215,10 +295,18 @@
     "mount": "boden",
     "achsenTags": {
       "epoche": 0.3,
-      "kontur": 0.3
+      "kontur": 0.3,
+      "temperatur": -0.3,
+      "opulenz": -0.1,
+      "materialitaet": -0.4,
+      "helligkeit": 0.0,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
-    "anschluesse": ["starkstrom"],
+    "anschluesse": [
+      "starkstrom"
+    ],
     "relationalRules": [],
     "preis": {
       "value": 920,
@@ -227,7 +315,10 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "ch55"
+    "normProfileVariante": "ch55",
+    "farbVarianten": [
+      "schwarz"
+    ]
   },
   {
     "id": "cccccccc-0008-4000-8000-000000000008",
@@ -235,7 +326,9 @@
     "name": "Kochfeld-Unterschrank Glaskeramik (EU 60)",
     "kategorie": "kueche-kochfeld",
     "funktionsTyp": "kochfeld",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -247,10 +340,18 @@
     "mount": "boden",
     "achsenTags": {
       "epoche": 0.3,
-      "kontur": 0.3
+      "kontur": 0.3,
+      "temperatur": -0.3,
+      "opulenz": -0.1,
+      "materialitaet": -0.4,
+      "helligkeit": 0.0,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
-    "anschluesse": ["starkstrom"],
+    "anschluesse": [
+      "starkstrom"
+    ],
     "relationalRules": [],
     "preis": {
       "value": 950,
@@ -259,7 +360,10 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "eu60"
+    "normProfileVariante": "eu60",
+    "farbVarianten": [
+      "schwarz"
+    ]
   },
   {
     "id": "cccccccc-0009-4000-8000-000000000009",
@@ -267,7 +371,9 @@
     "name": "Kühl-/Gefrierkombi Hochschrank (CH 55)",
     "kategorie": "kueche-kuehlschrank",
     "funktionsTyp": "kuehlschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -279,10 +385,18 @@
     "mount": "boden",
     "achsenTags": {
       "helligkeit": 0.4,
-      "kontur": 0.4
+      "kontur": 0.4,
+      "temperatur": -0.2,
+      "opulenz": -0.1,
+      "materialitaet": -0.2,
+      "epoche": 0.4,
+      "farbigkeit": -0.5,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
-    "anschluesse": ["elektro"],
+    "anschluesse": [
+      "elektro"
+    ],
     "relationalRules": [],
     "preis": {
       "value": 1280,
@@ -291,7 +405,11 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "ch55"
+    "normProfileVariante": "ch55",
+    "farbVarianten": [
+      "weiss",
+      "hellgrau"
+    ]
   },
   {
     "id": "cccccccc-0010-4000-8000-000000000010",
@@ -299,7 +417,9 @@
     "name": "Kühl-/Gefrierkombi Hochschrank (EU 60)",
     "kategorie": "kueche-kuehlschrank",
     "funktionsTyp": "kuehlschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -311,10 +431,18 @@
     "mount": "boden",
     "achsenTags": {
       "helligkeit": 0.4,
-      "kontur": 0.4
+      "kontur": 0.4,
+      "temperatur": -0.2,
+      "opulenz": -0.1,
+      "materialitaet": -0.2,
+      "epoche": 0.4,
+      "farbigkeit": -0.5,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
-    "anschluesse": ["elektro"],
+    "anschluesse": [
+      "elektro"
+    ],
     "relationalRules": [],
     "preis": {
       "value": 1340,
@@ -323,7 +451,11 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "eu60"
+    "normProfileVariante": "eu60",
+    "farbVarianten": [
+      "weiss",
+      "hellgrau"
+    ]
   },
   {
     "id": "cccccccc-0011-4000-8000-000000000011",
@@ -331,7 +463,9 @@
     "name": "Kühlschrank Hochschrank Edelstahl (CH 55)",
     "kategorie": "kueche-kuehlschrank",
     "funktionsTyp": "kuehlschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -344,10 +478,17 @@
     "achsenTags": {
       "materialitaet": 0.2,
       "helligkeit": 0.1,
-      "kontur": 0.5
+      "kontur": 0.5,
+      "temperatur": -0.4,
+      "opulenz": 0.0,
+      "epoche": 0.5,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
-    "anschluesse": ["elektro"],
+    "anschluesse": [
+      "elektro"
+    ],
     "relationalRules": [],
     "preis": {
       "value": 1490,
@@ -356,7 +497,10 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "ch55"
+    "normProfileVariante": "ch55",
+    "farbVarianten": [
+      "hellgrau"
+    ]
   },
   {
     "id": "cccccccc-0012-4000-8000-000000000012",
@@ -364,7 +508,9 @@
     "name": "Kühlschrank Hochschrank Edelstahl (EU 60)",
     "kategorie": "kueche-kuehlschrank",
     "funktionsTyp": "kuehlschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -377,10 +523,17 @@
     "achsenTags": {
       "materialitaet": 0.2,
       "helligkeit": 0.1,
-      "kontur": 0.5
+      "kontur": 0.5,
+      "temperatur": -0.4,
+      "opulenz": 0.0,
+      "epoche": 0.5,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
-    "anschluesse": ["elektro"],
+    "anschluesse": [
+      "elektro"
+    ],
     "relationalRules": [],
     "preis": {
       "value": 1550,
@@ -389,7 +542,10 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "eu60"
+    "normProfileVariante": "eu60",
+    "farbVarianten": [
+      "hellgrau"
+    ]
   },
   {
     "id": "cccccccc-0013-4000-8000-000000000013",
@@ -397,7 +553,9 @@
     "name": "Geschirrspüler integriert (CH 55)",
     "kategorie": "kueche-geschirrspueler",
     "funktionsTyp": "geschirrspueler",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -409,11 +567,23 @@
     "mount": "boden",
     "achsenTags": {
       "epoche": 0.5,
-      "helligkeit": 0.2
+      "helligkeit": 0.2,
+      "temperatur": -0.2,
+      "opulenz": -0.1,
+      "materialitaet": -0.3,
+      "kontur": 0.3,
+      "farbigkeit": -0.5,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
-    "anschluesse": ["wasser", "abwasser", "elektro"],
-    "relationalRules": ["near:spuele:0.9"],
+    "anschluesse": [
+      "wasser",
+      "abwasser",
+      "elektro"
+    ],
+    "relationalRules": [
+      "near:spuele:0.9"
+    ],
     "preis": {
       "value": 980,
       "currency": "CHF",
@@ -421,7 +591,11 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "ch55"
+    "normProfileVariante": "ch55",
+    "farbVarianten": [
+      "hellgrau",
+      "weiss"
+    ]
   },
   {
     "id": "cccccccc-0014-4000-8000-000000000014",
@@ -429,7 +603,9 @@
     "name": "Geschirrspüler integriert (EU 60)",
     "kategorie": "kueche-geschirrspueler",
     "funktionsTyp": "geschirrspueler",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -441,11 +617,23 @@
     "mount": "boden",
     "achsenTags": {
       "epoche": 0.5,
-      "helligkeit": 0.2
+      "helligkeit": 0.2,
+      "temperatur": -0.2,
+      "opulenz": -0.1,
+      "materialitaet": -0.3,
+      "kontur": 0.3,
+      "farbigkeit": -0.5,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
-    "anschluesse": ["wasser", "abwasser", "elektro"],
-    "relationalRules": ["near:spuele:0.9"],
+    "anschluesse": [
+      "wasser",
+      "abwasser",
+      "elektro"
+    ],
+    "relationalRules": [
+      "near:spuele:0.9"
+    ],
     "preis": {
       "value": 1010,
       "currency": "CHF",
@@ -453,7 +641,11 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "eu60"
+    "normProfileVariante": "eu60",
+    "farbVarianten": [
+      "hellgrau",
+      "weiss"
+    ]
   },
   {
     "id": "cccccccc-0015-4000-8000-000000000015",
@@ -461,7 +653,9 @@
     "name": "Unterschrank Auszüge Eiche (CH 55)",
     "kategorie": "kueche-unterschrank",
     "funktionsTyp": "unterschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -474,7 +668,12 @@
     "achsenTags": {
       "materialitaet": 0.8,
       "temperatur": 0.6,
-      "epoche": 0.2
+      "epoche": 0.2,
+      "opulenz": 0.0,
+      "helligkeit": 0.2,
+      "kontur": 0.1,
+      "farbigkeit": -0.3,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
     "anschluesse": [],
@@ -486,7 +685,11 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "ch55"
+    "normProfileVariante": "ch55",
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "cccccccc-0016-4000-8000-000000000016",
@@ -494,7 +697,9 @@
     "name": "Unterschrank Auszüge Eiche (EU 60)",
     "kategorie": "kueche-unterschrank",
     "funktionsTyp": "unterschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -507,7 +712,12 @@
     "achsenTags": {
       "materialitaet": 0.8,
       "temperatur": 0.6,
-      "epoche": 0.2
+      "epoche": 0.2,
+      "opulenz": 0.0,
+      "helligkeit": 0.2,
+      "kontur": 0.1,
+      "farbigkeit": -0.3,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
     "anschluesse": [],
@@ -519,7 +729,11 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "eu60"
+    "normProfileVariante": "eu60",
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "cccccccc-0017-4000-8000-000000000017",
@@ -527,7 +741,9 @@
     "name": "Unterschrank Auszüge Weiss matt (CH 55)",
     "kategorie": "kueche-unterschrank",
     "funktionsTyp": "unterschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -540,7 +756,12 @@
     "achsenTags": {
       "helligkeit": 0.8,
       "opulenz": -0.4,
-      "epoche": 0.6
+      "epoche": 0.6,
+      "temperatur": -0.1,
+      "materialitaet": -0.3,
+      "kontur": 0.3,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
     "anschluesse": [],
@@ -552,7 +773,10 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "ch55"
+    "normProfileVariante": "ch55",
+    "farbVarianten": [
+      "weiss"
+    ]
   },
   {
     "id": "cccccccc-0018-4000-8000-000000000018",
@@ -560,7 +784,9 @@
     "name": "Unterschrank Auszüge Weiss matt (EU 60)",
     "kategorie": "kueche-unterschrank",
     "funktionsTyp": "unterschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -573,7 +799,12 @@
     "achsenTags": {
       "helligkeit": 0.8,
       "opulenz": -0.4,
-      "epoche": 0.6
+      "epoche": 0.6,
+      "temperatur": -0.1,
+      "materialitaet": -0.3,
+      "kontur": 0.3,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
     "anschluesse": [],
@@ -585,7 +816,10 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "eu60"
+    "normProfileVariante": "eu60",
+    "farbVarianten": [
+      "weiss"
+    ]
   },
   {
     "id": "cccccccc-0019-4000-8000-000000000019",
@@ -593,7 +827,9 @@
     "name": "Hängeschrank Eiche (CH 55)",
     "kategorie": "kueche-haengeschrank",
     "funktionsTyp": "haengeschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -605,7 +841,13 @@
     "mount": "wand",
     "achsenTags": {
       "materialitaet": 0.8,
-      "temperatur": 0.6
+      "temperatur": 0.6,
+      "opulenz": 0.0,
+      "helligkeit": 0.2,
+      "epoche": 0.1,
+      "kontur": 0.1,
+      "farbigkeit": -0.3,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
     "anschluesse": [],
@@ -621,7 +863,11 @@
     "mountHeightRange": {
       "min": 1.4,
       "max": 1.5
-    }
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "cccccccc-0020-4000-8000-000000000020",
@@ -629,7 +875,9 @@
     "name": "Hängeschrank Eiche (EU 60)",
     "kategorie": "kueche-haengeschrank",
     "funktionsTyp": "haengeschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -641,7 +889,13 @@
     "mount": "wand",
     "achsenTags": {
       "materialitaet": 0.8,
-      "temperatur": 0.6
+      "temperatur": 0.6,
+      "opulenz": 0.0,
+      "helligkeit": 0.2,
+      "epoche": 0.1,
+      "kontur": 0.1,
+      "farbigkeit": -0.3,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
     "anschluesse": [],
@@ -657,7 +911,11 @@
     "mountHeightRange": {
       "min": 1.4,
       "max": 1.5
-    }
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "cccccccc-0021-4000-8000-000000000021",
@@ -665,7 +923,9 @@
     "name": "Hängeschrank Weiss Hochglanz (CH 55)",
     "kategorie": "kueche-haengeschrank",
     "funktionsTyp": "haengeschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -678,7 +938,12 @@
     "achsenTags": {
       "helligkeit": 0.8,
       "kontur": 0.4,
-      "epoche": 0.7
+      "epoche": 0.7,
+      "temperatur": -0.2,
+      "opulenz": 0.1,
+      "materialitaet": -0.5,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
     "anschluesse": [],
@@ -694,7 +959,10 @@
     "mountHeightRange": {
       "min": 1.4,
       "max": 1.5
-    }
+    },
+    "farbVarianten": [
+      "weiss"
+    ]
   },
   {
     "id": "cccccccc-0022-4000-8000-000000000022",
@@ -702,7 +970,9 @@
     "name": "Hängeschrank Weiss Hochglanz (EU 60)",
     "kategorie": "kueche-haengeschrank",
     "funktionsTyp": "haengeschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -715,7 +985,12 @@
     "achsenTags": {
       "helligkeit": 0.8,
       "kontur": 0.4,
-      "epoche": 0.7
+      "epoche": 0.7,
+      "temperatur": -0.2,
+      "opulenz": 0.1,
+      "materialitaet": -0.5,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
     "anschluesse": [],
@@ -731,7 +1006,10 @@
     "mountHeightRange": {
       "min": 1.4,
       "max": 1.5
-    }
+    },
+    "farbVarianten": [
+      "weiss"
+    ]
   },
   {
     "id": "cccccccc-0023-4000-8000-000000000023",
@@ -739,7 +1017,9 @@
     "name": "Hochschrank Vorrat Eiche (CH 55)",
     "kategorie": "kueche-hochschrank",
     "funktionsTyp": "hochschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -751,7 +1031,13 @@
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.8,
-      "temperatur": 0.5
+      "temperatur": 0.5,
+      "opulenz": 0.0,
+      "helligkeit": 0.2,
+      "epoche": 0.1,
+      "kontur": 0.1,
+      "farbigkeit": -0.3,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
     "anschluesse": [],
@@ -763,7 +1049,11 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "ch55"
+    "normProfileVariante": "ch55",
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "cccccccc-0024-4000-8000-000000000024",
@@ -771,7 +1061,9 @@
     "name": "Hochschrank Vorrat Eiche (EU 60)",
     "kategorie": "kueche-hochschrank",
     "funktionsTyp": "hochschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -783,7 +1075,13 @@
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.8,
-      "temperatur": 0.5
+      "temperatur": 0.5,
+      "opulenz": 0.0,
+      "helligkeit": 0.2,
+      "epoche": 0.1,
+      "kontur": 0.1,
+      "farbigkeit": -0.3,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
     "anschluesse": [],
@@ -795,7 +1093,11 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "eu60"
+    "normProfileVariante": "eu60",
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "cccccccc-0025-4000-8000-000000000025",
@@ -803,7 +1105,9 @@
     "name": "Hochschrank Vorrat Weiss (CH 55)",
     "kategorie": "kueche-hochschrank",
     "funktionsTyp": "hochschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -815,7 +1119,13 @@
     "mount": "boden",
     "achsenTags": {
       "helligkeit": 0.8,
-      "opulenz": -0.3
+      "opulenz": -0.3,
+      "temperatur": -0.1,
+      "materialitaet": -0.3,
+      "epoche": 0.5,
+      "kontur": 0.3,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
     "anschluesse": [],
@@ -827,7 +1137,10 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "ch55"
+    "normProfileVariante": "ch55",
+    "farbVarianten": [
+      "weiss"
+    ]
   },
   {
     "id": "cccccccc-0026-4000-8000-000000000026",
@@ -835,7 +1148,9 @@
     "name": "Hochschrank Vorrat Weiss (EU 60)",
     "kategorie": "kueche-hochschrank",
     "funktionsTyp": "hochschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -847,7 +1162,13 @@
     "mount": "boden",
     "achsenTags": {
       "helligkeit": 0.8,
-      "opulenz": -0.3
+      "opulenz": -0.3,
+      "temperatur": -0.1,
+      "materialitaet": -0.3,
+      "epoche": 0.5,
+      "kontur": 0.3,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
     "anschluesse": [],
@@ -859,7 +1180,10 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "eu60"
+    "normProfileVariante": "eu60",
+    "farbVarianten": [
+      "weiss"
+    ]
   },
   {
     "id": "cccccccc-0027-4000-8000-000000000027",
@@ -867,7 +1191,9 @@
     "name": "Wand-Dunstabzug Edelstahl (CH 55)",
     "kategorie": "kueche-dunstabzug",
     "funktionsTyp": "dunstabzug",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -880,11 +1206,21 @@
     "achsenTags": {
       "materialitaet": 0.2,
       "kontur": 0.5,
-      "epoche": 0.6
+      "epoche": 0.6,
+      "temperatur": -0.4,
+      "opulenz": 0.0,
+      "helligkeit": 0.1,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
-    "anschluesse": ["elektro", "lueftung"],
-    "relationalRules": ["near:kochfeld:0.6"],
+    "anschluesse": [
+      "elektro",
+      "lueftung"
+    ],
+    "relationalRules": [
+      "near:kochfeld:0.6"
+    ],
     "preis": {
       "value": 580,
       "currency": "CHF",
@@ -896,7 +1232,10 @@
     "mountHeightRange": {
       "min": 1.55,
       "max": 1.65
-    }
+    },
+    "farbVarianten": [
+      "hellgrau"
+    ]
   },
   {
     "id": "cccccccc-0028-4000-8000-000000000028",
@@ -904,7 +1243,9 @@
     "name": "Wand-Dunstabzug Edelstahl (EU 60)",
     "kategorie": "kueche-dunstabzug",
     "funktionsTyp": "dunstabzug",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -917,11 +1258,21 @@
     "achsenTags": {
       "materialitaet": 0.2,
       "kontur": 0.5,
-      "epoche": 0.6
+      "epoche": 0.6,
+      "temperatur": -0.4,
+      "opulenz": 0.0,
+      "helligkeit": 0.1,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
-    "anschluesse": ["elektro", "lueftung"],
-    "relationalRules": ["near:kochfeld:0.6"],
+    "anschluesse": [
+      "elektro",
+      "lueftung"
+    ],
+    "relationalRules": [
+      "near:kochfeld:0.6"
+    ],
     "preis": {
       "value": 610,
       "currency": "CHF",
@@ -933,7 +1284,10 @@
     "mountHeightRange": {
       "min": 1.55,
       "max": 1.65
-    }
+    },
+    "farbVarianten": [
+      "hellgrau"
+    ]
   },
   {
     "id": "cccccccc-0029-4000-8000-000000000029",
@@ -941,7 +1295,9 @@
     "name": "Wand-Dunstabzug Schwarz Glas (CH 55)",
     "kategorie": "kueche-dunstabzug",
     "funktionsTyp": "dunstabzug",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -954,11 +1310,21 @@
     "achsenTags": {
       "helligkeit": -0.6,
       "kontur": 0.6,
-      "epoche": 0.7
+      "epoche": 0.7,
+      "temperatur": -0.2,
+      "opulenz": 0.2,
+      "materialitaet": -0.3,
+      "farbigkeit": -0.5,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
-    "anschluesse": ["elektro", "lueftung"],
-    "relationalRules": ["near:kochfeld:0.6"],
+    "anschluesse": [
+      "elektro",
+      "lueftung"
+    ],
+    "relationalRules": [
+      "near:kochfeld:0.6"
+    ],
     "preis": {
       "value": 690,
       "currency": "CHF",
@@ -970,7 +1336,10 @@
     "mountHeightRange": {
       "min": 1.55,
       "max": 1.65
-    }
+    },
+    "farbVarianten": [
+      "schwarz"
+    ]
   },
   {
     "id": "cccccccc-0030-4000-8000-000000000030",
@@ -978,7 +1347,9 @@
     "name": "Wand-Dunstabzug Schwarz Glas (EU 60)",
     "kategorie": "kueche-dunstabzug",
     "funktionsTyp": "dunstabzug",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -991,11 +1362,21 @@
     "achsenTags": {
       "helligkeit": -0.6,
       "kontur": 0.6,
-      "epoche": 0.7
+      "epoche": 0.7,
+      "temperatur": -0.2,
+      "opulenz": 0.2,
+      "materialitaet": -0.3,
+      "farbigkeit": -0.5,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
-    "anschluesse": ["elektro", "lueftung"],
-    "relationalRules": ["near:kochfeld:0.6"],
+    "anschluesse": [
+      "elektro",
+      "lueftung"
+    ],
+    "relationalRules": [
+      "near:kochfeld:0.6"
+    ],
     "preis": {
       "value": 720,
       "currency": "CHF",
@@ -1007,7 +1388,10 @@
     "mountHeightRange": {
       "min": 1.55,
       "max": 1.65
-    }
+    },
+    "farbVarianten": [
+      "schwarz"
+    ]
   },
   {
     "id": "cccccccc-0031-4000-8000-000000000031",
@@ -1015,7 +1399,9 @@
     "name": "Füllstück / Passleiste schmal (CH 55)",
     "kategorie": "kueche-fuellstueck",
     "funktionsTyp": "fuellstueck",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.05,
@@ -1025,7 +1411,16 @@
     "assetStatus": "placeholder",
     "priorityClass": "P2",
     "mount": "boden",
-    "achsenTags": {},
+    "achsenTags": {
+      "temperatur": 0.0,
+      "opulenz": 0.0,
+      "materialitaet": 0.0,
+      "helligkeit": 0.0,
+      "epoche": 0.0,
+      "kontur": 0.1,
+      "farbigkeit": -0.2,
+      "raumgefuehl": 0.0
+    },
     "attributTags": [],
     "anschluesse": [],
     "relationalRules": [],
@@ -1036,7 +1431,11 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "ch55"
+    "normProfileVariante": "ch55",
+    "farbVarianten": [
+      "weiss",
+      "eiche-hell"
+    ]
   },
   {
     "id": "cccccccc-0032-4000-8000-000000000032",
@@ -1044,7 +1443,9 @@
     "name": "Füllstück / Passleiste schmal (EU 60)",
     "kategorie": "kueche-fuellstueck",
     "funktionsTyp": "fuellstueck",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.05,
@@ -1054,7 +1455,16 @@
     "assetStatus": "placeholder",
     "priorityClass": "P2",
     "mount": "boden",
-    "achsenTags": {},
+    "achsenTags": {
+      "temperatur": 0.0,
+      "opulenz": 0.0,
+      "materialitaet": 0.0,
+      "helligkeit": 0.0,
+      "epoche": 0.0,
+      "kontur": 0.1,
+      "farbigkeit": -0.2,
+      "raumgefuehl": 0.0
+    },
     "attributTags": [],
     "anschluesse": [],
     "relationalRules": [],
@@ -1065,7 +1475,11 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "eu60"
+    "normProfileVariante": "eu60",
+    "farbVarianten": [
+      "weiss",
+      "eiche-hell"
+    ]
   },
   {
     "id": "cccccccc-0033-4000-8000-000000000033",
@@ -1073,7 +1487,9 @@
     "name": "Füllstück / Passleiste breit (CH 55)",
     "kategorie": "kueche-fuellstueck",
     "funktionsTyp": "fuellstueck",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.15,
@@ -1083,7 +1499,16 @@
     "assetStatus": "placeholder",
     "priorityClass": "P2",
     "mount": "boden",
-    "achsenTags": {},
+    "achsenTags": {
+      "temperatur": 0.0,
+      "opulenz": 0.0,
+      "materialitaet": 0.0,
+      "helligkeit": 0.0,
+      "epoche": 0.0,
+      "kontur": 0.1,
+      "farbigkeit": -0.2,
+      "raumgefuehl": 0.0
+    },
     "attributTags": [],
     "anschluesse": [],
     "relationalRules": [],
@@ -1094,7 +1519,11 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "ch55"
+    "normProfileVariante": "ch55",
+    "farbVarianten": [
+      "weiss",
+      "eiche-hell"
+    ]
   },
   {
     "id": "cccccccc-0034-4000-8000-000000000034",
@@ -1102,7 +1531,9 @@
     "name": "Füllstück / Passleiste breit (EU 60)",
     "kategorie": "kueche-fuellstueck",
     "funktionsTyp": "fuellstueck",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.15,
@@ -1112,7 +1543,16 @@
     "assetStatus": "placeholder",
     "priorityClass": "P2",
     "mount": "boden",
-    "achsenTags": {},
+    "achsenTags": {
+      "temperatur": 0.0,
+      "opulenz": 0.0,
+      "materialitaet": 0.0,
+      "helligkeit": 0.0,
+      "epoche": 0.0,
+      "kontur": 0.1,
+      "farbigkeit": -0.2,
+      "raumgefuehl": 0.0
+    },
     "attributTags": [],
     "anschluesse": [],
     "relationalRules": [],
@@ -1123,7 +1563,11 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "eu60"
+    "normProfileVariante": "eu60",
+    "farbVarianten": [
+      "weiss",
+      "eiche-hell"
+    ]
   },
   {
     "id": "cccccccc-0035-4000-8000-000000000035",
@@ -1131,7 +1575,9 @@
     "name": "Messerblock Holz",
     "kategorie": "kueche-deko",
     "funktionsTyp": "deko",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.25,
@@ -1143,7 +1589,13 @@
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.8,
-      "temperatur": 0.5
+      "temperatur": 0.5,
+      "opulenz": -0.1,
+      "helligkeit": 0.1,
+      "epoche": -0.1,
+      "kontur": 0.0,
+      "farbigkeit": -0.2,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
     "anschluesse": [],
@@ -1154,7 +1606,11 @@
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "cccccccc-0036-4000-8000-000000000036",
@@ -1162,7 +1618,9 @@
     "name": "Küchenkraut-Pflanze im Topf",
     "kategorie": "kueche-deko",
     "funktionsTyp": "pflanze",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.18,
@@ -1174,7 +1632,13 @@
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.7,
-      "farbigkeit": 0.5
+      "farbigkeit": 0.5,
+      "temperatur": 0.3,
+      "opulenz": 0.0,
+      "helligkeit": 0.1,
+      "epoche": 0.0,
+      "kontur": -0.4,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
     "anschluesse": [],
@@ -1185,7 +1649,11 @@
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "olive",
+      "terracotta"
+    ]
   },
   {
     "id": "cccccccc-0037-4000-8000-000000000037",
@@ -1193,7 +1661,9 @@
     "name": "Obstschale Keramik",
     "kategorie": "kueche-deko",
     "funktionsTyp": "deko",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.3,
@@ -1205,7 +1675,13 @@
     "mount": "boden",
     "achsenTags": {
       "helligkeit": 0.4,
-      "farbigkeit": 0.4
+      "farbigkeit": 0.4,
+      "temperatur": 0.1,
+      "opulenz": 0.0,
+      "materialitaet": 0.2,
+      "epoche": 0.0,
+      "kontur": -0.2,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
     "anschluesse": [],
@@ -1216,7 +1692,11 @@
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "weiss",
+      "terracotta"
+    ]
   },
   {
     "id": "cccccccc-0038-4000-8000-000000000038",
@@ -1224,7 +1704,9 @@
     "name": "Eckschrank Karussell Eiche (CH 55)",
     "kategorie": "kueche-eckschrank",
     "funktionsTyp": "eckschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.55,
@@ -1237,7 +1719,12 @@
     "achsenTags": {
       "materialitaet": 0.8,
       "temperatur": 0.6,
-      "epoche": 0.2
+      "epoche": 0.2,
+      "opulenz": 0.0,
+      "helligkeit": 0.2,
+      "kontur": 0.1,
+      "farbigkeit": -0.3,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
     "anschluesse": [],
@@ -1249,7 +1736,11 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "ch55"
+    "normProfileVariante": "ch55",
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "cccccccc-0039-4000-8000-000000000039",
@@ -1257,7 +1748,9 @@
     "name": "Eckschrank Karussell Weiss (EU 60)",
     "kategorie": "kueche-eckschrank",
     "funktionsTyp": "eckschrank",
-    "roomTypes": ["kueche"],
+    "roomTypes": [
+      "kueche"
+    ],
     "gewerk": "kueche",
     "masse": {
       "w": 0.6,
@@ -1270,7 +1763,12 @@
     "achsenTags": {
       "materialitaet": 0.8,
       "temperatur": 0.6,
-      "epoche": 0.2
+      "epoche": 0.2,
+      "opulenz": 0.0,
+      "helligkeit": 0.7,
+      "kontur": 0.1,
+      "farbigkeit": -0.5,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
     "anschluesse": [],
@@ -1282,7 +1780,10 @@
       "quelle": "Sample-Mittelpreis (Schätzung); Richtwert zu-verifizieren",
       "bandbreitePct": 30
     },
-    "normProfileVariante": "eu60"
+    "normProfileVariante": "eu60",
+    "farbVarianten": [
+      "weiss"
+    ]
   },
   {
     "id": "992dbfa2-4f72-4275-b2bd-a9e3f9e13c31",
@@ -1305,7 +1806,12 @@
     "achsenTags": {
       "materialitaet": 0.8,
       "temperatur": 0.6,
-      "epoche": 0.1
+      "epoche": 0.1,
+      "opulenz": -0.1,
+      "helligkeit": 0.2,
+      "kontur": 0.0,
+      "farbigkeit": -0.3,
+      "raumgefuehl": 0.1
     },
     "attributTags": [
       "material:holz"
@@ -1320,7 +1826,11 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "ff78d524-7130-4628-bc27-2b5a49af7b06",
@@ -1343,7 +1853,12 @@
     "achsenTags": {
       "helligkeit": -0.6,
       "kontur": 0.6,
-      "epoche": 0.7
+      "epoche": 0.7,
+      "temperatur": -0.3,
+      "opulenz": 0.0,
+      "materialitaet": -0.4,
+      "farbigkeit": -0.5,
+      "raumgefuehl": 0.1
     },
     "attributTags": [
       "material:metall"
@@ -1358,7 +1873,10 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "schwarz"
+    ]
   },
   {
     "id": "8a29497d-52d2-46ea-b645-26e8845113bc",
@@ -1381,7 +1899,12 @@
     "achsenTags": {
       "materialitaet": 0.8,
       "temperatur": 0.6,
-      "epoche": 0.1
+      "epoche": 0.1,
+      "opulenz": -0.1,
+      "helligkeit": 0.2,
+      "kontur": 0.0,
+      "farbigkeit": -0.3,
+      "raumgefuehl": 0.1
     },
     "attributTags": [
       "material:holz"
@@ -1394,7 +1917,11 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "6dd91d08-ed7c-4121-a94e-d879394e4e5f",
@@ -1417,7 +1944,12 @@
     "achsenTags": {
       "epoche": 0.6,
       "kontur": 0.5,
-      "materialitaet": 0.2
+      "materialitaet": 0.2,
+      "temperatur": -0.4,
+      "opulenz": 0.0,
+      "helligkeit": 0.2,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.1
     },
     "attributTags": [
       "material:metall"
@@ -1430,7 +1962,10 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "hellgrau"
+    ]
   },
   {
     "id": "47162add-5bee-45bd-b3a4-345107296467",
@@ -1453,7 +1988,12 @@
     "achsenTags": {
       "materialitaet": 0.8,
       "temperatur": 0.5,
-      "epoche": 0.2
+      "epoche": 0.2,
+      "opulenz": 0.0,
+      "helligkeit": 0.2,
+      "kontur": 0.1,
+      "farbigkeit": -0.3,
+      "raumgefuehl": 0.0
     },
     "attributTags": [
       "material:holz"
@@ -1468,7 +2008,11 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "202dae20-e602-4839-b817-01bfdea783f1",
@@ -1491,7 +2035,12 @@
     "achsenTags": {
       "helligkeit": 0.8,
       "opulenz": -0.3,
-      "epoche": 0.6
+      "epoche": 0.6,
+      "temperatur": -0.1,
+      "materialitaet": -0.3,
+      "kontur": 0.3,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.1
     },
     "attributTags": [
       "material:mdf"
@@ -1506,7 +2055,10 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "weiss"
+    ]
   },
   {
     "id": "ebc32660-6d56-48d4-8cdc-66b08403433d",
@@ -1529,7 +2081,12 @@
     "achsenTags": {
       "epoche": 0.6,
       "kontur": 0.5,
-      "materialitaet": 0.2
+      "materialitaet": 0.2,
+      "temperatur": -0.4,
+      "opulenz": 0.1,
+      "helligkeit": 0.1,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.1
     },
     "attributTags": [
       "material:metall"
@@ -1546,7 +2103,10 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "hellgrau"
+    ]
   },
   {
     "id": "0e9137cc-3072-4d73-93ea-e2b8b28ca2ad",
@@ -1569,7 +2129,12 @@
     "achsenTags": {
       "helligkeit": -0.6,
       "opulenz": 0.4,
-      "epoche": 0.8
+      "epoche": 0.8,
+      "temperatur": -0.2,
+      "materialitaet": -0.4,
+      "kontur": 0.5,
+      "farbigkeit": -0.4,
+      "raumgefuehl": 0.1
     },
     "attributTags": [
       "material:glas"
@@ -1586,6 +2151,9 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "schwarz"
+    ]
   }
 ]

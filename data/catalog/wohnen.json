@@ -5,7 +5,9 @@
     "name": "Sofa 3-Sitzer Leinen Beige",
     "kategorie": "moebel-sofa",
     "funktionsTyp": "sofa",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 2.1,
@@ -18,18 +20,31 @@
     "achsenTags": {
       "temperatur": 0.6,
       "materialitaet": 0.6,
-      "helligkeit": 0.5
+      "helligkeit": 0.5,
+      "opulenz": 0.1,
+      "epoche": -0.1,
+      "kontur": -0.4,
+      "farbigkeit": -0.3,
+      "raumgefuehl": -0.2
     },
     "attributTags": [],
     "anschluesse": [],
-    "relationalRules": ["group:sitzgruppe", "facing:tvmoebel"],
+    "relationalRules": [
+      "group:sitzgruppe",
+      "facing:tvmoebel"
+    ],
     "preis": {
       "value": 1900,
       "currency": "CHF",
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "beige",
+      "hellgrau",
+      "salbei"
+    ]
   },
   {
     "id": "bbbbbbbb-0002-4000-8000-000000000002",
@@ -38,7 +53,9 @@
     "modell3d": "sofa-l",
     "kategorie": "moebel-sofa",
     "funktionsTyp": "sofa",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 2.0,
@@ -51,18 +68,30 @@
     "achsenTags": {
       "temperatur": -0.3,
       "opulenz": 0.5,
-      "farbigkeit": 0.5
+      "farbigkeit": 0.5,
+      "materialitaet": -0.2,
+      "helligkeit": -0.3,
+      "epoche": 0.2,
+      "kontur": -0.5,
+      "raumgefuehl": -0.3
     },
     "attributTags": [],
     "anschluesse": [],
-    "relationalRules": ["group:sitzgruppe", "facing:tvmoebel"],
+    "relationalRules": [
+      "group:sitzgruppe",
+      "facing:tvmoebel"
+    ],
     "preis": {
       "value": 2400,
       "currency": "CHF",
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "blaugrau",
+      "dunkelblau"
+    ]
   },
   {
     "id": "bbbbbbbb-0003-4000-8000-000000000003",
@@ -70,7 +99,9 @@
     "name": "Sofa 2-Sitzer Leder Schwarz",
     "kategorie": "moebel-sofa",
     "funktionsTyp": "sofa",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 1.7,
@@ -83,18 +114,30 @@
     "achsenTags": {
       "helligkeit": -0.6,
       "epoche": 0.6,
-      "kontur": 0.5
+      "kontur": 0.5,
+      "temperatur": -0.1,
+      "opulenz": 0.3,
+      "materialitaet": 0.1,
+      "farbigkeit": -0.6,
+      "raumgefuehl": -0.3
     },
     "attributTags": [],
     "anschluesse": [],
-    "relationalRules": ["group:sitzgruppe", "facing:tvmoebel"],
+    "relationalRules": [
+      "group:sitzgruppe",
+      "facing:tvmoebel"
+    ],
     "preis": {
       "value": 2100,
       "currency": "CHF",
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "schwarz",
+      "anthrazit"
+    ]
   },
   {
     "id": "bbbbbbbb-0004-4000-8000-000000000004",
@@ -102,7 +145,9 @@
     "name": "Esstisch Eiche 4 Personen (inkl. 4 Stühlen)",
     "kategorie": "moebel-esstisch",
     "funktionsTyp": "esstisch",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 1.4,
@@ -115,7 +160,12 @@
     "achsenTags": {
       "materialitaet": 0.8,
       "temperatur": 0.6,
-      "epoche": 0.1
+      "epoche": 0.1,
+      "opulenz": -0.1,
+      "helligkeit": 0.2,
+      "kontur": 0.1,
+      "farbigkeit": -0.3,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
     "anschluesse": [],
@@ -126,7 +176,11 @@
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung); Footprint inkl. Stühle (POC-Vereinfachung: ein Footprint)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "bbbbbbbb-0005-4000-8000-000000000005",
@@ -134,7 +188,9 @@
     "name": "Esstisch Glas/Metall 4 Personen (inkl. 4 Stühlen)",
     "kategorie": "moebel-esstisch",
     "funktionsTyp": "esstisch",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 1.3,
@@ -147,7 +203,12 @@
     "achsenTags": {
       "helligkeit": 0.4,
       "epoche": 0.7,
-      "kontur": 0.6
+      "kontur": 0.6,
+      "temperatur": -0.4,
+      "opulenz": 0.1,
+      "materialitaet": -0.5,
+      "farbigkeit": -0.5,
+      "raumgefuehl": 0.3
     },
     "attributTags": [],
     "anschluesse": [],
@@ -158,7 +219,11 @@
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung); Footprint inkl. Stühle (POC-Vereinfachung: ein Footprint)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "hellgrau",
+      "schwarz"
+    ]
   },
   {
     "id": "bbbbbbbb-0006-4000-8000-000000000006",
@@ -166,7 +231,9 @@
     "name": "Esstisch Rund Weiss 4 Personen (inkl. 4 Stühlen)",
     "kategorie": "moebel-esstisch",
     "funktionsTyp": "esstisch",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 1.3,
@@ -179,7 +246,12 @@
     "achsenTags": {
       "helligkeit": 0.7,
       "kontur": -0.7,
-      "opulenz": -0.3
+      "opulenz": -0.3,
+      "temperatur": -0.2,
+      "materialitaet": -0.2,
+      "epoche": 0.4,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.2
     },
     "attributTags": [],
     "anschluesse": [],
@@ -190,7 +262,10 @@
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung); Footprint inkl. Stühle (POC-Vereinfachung: ein Footprint)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "weiss"
+    ]
   },
   {
     "id": "bbbbbbbb-0007-4000-8000-000000000007",
@@ -198,7 +273,9 @@
     "name": "TV-Lowboard Eiche 140",
     "kategorie": "moebel-tvmoebel",
     "funktionsTyp": "tvmoebel",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 1.4,
@@ -211,7 +288,12 @@
     "achsenTags": {
       "materialitaet": 0.8,
       "temperatur": 0.6,
-      "epoche": 0.3
+      "epoche": 0.3,
+      "opulenz": -0.1,
+      "helligkeit": 0.2,
+      "kontur": 0.1,
+      "farbigkeit": -0.3,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
     "anschluesse": [],
@@ -222,7 +304,11 @@
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "bbbbbbbb-0008-4000-8000-000000000008",
@@ -230,7 +316,9 @@
     "name": "TV-Lowboard Anthrazit 160",
     "kategorie": "moebel-tvmoebel",
     "funktionsTyp": "tvmoebel",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 1.6,
@@ -243,7 +331,12 @@
     "achsenTags": {
       "helligkeit": -0.6,
       "epoche": 0.8,
-      "kontur": 0.5
+      "kontur": 0.5,
+      "temperatur": -0.1,
+      "opulenz": 0.0,
+      "materialitaet": -0.3,
+      "farbigkeit": -0.5,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
     "anschluesse": [],
@@ -254,7 +347,11 @@
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "anthrazit",
+      "schwarz"
+    ]
   },
   {
     "id": "bbbbbbbb-0009-4000-8000-000000000009",
@@ -262,7 +359,9 @@
     "name": "Couchtisch Holz Rund 80",
     "kategorie": "moebel-couchtisch",
     "funktionsTyp": "couchtisch",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 0.8,
@@ -275,18 +374,30 @@
     "achsenTags": {
       "materialitaet": 0.8,
       "temperatur": 0.6,
-      "kontur": -0.6
+      "kontur": -0.6,
+      "opulenz": -0.1,
+      "helligkeit": 0.2,
+      "epoche": -0.1,
+      "farbigkeit": -0.2,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
     "anschluesse": [],
-    "relationalRules": ["near:sofa:1.3", "group:sitzgruppe"],
+    "relationalRules": [
+      "near:sofa:1.3",
+      "group:sitzgruppe"
+    ],
     "preis": {
       "value": 320,
       "currency": "CHF",
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "bbbbbbbb-0010-4000-8000-000000000010",
@@ -294,7 +405,9 @@
     "name": "Couchtisch Glas/Metall 110×60",
     "kategorie": "moebel-couchtisch",
     "funktionsTyp": "couchtisch",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 1.1,
@@ -307,18 +420,30 @@
     "achsenTags": {
       "helligkeit": 0.4,
       "epoche": 0.7,
-      "kontur": 0.6
+      "kontur": 0.6,
+      "temperatur": -0.4,
+      "opulenz": 0.1,
+      "materialitaet": -0.5,
+      "farbigkeit": -0.5,
+      "raumgefuehl": 0.3
     },
     "attributTags": [],
     "anschluesse": [],
-    "relationalRules": ["near:sofa:1.3", "group:sitzgruppe"],
+    "relationalRules": [
+      "near:sofa:1.3",
+      "group:sitzgruppe"
+    ],
     "preis": {
       "value": 390,
       "currency": "CHF",
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "hellgrau",
+      "schwarz"
+    ]
   },
   {
     "id": "bbbbbbbb-0011-4000-8000-000000000011",
@@ -326,7 +451,9 @@
     "name": "Couchtisch Set Schwarz 90×50",
     "kategorie": "moebel-couchtisch",
     "funktionsTyp": "couchtisch",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 0.9,
@@ -339,18 +466,29 @@
     "achsenTags": {
       "helligkeit": -0.5,
       "kontur": 0.5,
-      "epoche": 0.6
+      "epoche": 0.6,
+      "temperatur": -0.2,
+      "opulenz": 0.0,
+      "materialitaet": -0.2,
+      "farbigkeit": -0.5,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
     "anschluesse": [],
-    "relationalRules": ["near:sofa:1.3", "group:sitzgruppe"],
+    "relationalRules": [
+      "near:sofa:1.3",
+      "group:sitzgruppe"
+    ],
     "preis": {
       "value": 250,
       "currency": "CHF",
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "schwarz"
+    ]
   },
   {
     "id": "bbbbbbbb-0012-4000-8000-000000000012",
@@ -358,7 +496,9 @@
     "name": "Wandregal Eiche 80",
     "kategorie": "moebel-wandregal",
     "funktionsTyp": "regal",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "schreiner",
     "masse": {
       "w": 0.8,
@@ -371,7 +511,12 @@
     "achsenTags": {
       "materialitaet": 0.9,
       "temperatur": 0.6,
-      "epoche": 0.2
+      "epoche": 0.2,
+      "opulenz": -0.1,
+      "helligkeit": 0.2,
+      "kontur": 0.0,
+      "farbigkeit": -0.3,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
     "anschluesse": [],
@@ -386,7 +531,11 @@
     "mountHeightRange": {
       "min": 1.2,
       "max": 1.6
-    }
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "bbbbbbbb-0013-4000-8000-000000000013",
@@ -394,7 +543,9 @@
     "name": "Wandregal Weiss 100",
     "kategorie": "moebel-wandregal",
     "funktionsTyp": "regal",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "schreiner",
     "masse": {
       "w": 1.0,
@@ -407,7 +558,12 @@
     "achsenTags": {
       "helligkeit": 0.7,
       "opulenz": -0.4,
-      "epoche": 0.5
+      "epoche": 0.5,
+      "temperatur": -0.1,
+      "materialitaet": -0.3,
+      "kontur": 0.2,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.2
     },
     "attributTags": [],
     "anschluesse": [],
@@ -422,7 +578,10 @@
     "mountHeightRange": {
       "min": 1.2,
       "max": 1.6
-    }
+    },
+    "farbVarianten": [
+      "weiss"
+    ]
   },
   {
     "id": "bbbbbbbb-0014-4000-8000-000000000014",
@@ -430,7 +589,9 @@
     "name": "Wandregal Metall Schwarz 90",
     "kategorie": "moebel-wandregal",
     "funktionsTyp": "regal",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "schreiner",
     "masse": {
       "w": 0.9,
@@ -443,7 +604,12 @@
     "achsenTags": {
       "helligkeit": -0.6,
       "kontur": 0.7,
-      "epoche": 0.7
+      "epoche": 0.7,
+      "temperatur": -0.3,
+      "opulenz": 0.0,
+      "materialitaet": -0.4,
+      "farbigkeit": -0.5,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
     "anschluesse": [],
@@ -458,7 +624,10 @@
     "mountHeightRange": {
       "min": 1.2,
       "max": 1.6
-    }
+    },
+    "farbVarianten": [
+      "schwarz"
+    ]
   },
   {
     "id": "bbbbbbbb-0015-4000-8000-000000000015",
@@ -466,7 +635,9 @@
     "name": "Sideboard Eiche 160",
     "kategorie": "moebel-sideboard",
     "funktionsTyp": "sideboard",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 1.6,
@@ -479,7 +650,12 @@
     "achsenTags": {
       "materialitaet": 0.8,
       "temperatur": 0.6,
-      "epoche": 0.2
+      "epoche": 0.2,
+      "opulenz": 0.0,
+      "helligkeit": 0.2,
+      "kontur": 0.1,
+      "farbigkeit": -0.3,
+      "raumgefuehl": -0.1
     },
     "attributTags": [],
     "anschluesse": [],
@@ -490,7 +666,11 @@
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "bbbbbbbb-0016-4000-8000-000000000016",
@@ -498,7 +678,9 @@
     "name": "Sideboard Weiss Hochglanz 140",
     "kategorie": "moebel-sideboard",
     "funktionsTyp": "sideboard",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 1.4,
@@ -511,7 +693,12 @@
     "achsenTags": {
       "helligkeit": 0.8,
       "kontur": 0.4,
-      "epoche": 0.7
+      "epoche": 0.7,
+      "temperatur": -0.2,
+      "opulenz": 0.2,
+      "materialitaet": -0.5,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
     "anschluesse": [],
@@ -522,7 +709,10 @@
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "weiss"
+    ]
   },
   {
     "id": "bbbbbbbb-0017-4000-8000-000000000017",
@@ -530,7 +720,9 @@
     "name": "Stehleuchte Bogenlampe Chrom",
     "kategorie": "elektro-stehleuchte",
     "funktionsTyp": "stehleuchte",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "elektro",
     "masse": {
       "w": 0.35,
@@ -543,18 +735,30 @@
     "achsenTags": {
       "helligkeit": 0.6,
       "epoche": 0.6,
-      "kontur": -0.4
+      "kontur": -0.4,
+      "temperatur": -0.4,
+      "opulenz": 0.2,
+      "materialitaet": -0.4,
+      "farbigkeit": -0.6,
+      "raumgefuehl": 0.2
     },
     "attributTags": [],
-    "anschluesse": ["elektro"],
-    "relationalRules": ["near:sofa:1.4"],
+    "anschluesse": [
+      "elektro"
+    ],
+    "relationalRules": [
+      "near:sofa:1.4"
+    ],
     "preis": {
       "value": 240,
       "currency": "CHF",
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "hellgrau"
+    ]
   },
   {
     "id": "bbbbbbbb-0018-4000-8000-000000000018",
@@ -562,7 +766,9 @@
     "name": "Stehleuchte Dreibein Holz",
     "kategorie": "elektro-stehleuchte",
     "funktionsTyp": "stehleuchte",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "elektro",
     "masse": {
       "w": 0.4,
@@ -575,18 +781,31 @@
     "achsenTags": {
       "materialitaet": 0.8,
       "temperatur": 0.5,
-      "epoche": -0.3
+      "epoche": -0.3,
+      "opulenz": -0.2,
+      "helligkeit": 0.1,
+      "kontur": -0.3,
+      "farbigkeit": -0.2,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
-    "anschluesse": ["elektro"],
-    "relationalRules": ["near:sofa:1.4"],
+    "anschluesse": [
+      "elektro"
+    ],
+    "relationalRules": [
+      "near:sofa:1.4"
+    ],
     "preis": {
       "value": 180,
       "currency": "CHF",
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "bbbbbbbb-0019-4000-8000-000000000019",
@@ -594,7 +813,9 @@
     "name": "Teppich Wolle Natur 200×140",
     "kategorie": "dekor-teppich",
     "funktionsTyp": "teppich",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 2.0,
@@ -607,18 +828,30 @@
     "achsenTags": {
       "materialitaet": 0.7,
       "temperatur": 0.6,
-      "farbigkeit": -0.2
+      "farbigkeit": -0.2,
+      "opulenz": 0.0,
+      "helligkeit": 0.3,
+      "epoche": -0.1,
+      "kontur": -0.4,
+      "raumgefuehl": -0.1
     },
     "attributTags": [],
     "anschluesse": [],
-    "relationalRules": ["near:couchtisch:1.0"],
+    "relationalRules": [
+      "near:couchtisch:1.0"
+    ],
     "preis": {
       "value": 290,
       "currency": "CHF",
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "sand",
+      "creme",
+      "beige"
+    ]
   },
   {
     "id": "bbbbbbbb-0020-4000-8000-000000000020",
@@ -626,7 +859,9 @@
     "name": "Teppich Grafisch Schwarzweiss 230×160",
     "kategorie": "dekor-teppich",
     "funktionsTyp": "teppich",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 2.3,
@@ -639,18 +874,29 @@
     "achsenTags": {
       "farbigkeit": -0.8,
       "kontur": 0.7,
-      "epoche": 0.7
+      "epoche": 0.7,
+      "temperatur": -0.2,
+      "opulenz": 0.1,
+      "materialitaet": 0.0,
+      "helligkeit": -0.1,
+      "raumgefuehl": -0.1
     },
     "attributTags": [],
     "anschluesse": [],
-    "relationalRules": ["near:couchtisch:1.0"],
+    "relationalRules": [
+      "near:couchtisch:1.0"
+    ],
     "preis": {
       "value": 350,
       "currency": "CHF",
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "schwarz",
+      "weiss"
+    ]
   },
   {
     "id": "bbbbbbbb-0021-4000-8000-000000000021",
@@ -658,7 +904,9 @@
     "name": "Teppich Hochflor Beige 160×120",
     "kategorie": "dekor-teppich",
     "funktionsTyp": "teppich",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 1.6,
@@ -671,18 +919,29 @@
     "achsenTags": {
       "helligkeit": 0.6,
       "temperatur": 0.5,
-      "opulenz": 0.2
+      "opulenz": 0.2,
+      "materialitaet": 0.3,
+      "epoche": -0.1,
+      "kontur": -0.6,
+      "farbigkeit": -0.3,
+      "raumgefuehl": -0.2
     },
     "attributTags": [],
     "anschluesse": [],
-    "relationalRules": ["near:couchtisch:1.0"],
+    "relationalRules": [
+      "near:couchtisch:1.0"
+    ],
     "preis": {
       "value": 210,
       "currency": "CHF",
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "beige",
+      "sand"
+    ]
   },
   {
     "id": "bbbbbbbb-0022-4000-8000-000000000022",
@@ -690,7 +949,9 @@
     "name": "Pflanze Monstera gross",
     "kategorie": "dekor-pflanze",
     "funktionsTyp": "pflanze",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 0.45,
@@ -703,7 +964,12 @@
     "achsenTags": {
       "materialitaet": 0.9,
       "farbigkeit": 0.5,
-      "raumgefuehl": 0.3
+      "raumgefuehl": 0.3,
+      "temperatur": 0.3,
+      "opulenz": 0.1,
+      "helligkeit": 0.0,
+      "epoche": 0.1,
+      "kontur": -0.4
     },
     "attributTags": [],
     "anschluesse": [],
@@ -714,7 +980,11 @@
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "olive",
+      "salbei"
+    ]
   },
   {
     "id": "bbbbbbbb-0023-4000-8000-000000000023",
@@ -722,7 +992,9 @@
     "name": "Pflanze Bogenhanf mittel",
     "kategorie": "dekor-pflanze",
     "funktionsTyp": "pflanze",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 0.3,
@@ -735,7 +1007,12 @@
     "achsenTags": {
       "materialitaet": 0.8,
       "farbigkeit": 0.3,
-      "kontur": 0.4
+      "kontur": 0.4,
+      "temperatur": 0.2,
+      "opulenz": 0.0,
+      "helligkeit": 0.0,
+      "epoche": 0.1,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
     "anschluesse": [],
@@ -746,7 +1023,11 @@
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "olive",
+      "salbei"
+    ]
   },
   {
     "id": "bbbbbbbb-0024-4000-8000-000000000024",
@@ -754,7 +1035,9 @@
     "name": "Wandbild Abstrakt Bunt 80×60",
     "kategorie": "dekor-wandbild",
     "funktionsTyp": "wandbild",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 0.8,
@@ -767,7 +1050,12 @@
     "achsenTags": {
       "farbigkeit": 0.8,
       "epoche": 0.5,
-      "kontur": -0.3
+      "kontur": -0.3,
+      "temperatur": 0.1,
+      "opulenz": 0.2,
+      "materialitaet": -0.1,
+      "helligkeit": 0.2,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
     "anschluesse": [],
@@ -782,7 +1070,12 @@
     "mountHeightRange": {
       "min": 1.3,
       "max": 1.6
-    }
+    },
+    "farbVarianten": [
+      "terracotta",
+      "dunkelblau",
+      "olive"
+    ]
   },
   {
     "id": "bbbbbbbb-0025-4000-8000-000000000025",
@@ -790,7 +1083,9 @@
     "name": "Wandbild Schwarzweiss-Foto 100×70",
     "kategorie": "dekor-wandbild",
     "funktionsTyp": "wandbild",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 1.0,
@@ -803,7 +1098,12 @@
     "achsenTags": {
       "farbigkeit": -0.8,
       "kontur": 0.5,
-      "epoche": 0.6
+      "epoche": 0.6,
+      "temperatur": -0.2,
+      "opulenz": 0.1,
+      "materialitaet": -0.2,
+      "helligkeit": -0.1,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
     "anschluesse": [],
@@ -818,7 +1118,11 @@
     "mountHeightRange": {
       "min": 1.3,
       "max": 1.6
-    }
+    },
+    "farbVarianten": [
+      "schwarz",
+      "weiss"
+    ]
   },
   {
     "id": "bbbbbbbb-0026-4000-8000-000000000026",
@@ -826,7 +1130,9 @@
     "name": "Wandbild Naturmotiv Holzrahmen 60×80",
     "kategorie": "dekor-wandbild",
     "funktionsTyp": "wandbild",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 0.6,
@@ -839,7 +1145,12 @@
     "achsenTags": {
       "materialitaet": 0.7,
       "temperatur": 0.5,
-      "farbigkeit": 0.3
+      "farbigkeit": 0.3,
+      "opulenz": -0.1,
+      "helligkeit": 0.1,
+      "epoche": -0.2,
+      "kontur": -0.2,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
     "anschluesse": [],
@@ -854,7 +1165,11 @@
     "mountHeightRange": {
       "min": 1.3,
       "max": 1.6
-    }
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "bbbbbbbb-0027-4000-8000-000000000027",
@@ -862,7 +1177,9 @@
     "name": "Beistelltisch Marmor Rund 45",
     "kategorie": "moebel-beistelltisch",
     "funktionsTyp": "beistelltisch",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 0.45,
@@ -875,18 +1192,29 @@
     "achsenTags": {
       "opulenz": 0.5,
       "materialitaet": 0.6,
-      "helligkeit": 0.3
+      "helligkeit": 0.3,
+      "temperatur": -0.1,
+      "epoche": 0.3,
+      "kontur": -0.5,
+      "farbigkeit": -0.4,
+      "raumgefuehl": 0.1
     },
     "attributTags": [],
     "anschluesse": [],
-    "relationalRules": ["near:sofa:1.3"],
+    "relationalRules": [
+      "near:sofa:1.3"
+    ],
     "preis": {
       "value": 180,
       "currency": "CHF",
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "weiss",
+      "hellgrau"
+    ]
   },
   {
     "id": "bbbbbbbb-0028-4000-8000-000000000028",
@@ -894,7 +1222,9 @@
     "name": "Beistelltisch Holz Eckig 40",
     "kategorie": "moebel-beistelltisch",
     "funktionsTyp": "beistelltisch",
-    "roomTypes": ["wohnen"],
+    "roomTypes": [
+      "wohnen"
+    ],
     "gewerk": "moebel",
     "masse": {
       "w": 0.4,
@@ -907,18 +1237,29 @@
     "achsenTags": {
       "materialitaet": 0.8,
       "temperatur": 0.5,
-      "kontur": 0.5
+      "kontur": 0.5,
+      "opulenz": -0.2,
+      "helligkeit": 0.1,
+      "epoche": -0.1,
+      "farbigkeit": -0.3,
+      "raumgefuehl": 0.0
     },
     "attributTags": [],
     "anschluesse": [],
-    "relationalRules": ["near:sofa:1.3"],
+    "relationalRules": [
+      "near:sofa:1.3"
+    ],
     "preis": {
       "value": 95,
       "currency": "CHF",
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "ab3f41ce-788b-4eb0-af60-deec4b16cf72",
@@ -941,7 +1282,12 @@
     "achsenTags": {
       "materialitaet": 0.7,
       "temperatur": 0.6,
-      "helligkeit": 0.5
+      "helligkeit": 0.5,
+      "opulenz": 0.1,
+      "epoche": -0.1,
+      "kontur": -0.6,
+      "farbigkeit": -0.3,
+      "raumgefuehl": -0.1
     },
     "attributTags": [
       "material:wolle"
@@ -956,7 +1302,12 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "beige",
+      "sand",
+      "hellgrau"
+    ]
   },
   {
     "id": "856acdcc-6614-47c4-bcf0-96698176ecf6",
@@ -979,7 +1330,12 @@
     "achsenTags": {
       "farbigkeit": 0.5,
       "opulenz": 0.5,
-      "epoche": 0.6
+      "epoche": 0.6,
+      "temperatur": -0.2,
+      "materialitaet": -0.2,
+      "helligkeit": -0.3,
+      "kontur": -0.5,
+      "raumgefuehl": -0.2
     },
     "attributTags": [
       "material:samt"
@@ -994,7 +1350,11 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "blaugrau",
+      "dunkelblau"
+    ]
   },
   {
     "id": "84acb836-5f59-4844-862e-b4cea2a2b8d1",
@@ -1017,7 +1377,12 @@
     "achsenTags": {
       "materialitaet": 0.8,
       "temperatur": 0.6,
-      "epoche": 0.1
+      "epoche": 0.1,
+      "opulenz": 0.1,
+      "helligkeit": 0.3,
+      "kontur": 0.2,
+      "farbigkeit": -0.3,
+      "raumgefuehl": 0.2
     },
     "attributTags": [
       "material:holz"
@@ -1032,7 +1397,11 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum"
+    ]
   },
   {
     "id": "3074ed6d-ab87-459b-af6a-66f2ae104519",
@@ -1055,7 +1424,12 @@
     "achsenTags": {
       "helligkeit": -0.6,
       "kontur": 0.7,
-      "epoche": 0.7
+      "epoche": 0.7,
+      "temperatur": -0.3,
+      "opulenz": 0.1,
+      "materialitaet": -0.4,
+      "farbigkeit": -0.5,
+      "raumgefuehl": 0.1
     },
     "attributTags": [
       "material:metall"
@@ -1070,7 +1444,10 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "schwarz"
+    ]
   },
   {
     "id": "1080fda8-555a-4799-a162-a480b99d7279",
@@ -1093,7 +1470,12 @@
     "achsenTags": {
       "materialitaet": 0.8,
       "temperatur": 0.6,
-      "epoche": 0.2
+      "epoche": 0.2,
+      "opulenz": 0.1,
+      "helligkeit": 0.1,
+      "kontur": 0.2,
+      "farbigkeit": -0.3,
+      "raumgefuehl": 0.0
     },
     "attributTags": [
       "material:holz"
@@ -1108,7 +1490,11 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "nussbaum",
+      "eiche-hell"
+    ]
   },
   {
     "id": "9e97b3f0-0c40-44ff-87db-9f0a63daee67",
@@ -1131,7 +1517,12 @@
     "achsenTags": {
       "opulenz": 0.5,
       "kontur": 0.6,
-      "epoche": 0.7
+      "epoche": 0.7,
+      "temperatur": -0.2,
+      "materialitaet": 0.1,
+      "helligkeit": 0.3,
+      "farbigkeit": -0.4,
+      "raumgefuehl": 0.1
     },
     "attributTags": [
       "material:marmor"
@@ -1146,7 +1537,11 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "weiss",
+      "messing"
+    ]
   },
   {
     "id": "33b76f49-c87c-4478-a488-17d8c5d2b3a6",
@@ -1169,7 +1564,12 @@
     "achsenTags": {
       "materialitaet": 0.8,
       "temperatur": 0.6,
-      "epoche": -0.2
+      "epoche": -0.2,
+      "opulenz": 0.0,
+      "helligkeit": 0.1,
+      "kontur": -0.4,
+      "farbigkeit": -0.2,
+      "raumgefuehl": 0.1
     },
     "attributTags": [
       "material:rattan"
@@ -1182,7 +1582,11 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "sand",
+      "nussbaum"
+    ]
   },
   {
     "id": "d2aecd13-1450-4f7d-af38-48e71570e275",
@@ -1205,7 +1609,12 @@
     "achsenTags": {
       "opulenz": 0.6,
       "temperatur": 0.5,
-      "epoche": -0.4
+      "epoche": -0.4,
+      "materialitaet": -0.2,
+      "helligkeit": 0.2,
+      "kontur": 0.3,
+      "farbigkeit": -0.2,
+      "raumgefuehl": 0.1
     },
     "attributTags": [
       "material:messing"
@@ -1218,7 +1627,10 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "messing"
+    ]
   },
   {
     "id": "6bf69694-648f-4ab0-b849-9d8d753048cb",
@@ -1241,7 +1653,12 @@
     "achsenTags": {
       "materialitaet": 0.6,
       "temperatur": 0.6,
-      "helligkeit": 0.5
+      "helligkeit": 0.5,
+      "opulenz": 0.2,
+      "epoche": -0.1,
+      "kontur": -0.5,
+      "farbigkeit": -0.3,
+      "raumgefuehl": -0.1
     },
     "attributTags": [
       "material:leinen"
@@ -1256,7 +1673,12 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "beige",
+      "hellgrau",
+      "salbei"
+    ]
   },
   {
     "id": "16133655-0c5b-44ab-8782-223f37bbfcce",
@@ -1279,7 +1701,12 @@
     "achsenTags": {
       "farbigkeit": 0.4,
       "opulenz": 0.6,
-      "epoche": 0.6
+      "epoche": 0.6,
+      "temperatur": -0.1,
+      "materialitaet": -0.2,
+      "helligkeit": -0.4,
+      "kontur": -0.5,
+      "raumgefuehl": -0.3
     },
     "attributTags": [
       "material:samt"
@@ -1294,6 +1721,10 @@
       "stand": "2026-07-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
-    }
+    },
+    "farbVarianten": [
+      "olive",
+      "dunkelblau"
+    ]
   }
 ]
