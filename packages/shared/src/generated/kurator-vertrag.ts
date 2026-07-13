@@ -67,7 +67,7 @@ export interface KuratorRequest {
         [k: string]: number;
       };
       attributTags?: string[];
-    }[]
+    }[],
   ];
   budget?: number;
   normProfile: "ch" | "eu";
