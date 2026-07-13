@@ -19,7 +19,7 @@ export type MaterialSlug =
   | "taefer-holz";
 
 /**
- * Vertrag 7: Schnittstelle zum KI-Kurator (ADR-0007). Erdung als Schema-Regel: Response-IDs müssen Teilmenge des katalogAuszug sein – sonst Retry/Fallback deterministische Baseline. v0.2 (additiv/minor): optionale Felder «anordnung» (weiche Anordnungs-Anweisungen je Item) und «flaechen» (Boden-/Wand-Material-Wünsche) – Kurator-Pipeline v2 (3 Calls).
+ * Vertrag 7: Schnittstelle zum KI-Kurator (ADR-0007). Erdung als Schema-Regel: Response-IDs müssen Teilmenge des katalogAuszug sein – sonst Retry/Fallback deterministische Baseline. v0.2 (additiv/minor): optionale Felder «anordnung» (weiche Anordnungs-Anweisungen je Item) und «flaechen» (Boden-/Wand-Material-Wünsche) – Kurator-Pipeline v2 (3 Calls). v0.4 (additiv/minor): optionales Feld «konzept» (Design-Leitidee aus Call A, «erst denken, dann wählen») – Kurator-Pipeline v3 (ADR-0013).
  */
 export interface KuratorVertrag {
   request?: KuratorRequest;
@@ -73,6 +73,10 @@ export interface KuratorRequest {
   normProfile: "ch" | "eu";
 }
 export interface KuratorResponse {
+  /**
+   * Design-Leitidee aus Call A (deutsch, «erst denken, dann wählen»): 1–3 Sätze mit Leitidee, 1–2 Leitmaterialien und Farbwelt, abgestimmt auf Stilprofil UND Raum. Wird wortgleich in Call B/C übernommen und ist UI-zeigbar. Optional (fehlend/leer = kein Konzept-Block, weiche Freiheit, keine Norm).
+   */
+  konzept?: string;
   /**
    * catalogItemIds – MUSS Teilmenge von request.katalogAuszug sein (harte Validierung).
    */

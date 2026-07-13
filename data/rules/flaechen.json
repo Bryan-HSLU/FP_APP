@@ -8,7 +8,7 @@
     "severity": "hard",
     "quelle": "SIA 271 / DIN 18195 – Abdichtung Nassraum / Richtwert",
     "status": "zu-verifizieren",
-    "hinweis": "Bad-Boden muss wasserfest sein (Fliesen/Naturstein/Beton) – kein Parkett/Holz/Putz/Tapete."
+    "hinweis": "Bad-Boden muss wasserfest sein (Fliesen/Naturstein/Beton) – kein Parkett/Holz/Putz/Tapete. Rutschhemmung (R-Klassen) erst prüfbar, wenn Materialien Produktdaten tragen."
   },
   {
     "id": "bad-wand-nass-wasserfest",
@@ -44,5 +44,17 @@
     "quelle": "Küchen-Detailkonzept / Praxis – strapazierfähiger, abwaschbarer Boden / Richtwert",
     "status": "zu-verifizieren",
     "hinweis": "Küchenboden strapazierfähig/abwaschbar (Fliesen/Beton/Naturstein). Parkett-Eiche zwar praxisüblich, hier bewusst streng als Richtwert ausgeschlossen."
+  },
+  {
+    "id": "kueche-wand-spritzzone",
+    "roomType": "kueche",
+    "gilt": "wand-nass",
+    "anforderung": "wasserfest",
+    "minHoeheM": 1.2,
+    "erlaubteMaterialien": ["fliesen-hell", "fliesen-gruen", "fliesen-anthrazit", "naturstein", "beton"],
+    "severity": "hard",
+    "quelle": "Spritzschutz Arbeitsbereich (Küchenspiegel/Spritzzone) / Praxis-Richtwert",
+    "status": "zu-verifizieren",
+    "hinweis": "Wände mit Wasser-Anschluss (Spüle/Arbeitsfläche) im Spritzbereich wasserfest bis ≥ 1.2 m (Küchenspiegel). Greift über die Wasser-Fixpunkte der Spüle."
   }
 ]

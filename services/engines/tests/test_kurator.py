@@ -17,11 +17,15 @@ from fp_engines.kurator import (
     MATERIAL_SLUGS,
     BaselineKurator,
     LlmKurator,
+    _footprint,
+    _platz_budget,
     _validiere,
     _validiere_anordnung,
     _validiere_flaechen,
+    bewegungs_hinweise,
     korrigiere_flaechen,
     nasswaende,
+    norm_kontext_flaechen,
     pruefe_flaechen,
     vorfilter,
 )
@@ -41,14 +45,28 @@ N_WALLS = len(ROOM["shell"]["walls"])
 P1_IDS = [c["id"] for c in CATALOG if c["priorityClass"] == "P1"]
 
 
+def _erstes(funktionsTyp: str) -> str:
+    return next(c["id"] for c in CATALOG if c["funktionsTyp"] == funktionsTyp)
+
+
+# P1-Pflicht-vollständige Minimal-Auswahl (je ein WC/Lavabo/Dusche) – hält das
+# Platz-Budget ein (die volle P1_IDS-Liste würde es bewusst sprengen).
+AUSWAHL_IDS = [_erstes("wc"), _erstes("lavabo"), _erstes("dusche")]
+
+
 def _auswahl_ok(begruendung: str = "Test") -> dict[str, Any]:
-    return {"auswahl": P1_IDS, "begruendung": begruendung}
+    return {"auswahl": AUSWAHL_IDS, "begruendung": begruendung}
 
 
 def _anordnung_ok() -> dict[str, Any]:
     return {
         "anordnung": [
-            {"itemId": P1_IDS[0], "wandIndex": 0, "relationen": ["against-wall"], "prioritaet": 1}
+            {
+                "itemId": AUSWAHL_IDS[0],
+                "wandIndex": 0,
+                "relationen": ["against-wall"],
+                "prioritaet": 1,
+            }
         ]
     }
 
@@ -165,11 +183,13 @@ def _llm_mit_antworten(monkeypatch: pytest.MonkeyPatch, antworten: list[Any]) ->
 def test_llm_pipeline_alle_calls_gueltig(monkeypatch: pytest.MonkeyPatch) -> None:
     port = _llm_mit_antworten(monkeypatch, [_auswahl_ok(), _anordnung_ok(), _flaechen_ok()])
     ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
-    assert ergebnis["auswahl"] == P1_IDS
+    assert ergebnis["auswahl"] == AUSWAHL_IDS
     assert ergebnis["anordnung"] == _anordnung_ok()["anordnung"]
     assert ergebnis["flaechen"] == _flaechen_ok()["flaechen"]
     # relationaleAbsichten flach aus der anordnung abgeleitet.
-    assert ergebnis["relationaleAbsichten"] == [{"itemId": P1_IDS[0], "relation": "against-wall"}]
+    assert ergebnis["relationaleAbsichten"] == [
+        {"itemId": AUSWAHL_IDS[0], "relation": "against-wall"}
+    ]
 
 
 def test_llm_auswahl_repair(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -199,10 +219,10 @@ def test_llm_teilfallback_anordnung(monkeypatch: pytest.MonkeyPatch) -> None:
     ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
     assert "CURATOR_ANORDNUNG_FALLBACK" in ergebnis["begruendung"]
     assert "CURATOR_FALLBACK_USED" not in ergebnis["begruendung"]
-    assert ergebnis["auswahl"] == P1_IDS
+    assert ergebnis["auswahl"] == AUSWAHL_IDS
     assert ergebnis["flaechen"] == _flaechen_ok()["flaechen"]
     # Baseline-Anordnung deckt genau die Auswahl ab.
-    assert {e["itemId"] for e in ergebnis["anordnung"]} == set(P1_IDS)
+    assert {e["itemId"] for e in ergebnis["anordnung"]} == set(AUSWAHL_IDS)
 
 
 def test_llm_teilfallback_flaechen(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -424,3 +444,153 @@ def test_llm_flaechen_norm_repair_hinweis_enthaelt_regel(monkeypatch: pytest.Mon
     # Der 4. Call ist der Norm-Repair; sein User-Hinweis nennt die Regel-ID.
     repair_hinweis = gesendet[3][-1]["content"]
     assert "bad-boden-wasserfest" in repair_hinweis
+
+
+# --- Welle 1: Platz-Budget (harte Kontrolle in Call A) -----------------------
+
+
+def test_validiere_platz_budget_ueberbelegung() -> None:
+    """Boden-Items (WC/Dusche) sprengen ein künstlich kleines Platz-Budget →
+    konkreter Fehlertext (beziffert Summe + Budget) durch den Repair."""
+    slots = vorfilter(PROFIL, ROOM, CATALOG, None)
+    fehler = _validiere({"auswahl": P1_IDS}, slots, "bad", None, platz_budget=1.0)
+    assert fehler is not None and "Platz-Budget" in fehler
+
+
+def test_platz_budget_guard_nie_unerfuellbar() -> None:
+    """Unsatisfiability-Guard: selbst bei winziger Bodenfläche lässt das effektive
+    Budget eine P1-Pflicht-vollständige Minimal-Auswahl zu (nie unerfüllbar)."""
+    slots = vorfilter(PROFIL, ROOM, CATALOG, None)
+    min_auswahl = [min(slots[typ], key=_footprint)["id"] for typ in ("wc", "lavabo", "dusche")]
+    winzig = {**ROOM, "shell": {**ROOM["shell"], "floor": {"area": 0.1}}}
+    eff = _platz_budget(winzig, slots, "bad")
+    assert eff > 0.1  # Guard hat auf das Pflicht-Minimum angehoben.
+    assert _validiere({"auswahl": min_auswahl}, slots, "bad", None, eff) is None
+
+
+# --- Welle 1: Relations-Ziel-Validierung (Call B) ----------------------------
+
+_BAD_TYPEN = {"wc", "lavabo", "dusche"}
+
+
+def test_validiere_anordnung_relation_ziel_gut() -> None:
+    gut = {"anordnung": [{"itemId": P1_IDS[0], "relationen": ["near:lavabo:0.5"]}]}
+    assert _validiere_anordnung(gut, P1_IDS, N_WALLS, _BAD_TYPEN) is None
+
+
+def test_validiere_anordnung_relation_ziel_schlecht() -> None:
+    schlecht = {"anordnung": [{"itemId": P1_IDS[0], "relationen": ["near:sofa:1.0"]}]}
+    fehler = _validiere_anordnung(schlecht, P1_IDS, N_WALLS, _BAD_TYPEN)
+    assert fehler is not None and "sofa" in fehler
+
+
+def test_validiere_anordnung_unbekannte_relation_toleriert() -> None:
+    """Unbekannte Formen bleiben tolerant (Parser ignoriert sie später)."""
+    a = {"anordnung": [{"itemId": P1_IDS[0], "relationen": ["mystery:foo", "against-wall"]}]}
+    assert _validiere_anordnung(a, P1_IDS, N_WALLS, _BAD_TYPEN) is None
+
+
+# --- Welle 1: Norm-Rendering aus Daten (Call C) ------------------------------
+
+
+def test_norm_kontext_flaechen_nennt_nasswand_indizes() -> None:
+    """Der gerenderte Norm-Block benennt die konkreten Nasswand-Indizes des
+    Sample-Raums + die Boden-Regel mit erlaubten Slugs."""
+    zeilen = norm_kontext_flaechen(ROOM)
+    text = "\n".join(zeilen)
+    for i in sorted(nasswaende(ROOM)):
+        assert f"Wand {i}" in text
+    assert any("Boden" in z for z in zeilen)
+    assert "fliesen-hell" in text
+
+
+# Küche mit Wasser-Fixpunkt an Wand 2 → Spritzzone greift.
+KUECHE_NASS = {
+    "roomType": "kueche",
+    "shell": {
+        "walls": [
+            {"id": "kw0", "start": [0, 0], "end": [3, 0]},
+            {"id": "kw1", "start": [3, 0], "end": [3, 2]},
+            {"id": "kw2", "start": [3, 2], "end": [0, 2]},
+            {"id": "kw3", "start": [0, 2], "end": [0, 0]},
+        ]
+    },
+    "fixpoints": [{"type": "wasser", "wall": "kw2"}],
+}
+
+
+def test_kueche_spritzzone_greift_in_pruefe_flaechen() -> None:
+    """Neue Regel kueche-wand-spritzzone: Spülen-Nasswand unverkleidet → Verstoss."""
+    assert nasswaende(KUECHE_NASS) == {2}
+    fl = {"boden": {"material": "fliesen-hell"}, "waende": []}
+    verstoesse = pruefe_flaechen(fl, KUECHE_NASS, FLAECHEN_REGELN)
+    assert any("kueche-wand-spritzzone" in v for v in verstoesse)
+    # Und korrigiere_flaechen macht es konform (belegt die Spritzzonen-Wand).
+    korrigiert = korrigiere_flaechen(fl, KUECHE_NASS, FLAECHEN_REGELN)
+    assert pruefe_flaechen(korrigiert, KUECHE_NASS, FLAECHEN_REGELN) == []
+
+
+# --- Welle 1: Bewegungsflächen-Hinweise (Call B, aus Norm-Daten) -------------
+
+
+def test_bewegungs_hinweise_bad() -> None:
+    """Je gewähltem funktionsTyp eine kompakte Bewegungsflächen-Zeile aus data/rules."""
+    hinweise = bewegungs_hinweise(ROOM, {"wc", "lavabo", "dusche"})
+    text = "\n".join(hinweise)
+    assert any(z.startswith("wc:") for z in hinweise)
+    assert "Bewegungsfläche" in text
+
+
+# --- Welle 1: konzept-Durchreichung + Prompt-Kontext -------------------------
+
+
+def _auswahl_mit_konzept(konzept: str) -> dict[str, Any]:
+    return {"konzept": konzept, "auswahl": AUSWAHL_IDS, "begruendung": "Test"}
+
+
+def test_baseline_konzept_none() -> None:
+    a = BaselineKurator().kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert a["konzept"] is None
+
+
+def test_llm_konzept_durchgereicht(monkeypatch: pytest.MonkeyPatch) -> None:
+    port = _llm_mit_antworten(
+        monkeypatch,
+        [_auswahl_mit_konzept("Warmes, naturnahes Bad."), _anordnung_ok(), _flaechen_ok()],
+    )
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert ergebnis["konzept"] == "Warmes, naturnahes Bad."
+
+
+def _capture_pipeline(
+    monkeypatch: pytest.MonkeyPatch, antworten: list[Any]
+) -> list[dict[str, Any]]:
+    """Fährt die Pipeline und gibt die gesendeten Request-Payloads zurück."""
+    payloads: list[dict[str, Any]] = []
+    rest = list(antworten)
+
+    def fake_post(url: str, **kwargs: Any) -> httpx.Response:
+        payloads.append(kwargs["json"])
+        inhalt = rest.pop(0)
+        body = {"choices": [{"message": {"content": json.dumps(inhalt)}}]}
+        return httpx.Response(200, json=body, request=httpx.Request("POST", url))
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    LlmKurator(url="http://test/v1", model="test", api_key=None).kuratiere(
+        PROFIL, ROOM, CATALOG, None, seed=7
+    )
+    return payloads
+
+
+def test_prompt_b_enthaelt_stilprofil_und_c_die_auswahl(monkeypatch: pytest.MonkeyPatch) -> None:
+    payloads = _capture_pipeline(monkeypatch, [_auswahl_ok(), _anordnung_ok(), _flaechen_ok()])
+    call_b = payloads[1]["messages"][-1]["content"]
+    assert "## Stilprofil" in call_b and '"temperatur": 0.6' in call_b
+    call_c = payloads[2]["messages"][-1]["content"]
+    assert "Gewählte Möbel" in call_c and "funktionsTyp wc" in call_c
+
+
+def test_sampling_temperature_und_seed(monkeypatch: pytest.MonkeyPatch) -> None:
+    payloads = _capture_pipeline(monkeypatch, [_auswahl_ok(), _anordnung_ok(), _flaechen_ok()])
+    assert payloads[0]["temperature"] == 0.3
+    assert payloads[0]["seed"] == 7

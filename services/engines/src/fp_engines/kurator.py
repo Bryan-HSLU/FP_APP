@@ -53,8 +53,13 @@ PROMPT_AUSWAHL = PROMPT_DIR / "kurator-rolle.md"
 PROMPT_ANORDNUNG = PROMPT_DIR / "kurator-anordnung.md"
 PROMPT_FLAECHEN = PROMPT_DIR / "kurator-flaechen.md"
 SCHEMA_DATEI = REPO_ROOT / "packages" / "shared" / "schemas" / "kurator-vertrag.schema.json"
-FLAECHEN_REGELN_DATEI = REPO_ROOT / "data" / "rules" / "flaechen.json"
+RULES_DIR = REPO_ROOT / "data" / "rules"
+FLAECHEN_REGELN_DATEI = RULES_DIR / "flaechen.json"
 KANDIDATEN_JE_SLOT = 6  # Top 5–8 laut Konzept; kein RAG nötig im POC
+# Footprint-Daumenregel (identisch Baseline & Platz-Budget-Validierung, s.u.):
+# belegte Bodenfläche eines boden-montierten Items = Breite × Tiefe × 2.5
+# (2.5 = Möbelfläche + Bewegungsfläche). Wand-montierte Items belegen 0.
+_FOOTPRINT_FAKTOR = 2.5
 
 log = logging.getLogger("fp.kurator")
 
@@ -89,6 +94,24 @@ def _lade_flaechen_regeln() -> list[dict[str, Any]]:
 
 
 FLAECHEN_REGELN: list[dict[str, Any]] = _lade_flaechen_regeln()
+
+
+# Geometrie-/Bewegungsflächen-Regeln (Norm-Regelsatz-v0) – dieselben Daten, die
+# der Solver hart prüft. Hier NUR gelesen, um Call B kompakte Norm-Hinweise je
+# gewähltem funktionsTyp mitzugeben (Information, keine Prüfung → «sinnvolle
+# Wünsche»). `flaechen.json` ist ein anderes Format und bleibt aussen vor.
+def _lade_geometrie_regeln() -> list[dict[str, Any]]:
+    regeln: list[dict[str, Any]] = []
+    for pfad in sorted(RULES_DIR.glob("*.json")):
+        if pfad.name == "flaechen.json":
+            continue
+        regeln.extend(json.loads(pfad.read_text(encoding="utf-8")))
+    return regeln
+
+
+GEOMETRIE_REGELN: list[dict[str, Any]] = _lade_geometrie_regeln()
+# Regel-Typen mit einer sinnvollen Abstands-/Bewegungsflächen-Kompaktzeile.
+_BEWEGUNGS_TYPEN = frozenset({"clearance", "object-distance", "wall-distance"})
 
 
 def _cos(a: dict[str, float], b: dict[str, float]) -> float:
@@ -132,6 +155,77 @@ def vorfilter(
         items.sort(key=lambda i: (-stil_score(stilprofil, i), i["id"]))
         slots[typ] = items[:KANDIDATEN_JE_SLOT]
     return slots
+
+
+# --- Platz-Budget (harte Kontrolle, gleiche Daumenregel wie die Baseline) ----
+
+
+def _footprint(item: dict[str, Any]) -> float:
+    """Belegte Bodenfläche eines Items (m²) nach der Footprint-Daumenregel.
+
+    Wand-montierte Items belegen keinen Boden (0.0); alle anderen
+    Breite × Tiefe × `_FOOTPRINT_FAKTOR` – identisch zu `BaselineKurator.nimm`.
+    """
+    if item.get("mount") == "wand":
+        return 0.0
+    m = item["masse"]
+    return float(m["w"]) * float(m["d"]) * _FOOTPRINT_FAKTOR
+
+
+def _min_pflicht_footprint(slots: dict[str, list[dict[str, Any]]], room_type: str) -> float:
+    """Kleinstmögliche Footprint-Summe einer P1-Pflicht-vollständigen Auswahl.
+
+    Je vorhandenem Pflicht-Slot das footprint-kleinste Kandidaten-Item. Basis des
+    Unsatisfiability-Guards: läge das echte Bodenbudget darunter, wäre die
+    Validierung unerfüllbar – deshalb hebt `_platz_budget` mindestens hierauf an.
+    """
+    total = 0.0
+    for typ in P1_PFLICHT.get(room_type, []):
+        kandidaten = slots.get(typ) or []
+        if kandidaten:
+            total += min(_footprint(i) for i in kandidaten)
+    return total
+
+
+def _platz_budget(
+    room: dict[str, Any], slots: dict[str, list[dict[str, Any]]], room_type: str
+) -> float:
+    """Effektives Platz-Budget (m²) = max(Bodenfläche, minimale Pflicht-Footprint).
+
+    Bodenfläche ist die ehrliche Zielgrösse; der Guard verhindert nur, dass ein
+    sehr kleiner Raum die P1-Pflicht (WC/Lavabo/Dusche) unerfüllbar macht.
+    """
+    area = room["shell"]["floor"].get("area") or 0.0
+    return max(float(area), _min_pflicht_footprint(slots, room_type))
+
+
+# --- Bewegungsflächen-Hinweise für Call B (Information aus den Norm-Daten) ----
+
+
+def bewegungs_hinweise(
+    room: dict[str, Any],
+    gewaehlte_typen: set[str],
+    regeln: list[dict[str, Any]] = GEOMETRIE_REGELN,
+) -> list[str]:
+    """Je gewähltem funktionsTyp max. eine kompakte Abstands-/Bewegungsflächen-Zeile.
+
+    Quelle = Geometrie-Regelsatz (`data/rules/<roomType>.json`, `hinweis`-Feld).
+    Nur raumtyp-spezifische Regeln der `_BEWEGUNGS_TYPEN`; pro funktionsTyp wird
+    die Bewegungsfläche (`clearance`) bevorzugt. Reine Information für den Prompt –
+    der Solver prüft hart. Leere Liste, wenn es keine passenden Regeln gibt.
+    """
+    rt = room["roomType"]
+    beste: dict[str, dict[str, Any]] = {}
+    for r in regeln:
+        if r.get("roomType") != rt or r.get("type") not in _BEWEGUNGS_TYPEN:
+            continue
+        typ = r.get("appliesTo")
+        if typ not in gewaehlte_typen or not r.get("hinweis"):
+            continue
+        vorher = beste.get(typ)
+        if vorher is None or (r["type"] == "clearance" and vorher["type"] != "clearance"):
+            beste[typ] = r
+    return [f"{typ}: {beste[typ]['hinweis']}" for typ in sorted(beste)]
 
 
 # --- Baseline-Anordnung (Teil-Fallback für Call B) --------------------------
@@ -180,8 +274,14 @@ def _validiere(
     slots: dict[str, list[dict[str, Any]]],
     room_type: str,
     budget: float | None,
+    platz_budget: float | None = None,
 ) -> str | None:
-    """Call A: harte Validierung (Konzept §4). None = ok, sonst Fehlerhinweis."""
+    """Call A: harte Validierung (Konzept §4). None = ok, sonst Fehlerhinweis.
+
+    `platz_budget` (m², effektives Bodenbudget aus `_platz_budget`): ist es
+    gesetzt, wird die belegte Bodenfläche der gewählten boden-montierten Items
+    (Footprint-Daumenregel) hart geprüft – gleiche Regel wie die Baseline.
+    """
     if not isinstance(antwort.get("auswahl"), list) or not antwort["auswahl"]:
         return "Feld «auswahl» fehlt oder ist leer."
     erlaubte = {i["id"]: i for items in slots.values() for i in items}
@@ -196,6 +296,14 @@ def _validiere(
         summe = sum(erlaubte[i]["preis"]["value"] for i in antwort["auswahl"])
         if summe > budget:
             return f"Budget überschritten: {summe} > {budget}."
+    if platz_budget is not None:
+        belegt = sum(_footprint(erlaubte[i]) for i in antwort["auswahl"])
+        if belegt > platz_budget:
+            return (
+                f"Platz-Budget überschritten: belegte Bodenfläche {belegt:.1f} m² "
+                f"> {platz_budget:.1f} m² (Summe Breite×Tiefe×2.5 der boden-montierten "
+                "Items). Wähle weniger/kleinere boden-montierte Objekte."
+            )
     for rel in antwort.get("relationaleAbsichten", []):
         if rel.get("itemId") not in erlaubte:
             return f"relationaleAbsichten verweist auf unbekannte ID: {rel.get('itemId')}."
@@ -207,10 +315,40 @@ def _ist_int(v: Any) -> TypeGuard[int]:
     return isinstance(v, int) and not isinstance(v, bool)
 
 
-def _validiere_anordnung(antwort: dict[str, Any], auswahl: list[str], n_walls: int) -> str | None:
+def _relation_ziel_fehler(
+    rel: str, auswahl: set[str], gewaehlte_typen: set[str]
+) -> str | None:
+    """Relations-Ziel-Prüfung für BEKANNTE Formen (Konzept v3).
+
+    `near:`/`facing:`/`opposite:<typ>` → `<typ>` muss funktionsTyp eines gewählten
+    Items sein; `pair-with:<id>` → `<id>` muss in der Auswahl liegen. `against-wall`,
+    `corner`, `group:*` bleiben frei; UNBEKANNTE Präfixe werden toleriert (der
+    Parser ignoriert sie ohnehin). None = ok, sonst konkreter Repair-Hinweis.
+    """
+    kopf, _, rest = rel.partition(":")
+    if kopf in ("near", "facing", "opposite"):
+        ziel = rest.split(":", 1)[0]
+        if ziel and ziel not in gewaehlte_typen:
+            return (
+                f"Relation {rel} zielt auf nicht gewählten funktionsTyp «{ziel}» "
+                "– wähle diesen Typ oder entferne die Relation."
+            )
+    elif kopf == "pair-with":
+        if rest and rest not in auswahl:
+            return f"Relation {rel} verweist auf nicht gewählte itemId «{rest}»."
+    return None
+
+
+def _validiere_anordnung(
+    antwort: dict[str, Any],
+    auswahl: list[str],
+    n_walls: int,
+    gewaehlte_typen: set[str] | None = None,
+) -> str | None:
     """Call B: `anordnung` prüfen. itemIds ⊆ Auswahl, wandIndex im Bereich,
-    relationen = Liste von Strings (Grammatik NICHT hier – unbekannte ignoriert
-    der Parser später), prioritaet ganzzahlig. None = ok."""
+    relationen = Liste von Strings, prioritaet ganzzahlig. Ist `gewaehlte_typen`
+    gesetzt, werden zusätzlich die Ziele BEKANNTER Relationen geprüft
+    (`_relation_ziel_fehler`) – unbekannte Formen bleiben toleriert. None = ok."""
     anordnung = antwort.get("anordnung")
     if not isinstance(anordnung, list):
         return "Feld «anordnung» fehlt oder ist keine Liste."
@@ -228,6 +366,11 @@ def _validiere_anordnung(antwort: dict[str, Any], auswahl: list[str], n_walls: i
             not isinstance(rel, list) or any(not isinstance(r, str) for r in rel)
         ):
             return "«relationen» muss eine Liste von Strings sein."
+        if gewaehlte_typen is not None and isinstance(rel, list):
+            for r in rel:
+                fehler = _relation_ziel_fehler(r, erlaubt, gewaehlte_typen)
+                if fehler is not None:
+                    return fehler
         pr = e.get("prioritaet")
         if pr is not None and not _ist_int(pr):
             return "«prioritaet» muss eine ganze Zahl sein."
@@ -459,6 +602,44 @@ def korrigiere_flaechen(
     return fl
 
 
+def norm_kontext_flaechen(
+    room: dict[str, Any], regeln: list[dict[str, Any]] = FLAECHEN_REGELN
+) -> list[str]:
+    """Rendert die Flächen-Normregeln des Raumtyps PRO RAUM instanziiert (Call C).
+
+    Eine Quelle (`data/rules/flaechen.json`) für Prompt UND `pruefe_flaechen` –
+    kein Drift. `boden` → erlaubte Slugs; `wand-nass` → konkrete Nasswand-Indizes
+    des Raums (via `nasswaende`) + Mindest-Deckhöhe; `wand-alle` → erlaubte Slugs
+    für explizit belegte Wände. Leere Liste, wenn der Raumtyp keine Regeln hat.
+    """
+    aktiv = [r for r in regeln if r["roomType"] == room["roomType"]]
+    if not aktiv:
+        return []
+    nass = sorted(nasswaende(room))
+    zeilen: list[str] = []
+    for regel in aktiv:
+        gilt, anf = regel["gilt"], regel["anforderung"]
+        slugs = sorted(regel["erlaubteMaterialien"])
+        if gilt == "boden":
+            zeilen.append(f"Boden ({anf}): NUR {slugs}")
+        elif gilt == "wand-nass":
+            if not nass:
+                continue
+            minh = regel.get("minHoeheM", 0.0)
+            benennung = ", ".join(f"Wand {i}" for i in nass)
+            sind = "sind Nasswände" if len(nass) > 1 else "ist Nasswand"
+            zeilen.append(
+                f"{benennung} {sind} ({anf}): Material aus {slugs}, deckend bis "
+                f'≥ {minh} m (bereich "voll" oder hoeheM ≥ {minh}) — jede Nasswand belegen'
+            )
+        elif gilt == "wand-alle":
+            zeilen.append(
+                f"Explizit belegte Wände: nur {slugs}; Wände, die schlicht verputzt "
+                "bleiben sollen, weglassen"
+            )
+    return zeilen
+
+
 # --- Kompakte Raumgeometrie für die Prompts ---------------------------------
 
 
@@ -485,6 +666,24 @@ def _wandliste(room: dict[str, Any]) -> list[str]:
             teile.append("Anschlüsse: " + ", ".join(an))
         zeilen.append(" · ".join(teile))
     return zeilen
+
+
+def _profil_zeilen(stilprofil: dict[str, Any]) -> list[str]:
+    """Stilprofil kompakt (styleVector, Anforderungen, Palette) – identische
+    Darstellung in allen drei Calls, damit A/B/C denselben Stil interpretieren."""
+    return [
+        f"Stilvektor: {json.dumps(stilprofil.get('styleVector', {}), ensure_ascii=False)}",
+        f"Anforderungen: {stilprofil.get('derivedRequirements', [])}",
+        f"Palette: {stilprofil.get('palette', [])}",
+    ]
+
+
+def _konzept_block(konzept: str | None) -> list[str]:
+    """Design-Konzept-Block (roter Faden aus Call A) – leer, wenn kein Konzept
+    vorliegt (weiche Freiheit; fehlendes Konzept ist kein Fehler)."""
+    if not konzept or not str(konzept).strip():
+        return []
+    return ["## Design-Konzept (roter Faden)", str(konzept).strip(), ""]
 
 
 class KuratorPort(Protocol):
@@ -573,6 +772,8 @@ class BaselineKurator:
 
         by_id = {c["id"]: c for c in catalog}
         return {
+            # Baseline hat keine Design-Leitidee (rein deterministisch) → kein Konzept.
+            "konzept": None,
             "auswahl": auswahl,
             "relationaleAbsichten": absichten,
             "anordnung": _baseline_anordnung(auswahl, by_id),
@@ -615,11 +816,7 @@ class LlmKurator:
             f"Fixpunkte: {sorted({f['type'] for f in room['fixpoints']})}",
             f"Öffnungen: {sorted({o['type'] for o in room['openings']})}",
         ]
-        profil = [
-            f"Stilvektor: {json.dumps(stilprofil.get('styleVector', {}), ensure_ascii=False)}",
-            f"Anforderungen: {stilprofil.get('derivedRequirements', [])}",
-            f"Palette: {stilprofil.get('palette', [])}",
-        ]
+        profil = _profil_zeilen(stilprofil)
         kandidaten = []
         p1 = set(P1_PFLICHT.get(room["roomType"], []))
         for typ, items in sorted(slots.items()):
@@ -633,6 +830,11 @@ class LlmKurator:
                     f"CHF {i['preis']['value']}"
                 )
         budget_zeile = f"Budget: CHF {budget}" if budget is not None else "Budget: keines"
+        area = room["shell"]["floor"].get("area") or 0.0
+        platz_zeile = (
+            f"Platz-Budget (hart geprüft): Summe Breite×Tiefe×2.5 aller "
+            f"boden-montierten Items ≤ {area:.1f} m² (wandmontierte Items zählen nicht)."
+        )
         return [
             {"role": "system", "content": rolle},
             {
@@ -645,17 +847,26 @@ class LlmKurator:
                         "## Stilprofil",
                         *profil,
                         "",
+                        "## Raumgeometrie – Wände (0-basierter wandIndex)",
+                        *_wandliste(room),
+                        "",
                         "## Kandidaten",
                         *kandidaten,
                         "",
                         budget_zeile,
+                        platz_zeile,
                     ]
                 ),
             },
         ]
 
     def _prompt_anordnung(
-        self, auswahl: list[str], by_id: dict[str, dict[str, Any]], room: dict[str, Any]
+        self,
+        auswahl: list[str],
+        by_id: dict[str, dict[str, Any]],
+        room: dict[str, Any],
+        stilprofil: dict[str, Any],
+        konzept: str | None,
     ) -> list[dict[str, str]]:
         rolle = PROMPT_ANORDNUNG.read_text(encoding="utf-8")
         items = []
@@ -666,15 +877,31 @@ class LlmKurator:
                 f"  {iid} · {it['name']} · funktionsTyp {it['funktionsTyp']} · "
                 f"{m['w']}×{m['d']}×{m['h']} m · {it['priorityClass']}"
             )
+        gewaehlte_typen = {by_id[i]["funktionsTyp"] for i in auswahl}
+        hinweise = bewegungs_hinweise(room, gewaehlte_typen)
+        norm_block = (
+            [
+                "## Norm-Hinweise für sinnvolle Wünsche (Information – der Solver prüft hart)",
+                *hinweise,
+                "",
+            ]
+            if hinweise
+            else []
+        )
         return [
             {"role": "system", "content": rolle},
             {
                 "role": "user",
                 "content": "\n".join(
                     [
+                        *_konzept_block(konzept),
+                        "## Stilprofil",
+                        *_profil_zeilen(stilprofil),
+                        "",
                         "## Auswahl (nur diese itemIds verwenden)",
                         *items,
                         "",
+                        *norm_block,
                         "## Raumgeometrie – Wände (0-basierter wandIndex)",
                         *_wandliste(room),
                     ]
@@ -683,28 +910,47 @@ class LlmKurator:
         ]
 
     def _prompt_flaechen(
-        self, stilprofil: dict[str, Any], room: dict[str, Any]
+        self,
+        stilprofil: dict[str, Any],
+        room: dict[str, Any],
+        auswahl: list[str],
+        by_id: dict[str, dict[str, Any]],
+        konzept: str | None,
     ) -> list[dict[str, str]]:
         rolle = PROMPT_FLAECHEN.read_text(encoding="utf-8")
-        profil = [
-            f"Stilvektor: {json.dumps(stilprofil.get('styleVector', {}), ensure_ascii=False)}",
-            f"Anforderungen: {stilprofil.get('derivedRequirements', [])}",
-            f"Palette: {stilprofil.get('palette', [])}",
-        ]
+        moebel = []
+        for iid in auswahl:
+            it = by_id[iid]
+            m = it["masse"]
+            moebel.append(
+                f"  {it['name']} · funktionsTyp {it['funktionsTyp']} · "
+                f"{m['w']}×{m['d']}×{m['h']} m"
+            )
+        norm = norm_kontext_flaechen(room)
+        norm_block = (
+            ["## Harte Normregeln (maschinell geprüft – strikt einhalten)", *norm, ""]
+            if norm
+            else []
+        )
         return [
             {"role": "system", "content": rolle},
             {
                 "role": "user",
                 "content": "\n".join(
                     [
+                        *_konzept_block(konzept),
                         f"## Raum\nRaumtyp: {room['roomType']}",
                         "",
                         "## Stilprofil",
-                        *profil,
+                        *_profil_zeilen(stilprofil),
+                        "",
+                        "## Gewählte Möbel (Flächen sollen dazu passen)",
+                        *moebel,
                         "",
                         "## Wände (0-basierter wandIndex)",
                         *_wandliste(room),
                         "",
+                        *norm_block,
                         "## Erlaubte Material-Slugs (NUR daraus wählen)",
                         ", ".join(MATERIAL_SLUGS),
                     ]
@@ -714,19 +960,25 @@ class LlmKurator:
 
     # --- LLM-Aufruf + generischer Repair-Runner -----------------------------
 
-    def _rufe_llm(self, messages: list[dict[str, str]]) -> dict[str, Any]:
+    def _rufe_llm(self, messages: list[dict[str, str]], seed: int | None = None) -> dict[str, Any]:
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
+        # temperature 0.3: fokussierter als 0.7 (weniger Rauschen), aber nicht
+        # deterministisch-flach. seed: OpenAI-kompatibel «best effort» – reduziert
+        # Run-zu-Run-Streuung, wo das Serving es unterstützt (sonst ignoriert).
+        payload: dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": 0.3,
+            "response_format": {"type": "json_object"},
+        }
+        if seed is not None:
+            payload["seed"] = seed
         res = httpx.post(
             f"{self.url}/chat/completions",
             headers=headers,
-            json={
-                "model": self.model,
-                "messages": messages,
-                "temperature": 0.7,
-                "response_format": {"type": "json_object"},
-            },
+            json=payload,
             timeout=self.timeout_s,
         )
         res.raise_for_status()
@@ -742,6 +994,7 @@ class LlmKurator:
         messages: list[dict[str, str]],
         validiere: Callable[[dict[str, Any]], str | None],
         name: str,
+        seed: int | None = None,
     ) -> dict[str, Any] | None:
         """Ein LLM-Call mit Validierung + max. 1 Repair-Retry. None = gescheitert.
 
@@ -749,7 +1002,7 @@ class LlmKurator:
         den (Teil-)Fallback – nie ein harter Fehler nach oben.
         """
         try:
-            antwort = self._rufe_llm(messages)
+            antwort = self._rufe_llm(messages, seed)
             fehler = validiere(antwort)
             if fehler is not None:
                 # Repair-Retry (max. 1) mit konkretem Fehlerhinweis (Konzept §5).
@@ -762,7 +1015,7 @@ class LlmKurator:
                         "Korrigiere und antworte erneut nur mit JSON.",
                     },
                 ]
-                antwort = self._rufe_llm(messages)
+                antwort = self._rufe_llm(messages, seed)
                 fehler = validiere(antwort)
             if fehler is None:
                 return antwort
@@ -778,6 +1031,7 @@ class LlmKurator:
         verstoesse: list[str],
         n_walls: int,
         room: dict[str, Any],
+        seed: int | None = None,
     ) -> dict[str, Any] | None:
         """Ein einziger Norm-Repair-Aufruf: gibt die konkreten Verstöße zurück ans
         LLM und verlangt eine korrigierte Antwort. Rückgabe = strukturell UND
@@ -794,7 +1048,7 @@ class LlmKurator:
             {"role": "user", "content": hinweis},
         ]
         try:
-            antwort = self._rufe_llm(messages)
+            antwort = self._rufe_llm(messages, seed)
         except (httpx.HTTPError, json.JSONDecodeError, KeyError) as e:
             log.warning("kurator[flaechen-norm]: repair-aufruf fehlgeschlagen (%s)", e)
             return None
@@ -819,25 +1073,31 @@ class LlmKurator:
         by_id = {c["id"]: c for c in catalog}
         n_walls = len(room["shell"]["walls"])
         room_type = room["roomType"]
+        platz_budget = _platz_budget(room, slots, room_type)
 
         # Call A – Auswahl. Scheitert A → alles Baseline (B/C brauchen die Auswahl).
         antwort_a = self._call_json(
             self._prompt_auswahl(stilprofil, room, slots, budget),
-            lambda a: _validiere(a, slots, room_type, budget),
+            lambda a: _validiere(a, slots, room_type, budget, platz_budget),
             "auswahl",
+            seed,
         )
         if antwort_a is None:
             ergebnis = BaselineKurator().kuratiere(stilprofil, room, catalog, budget, seed)
             ergebnis["begruendung"] += " (Fallback: CURATOR_FALLBACK_USED)"
             return ergebnis
         auswahl: list[str] = antwort_a["auswahl"]
+        # Konzept ist weich/optional (keine Norm) → fehlend = kein Konzept-Block.
+        konzept = antwort_a.get("konzept")
         begruendung = str(antwort_a.get("begruendung", ""))
+        gewaehlte_typen = {by_id[i]["funktionsTyp"] for i in auswahl}
 
         # Call B – Anordnung. Scheitert B → Teil-Fallback aus relationalRules.
         antwort_b = self._call_json(
-            self._prompt_anordnung(auswahl, by_id, room),
-            lambda a: _validiere_anordnung(a, auswahl, n_walls),
+            self._prompt_anordnung(auswahl, by_id, room, stilprofil, konzept),
+            lambda a: _validiere_anordnung(a, auswahl, n_walls, gewaehlte_typen),
             "anordnung",
+            seed,
         )
         if antwort_b is not None:
             anordnung: list[dict[str, Any]] = antwort_b["anordnung"]
@@ -852,9 +1112,10 @@ class LlmKurator:
         #      bei Verstoß 1 Norm-Repair-Retry → sonst deterministische
         #      korrigiere_flaechen (verwirft NICHT, sondern macht konform).
         antwort_c = self._call_json(
-            self._prompt_flaechen(stilprofil, room),
+            self._prompt_flaechen(stilprofil, room, auswahl, by_id, konzept),
             lambda a: _validiere_flaechen(a, n_walls, MATERIAL_SLUGS),
             "flaechen",
+            seed,
         )
         flaechen: dict[str, Any] | None
         if antwort_c is None:
@@ -865,11 +1126,12 @@ class LlmKurator:
             verstoesse = pruefe_flaechen(flaechen, room, FLAECHEN_REGELN)
             if verstoesse:
                 repariert = self._flaechen_norm_repair(
-                    self._prompt_flaechen(stilprofil, room),
+                    self._prompt_flaechen(stilprofil, room, auswahl, by_id, konzept),
                     flaechen,
                     verstoesse,
                     n_walls,
                     room,
+                    seed,
                 )
                 if repariert is not None:
                     flaechen = repariert
@@ -879,6 +1141,7 @@ class LlmKurator:
                     begruendung += " (Norm-Korrektur Flächen: CURATOR_FLAECHEN_NORMKORREKTUR)"
 
         return {
+            "konzept": konzept,
             "auswahl": auswahl,
             "relationaleAbsichten": _absichten_aus_anordnung(anordnung),
             "anordnung": anordnung,
