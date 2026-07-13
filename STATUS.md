@@ -27,6 +27,13 @@
   Flächen (bewusst) noch nicht.
 - HF: /plan macht jetzt bis zu 3 Groq-Calls → wenige Sekunden länger; Fallback-
   Marker je Call in der Begründung (`CURATOR_ANORDNUNG_FALLBACK` etc.).
+- **Flächen-Normkontrolle (Nachtrag):** `data/rules/flaechen.json` (deklarativ,
+  getrennt vom Paritäts-Set) prüft jeden KI-Flächen-Output hart: Bad-Boden
+  wasserfest, Nasswände ≥2.0 m wasserfest (Heuristik: Fixpunkte ≤0.5 m),
+  Küchenboden abwaschbar. Ablauf: Regeln VORAB im Prompt → pruefe_flaechen →
+  1 Norm-Repair (`…NORMREPAIR`) → deterministische Korrektur
+  (`…NORMKORREKTUR`). Vokabular +tapete-hell/+taefer-holz (Wohnräume: Putz/
+  Tapete/Täfer statt Fliesen). Richtwerte «zu-verifizieren» (SIA 271/DIN 18534).
 
 ### Katalog-Ausbau: 13 neue Möbeltypen (2026-07-12)
 - **26 neue Katalog-Items** (je 2 Stil-Varianten, alle P3): Bad waeschekorb/
