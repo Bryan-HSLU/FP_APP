@@ -3,11 +3,12 @@
  *  Macht Pläne normgerecht beurteilbar. Gegenüber v1 neu:
  *  - **Objektsymbole** (Architekten-Draufsicht) statt nur beschrifteter Boxen
  *    (`symbole2d`), gefärbt nach Norm-Ampel bzw. Materialfarbe.
- *  - **Wände wie im CAD-Plan** (`wandBaender`/`innenPolygon`): die Raumkontur
- *    ist die **Aussenkante**, die Wandstärke wächst nach **innen**; Ecken sind
- *    gehrungs-verbunden (geteilte Innenpunkte). Öffnungen sind **echte
- *    Aussparungen in der Wandstärke** (Segmentierung via `wandLuecken`), nicht
- *    bloss Linien auf der Wandoberfläche.
+ *  - **Wände wie im CAD-Plan** (`wandBaender`/`aussenPolygon`): das Raumpolygon
+ *    ist die **Innenkante** (nutzbare Raumfläche, bis an die der Solver Objekte
+ *    stellt), die Wandstärke wächst nach **aussen**; Ecken sind gehrungs-
+ *    verbunden (geteilte Aussenpunkte). Öffnungen sind **echte Aussparungen in
+ *    der Wandstärke** (Segmentierung via `wandLuecken`), nicht bloss Linien auf
+ *    der Wandoberfläche.
  *  - **Layer-System v2** (`layer2d`): Darstellungs-Layer (globale Toggles) +
  *    Objekt-Layer (jedes Möbel einzeln ein-/ausblendbar, CAD-artig).
  *  - **Platzbedarf-Layer**: Clearance-Zonen (`type:"clearance"`-Regeln) als
@@ -41,11 +42,11 @@ import {
 } from "./layer2d";
 import { materialFarbe } from "./moebel3d";
 import {
+  aussenPolygon,
   clearanceRect,
   computeTransform,
   distanz,
   footprintPoints,
-  innenPolygon,
   innwardNormal,
   naechsteEcke,
   rasten,
@@ -139,23 +140,25 @@ function Oeffnung({
   const len = Math.hypot(dx, dz) || 1;
   const u: Vec2 = [dx / len, dz / len];
   const dicke = (wall as { thickness?: number }).thickness ?? WANDDICKE_FALLBACK;
-  // Normale ins Rauminnere: die Wand wächst von der Aussenkante (Achse, f=0) um
-  // die volle Wandstärke nach innen (f=1) – deckungsgleich mit `wandBaender`.
+  // Normale ins Rauminnere (für den Türschwenk) und ihre Umkehrung nach aussen.
+  // Die Wand wächst von der Innenkante (Achse = Raumpolygon-Linie, f=0) um die
+  // volle Wandstärke nach aussen (f=1) – deckungsgleich mit `wandBaender`.
   const nIn = innwardNormal(
     wall.start as Vec2,
     wall.end as Vec2,
     room.shell.floor.polygon as Vec2[],
   );
+  const nAus: Vec2 = [-nIn[0], -nIn[1]];
   const a: Vec2 = [wall.start[0] + u[0] * opening.offset, wall.start[1] + u[1] * opening.offset];
   const b: Vec2 = [a[0] + u[0] * opening.width, a[1] + u[1] * opening.width];
-  // Punkt an Laibung `p`, um Anteil `f` der Wandstärke nach innen versetzt.
+  // Punkt an Laibung `p`, um Anteil `f` der Wandstärke nach aussen versetzt.
   const bandPunkt = (p: Vec2, f: number): Vec2 => [
-    p[0] + nIn[0] * dicke * f,
-    p[1] + nIn[1] * dicke * f,
+    p[0] + nAus[0] * dicke * f,
+    p[1] + nAus[1] * dicke * f,
   ];
   const scr = (p: Vec2, f: number): [number, number] => toScreen(bandPunkt(p, f), t);
-  const [aOx, aOy] = scr(a, 0); // Aussenkante an Laibung a
-  const [aIx, aIy] = scr(a, 1); // Innenkante an Laibung a
+  const [aOx, aOy] = scr(a, 0); // Innenkante (Raumseite) an Laibung a
+  const [aIx, aIy] = scr(a, 1); // Aussenkante an Laibung a
   const [bOx, bOy] = scr(b, 0);
   const [bIx, bIy] = scr(b, 1);
 
@@ -164,10 +167,10 @@ function Oeffnung({
     const [lx, ly] = toScreen([a[0] + nIn[0] * opening.width, a[1] + nIn[1] * opening.width], t);
     return (
       <g>
-        {/* Schwelle: dünne Linie über die Wandstärke (aussen→innen) je Laibung */}
+        {/* Schwelle: dünne Linie über die Wandstärke (innen→aussen) je Laibung */}
         <line x1={aOx} y1={aOy} x2={aIx} y2={aIy} stroke={WAND_KANTE} strokeWidth={1} />
         <line x1={bOx} y1={bOy} x2={bIx} y2={bIy} stroke={WAND_KANTE} strokeWidth={1} />
-        {/* Türblatt (Radius) + Viertelkreis-Schwenk, ab der Aussenkante */}
+        {/* Türblatt (Radius) + Viertelkreis-Schwenk, ab der Innenkante ins Zimmer */}
         <line x1={aOx} y1={aOy} x2={lx} y2={ly} stroke="#9aa6a0" strokeWidth={1.5} />
         <polyline
           points={schwenkPunkte(a, opening.width, nIn, u, t)}
@@ -179,7 +182,7 @@ function Oeffnung({
     );
   }
 
-  // Fenster: Glas IN der Wand – Rahmenlinie an Aussen- und Innenkante (0 / volle
+  // Fenster: Glas IN der Wand – Rahmenlinie an Innen- und Aussenkante (0 / volle
   // Wandstärke) + Mittellinie, alle entlang der Achse; Laibungen schliessen ab.
   const [mAx, mAy] = scr(a, 0.5);
   const [mBx, mBy] = scr(b, 0.5);
@@ -279,21 +282,26 @@ export function Viewer2D({
 }) {
   const byId = new Map(catalog.map((c) => [c.id, c]));
   const floor = room.shell.floor.polygon as Vec2[];
-  const t = computeTransform(floor, SIZE, PAD);
-  const floorPts = floor.map((p) => toScreen(p, t).join(",")).join(" ");
 
-  // CAD-Wände: die Raumkontur ist die AUSSENKANTE, die Wandstärke wächst nach
-  // innen. Für saubere (gehrungsverbundene) Ecken wird das nach innen versetzte
-  // Innenpolygon einmal berechnet und je Eckpunkt der Wände nachgeschlagen. Die
-  // Wandstärke ist im POC pro Raum einheitlich; als Referenz für die Gehrung
-  // dient die häufigste Stärke (offene 0-Wände zählen nicht).
+  // CAD-Wände: das Raumpolygon ist die INNENKANTE (nutzbare Fläche), die
+  // Wandstärke wächst nach AUSSEN. Für saubere (gehrungsverbundene) Ecken wird
+  // das nach aussen versetzte Aussenpolygon einmal berechnet und je Eckpunkt der
+  // Wände nachgeschlagen. Die Wandstärke ist im POC pro Raum einheitlich; als
+  // Referenz für die Gehrung dient die häufigste Stärke (offene 0-Wände zählen
+  // nicht).
   const wandDicken = room.shell.walls
     .map((w) => (w as { thickness?: number }).thickness ?? WANDDICKE_FALLBACK)
     .filter((d) => d > 1e-6);
   const refDicke = haeufigste(wandDicken) ?? WANDDICKE_FALLBACK;
-  const innen = innenPolygon(floor, refDicke);
+  const aussen = aussenPolygon(floor, refDicke);
   const eckKey = (p: Vec2 | readonly [number, number]) => `${p[0].toFixed(4)},${p[1].toFixed(4)}`;
-  const innenKarte = new Map(floor.map((p, i) => [eckKey(p), innen[i]]));
+  const aussenKarte = new Map(floor.map((p, i) => [eckKey(p), aussen[i]]));
+
+  // Der Transform muss die nach aussen gewachsenen Wände einschliessen, sonst
+  // würden sie am SVG-Rand abgeschnitten – deshalb über das Aussenpolygon
+  // (statt über den Boden) einpassen. Der Boden bleibt das volle Raumpolygon.
+  const t = computeTransform(aussen, SIZE, PAD);
+  const floorPts = floor.map((p) => toScreen(p, t).join(",")).join(" ");
 
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -448,17 +456,18 @@ export function Viewer2D({
               if (dicke <= 1e-6) return null; // offene Seite (Grossraum): keine Wand
               const massiv = w.kind === "massiv";
               const nIn = innwardNormal(w.start as Vec2, w.end as Vec2, floor);
+              const nAus: Vec2 = [-nIn[0], -nIn[1]]; // Wand wächst nach aussen
               const eigene = room.openings
                 .filter((o) => o.hostWall === w.id)
                 .map((o) => ({ offset: o.offset, width: o.width }));
               const baender = wandBaender(
                 w.start as Vec2,
                 w.end as Vec2,
-                nIn,
+                nAus,
                 dicke,
                 eigene,
-                innenKarte.get(eckKey(w.start)),
-                innenKarte.get(eckKey(w.end)),
+                aussenKarte.get(eckKey(w.start)),
+                aussenKarte.get(eckKey(w.end)),
               );
               return (
                 <g key={w.id}>
