@@ -1,0 +1,34 @@
+{
+  "ports": {
+    "baseline": {
+      "auslastung_mittel": 0.886,
+      "diversitaet_sets": 27,
+      "invariante_gehalten": true,
+      "laeufe": 45,
+      "norm_korrektur_pct": "n/a",
+      "palette_treffer_mittel": 0.855,
+      "stil_treue_mittel": 0.366,
+      "ueberlebensrate_mittel": 0.867,
+      "validitaet_pct": 100.0
+    }
+  },
+  "testset": {
+    "profile": [
+      "kuehl-minimal (extrem)",
+      "mittig-unentschieden",
+      "warm-natuerlich (extrem)"
+    ],
+    "raeume": [
+      "bad",
+      "kueche",
+      "wohnen"
+    ],
+    "seeds": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  }
+}
