@@ -92,6 +92,14 @@
       "type": "object",
       "additionalProperties": { "type": "number", "minimum": -1, "maximum": 1 }
     },
+    "farbVarianten": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/farbSlug" },
+      "minItems": 1,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "description": "Wählbare Farbvarianten des generischen Objekts; erste = Default-Optik. Grundlage für KI-Farbwahl und UI-Picker (nur solange Eigen-Objekte, keine Hersteller-Assets)."
+    },
     "attributTags": {
       "type": "array",
       "items": { "type": "string", "pattern": "^[a-z0-9-]+:[a-z0-9-]+$" }
@@ -126,6 +134,26 @@
   },
   "$defs": {
     "uuid": { "type": "string", "format": "uuid" },
-    "semver": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" }
+    "semver": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "farbSlug": {
+      "enum": [
+        "weiss",
+        "creme",
+        "sand",
+        "beige",
+        "hellgrau",
+        "anthrazit",
+        "schwarz",
+        "eiche-hell",
+        "nussbaum",
+        "salbei",
+        "olive",
+        "terracotta",
+        "bordeaux",
+        "blaugrau",
+        "dunkelblau",
+        "messing"
+      ]
+    }
   }
 }

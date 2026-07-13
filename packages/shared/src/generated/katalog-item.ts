@@ -2,6 +2,23 @@
 
 export type Uuid = string;
 export type Semver = string;
+export type FarbSlug =
+  | "weiss"
+  | "creme"
+  | "sand"
+  | "beige"
+  | "hellgrau"
+  | "anthrazit"
+  | "schwarz"
+  | "eiche-hell"
+  | "nussbaum"
+  | "salbei"
+  | "olive"
+  | "terracotta"
+  | "bordeaux"
+  | "blaugrau"
+  | "dunkelblau"
+  | "messing";
 
 /**
  * Vertrag 4: Möbel-/Objektkatalog (Stammdaten). Box-Platzhalter mit Auto-Upgrade: ohne gltfRef rendert der Viewer eine Box aus masse; Platzierungen referenzieren nur die ID.
@@ -67,6 +84,17 @@ export interface KatalogItem {
   achsenTags: {
     [k: string]: number;
   };
+  /**
+   * Wählbare Farbvarianten des generischen Objekts; erste = Default-Optik. Grundlage für KI-Farbwahl und UI-Picker (nur solange Eigen-Objekte, keine Hersteller-Assets).
+   *
+   * @minItems 1
+   * @maxItems 4
+   */
+  farbVarianten?:
+    | [FarbSlug]
+    | [FarbSlug, FarbSlug]
+    | [FarbSlug, FarbSlug, FarbSlug]
+    | [FarbSlug, FarbSlug, FarbSlug, FarbSlug];
   attributTags: string[];
   anschluesse: ("wasser" | "abwasser" | "elektro" | "starkstrom" | "lueftung" | "heizung")[];
   relationalRules: string[];

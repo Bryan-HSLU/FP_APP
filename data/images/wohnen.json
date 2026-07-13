@@ -230,7 +230,7 @@
     "bildRef": "wohnen/Bild Wohnen (4).jpg",
     "roomType": "wohnen",
     "achsenTags": {
-      "temperatur": -0.3,
+      "temperatur": 0.6,
       "opulenz": 0.0,
       "materialitaet": 0.8,
       "helligkeit": 0.2,
@@ -686,7 +686,7 @@
       "helligkeit": 0.4,
       "epoche": -0.1,
       "kontur": -0.5,
-      "farbigkeit": 1.0,
+      "farbigkeit": -0.6,
       "raumgefuehl": -0.4
     },
     "attributTags": [
@@ -737,11 +737,11 @@
       "medientyp:ki-generiert"
     ],
     "palette": [
-      "#B85E39",
-      "#254D5C",
-      "#71804A",
-      "#D4A23E",
-      "#5B342B"
+      "#EDE6DA",
+      "#C7BBA4",
+      "#A8834A",
+      "#3B2E22",
+      "#5C574E"
     ],
     "lizenz": {
       "quelle": "Eigenproduktion – KI-generiert",
@@ -1959,7 +1959,7 @@
     "bildRef": "wohnen/Bild Wohnen (27).jpg",
     "roomType": "wohnen",
     "achsenTags": {
-      "temperatur": -0.2,
+      "temperatur": 0.6,
       "opulenz": 0.0,
       "materialitaet": 0.8,
       "helligkeit": 0.8,
