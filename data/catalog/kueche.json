@@ -1761,8 +1761,8 @@
     "priorityClass": "P2",
     "mount": "boden",
     "achsenTags": {
-      "materialitaet": 0.8,
-      "temperatur": 0.6,
+      "materialitaet": -0.2,
+      "temperatur": -0.1,
       "epoche": 0.2,
       "opulenz": 0.0,
       "helligkeit": 0.7,
