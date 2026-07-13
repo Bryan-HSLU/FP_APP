@@ -148,6 +148,55 @@ def test_solve_ohne_flaechen_gibt_none() -> None:
     assert body["flaechen"] is None
 
 
+def test_solve_reicht_farben_bis_placement_durch() -> None:
+    """Welle 3: /solve nimmt `farben` (itemId→Slug) → placement.farbe."""
+    client = TestClient(app)
+    room = _room("raummodell.wohnen-sample")
+    sofa = "bbbbbbbb-0001-4000-8000-000000000001"
+    katalog = client.get("/catalog/wohnen").json()
+    slug = next(c for c in katalog if c["id"] == sofa)["farbVarianten"][0]
+    res = client.post(
+        "/solve",
+        json={"room": room, "seed": 1, "auswahl": [sofa], "farben": {sofa: slug}},
+    )
+    assert res.status_code == 200
+    placements = res.json()["plan"]["placements"]
+    sofa_pl = [p for p in placements if p["catalogItemId"] == sofa]
+    assert sofa_pl and all(p["farbe"] == slug for p in sofa_pl)
+
+
+def test_flaechen_pruefen_konform() -> None:
+    """Welle 3: /flaechen/pruefen meldet keine Verstösse bei konformer Wahl."""
+    client = TestClient(app)
+    room = _room("raummodell.wohnen-sample")  # Trockenraum, keine harten Flächenregeln
+    flaechen = {"boden": {"material": "parkett-eiche"}}
+    res = client.post("/flaechen/pruefen", json={"room": room, "flaechen": flaechen})
+    assert res.status_code == 200
+    body = res.json()
+    assert body["verstoesse"] == []
+    assert body["korrigiert"]["boden"]["material"] == "parkett-eiche"
+
+
+def test_flaechen_pruefen_verstoss_wird_korrigiert() -> None:
+    """Welle 3: Parkett-Boden im Bad verletzt die Norm → Verstoss gemeldet UND
+    korrigierte (wasserfeste) Fassung zurückgegeben (Quelle bleibt Python)."""
+    client = TestClient(app)
+    room = _room("raummodell.bad-sample")
+    res = client.post(
+        "/flaechen/pruefen",
+        json={"room": room, "flaechen": {"boden": {"material": "parkett-eiche"}}},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert any("bad-boden-wasserfest" in v for v in body["verstoesse"])
+    assert body["korrigiert"]["boden"]["material"] == "fliesen-hell"
+    # Die korrigierte Fassung ist normkonform: erneut prüfen liefert leer.
+    erneut = client.post(
+        "/flaechen/pruefen", json={"room": room, "flaechen": body["korrigiert"]}
+    )
+    assert erneut.json()["verstoesse"] == []
+
+
 def test_solve_wohnen_kernmoebel() -> None:
     """M5: Sample-Wohnzimmer → /solve liefert Plan mit Sofa + Esstisch + TV-Möbel."""
     client = TestClient(app)

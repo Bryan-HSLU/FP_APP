@@ -37,8 +37,10 @@ import {
   variantenFuer,
   wendeVariantenAn,
   type FlaechenKonzept,
+  type MaterialSlug,
   type OberflaechenWahl,
 } from "./oberflaechen";
+import { loeseFarbSlug } from "./farben";
 import type { Begehungsmodus } from "./viewer3d-logik";
 
 // UI-Redesign Etappe B: Die fünf Schritt-Inhalte leben jetzt in eigenen
@@ -87,6 +89,10 @@ export function App() {
   // Flächen-Konzept des Kurators (Boden-/Wand-Material je Wand), aus /solve.
   // Fehlt es (Küche/Baseline/alte Pläne) → null → stilabgeleiteter Fallback im 3D.
   const [flaechen, setFlaechen] = useState<FlaechenKonzept | null>(null);
+  // Welle 3: manuelle Farb-Overrides je placementId (MANUELL > KI > Default) und
+  // manuell überschriebene, normgeprüfte Flächen. Beide leben nur im Frontend.
+  const [farbWahl, setFarbWahl] = useState<Record<string, string>>({});
+  const [manuelleFlaechen, setManuelleFlaechen] = useState<FlaechenKonzept | null>(null);
   // Scan-Upload (M7 Schritt 4): Raumtyp des hochgeladenen Scan-Bundles.
   const [scanRoomType, setScanRoomType] = useState("bad");
   // Scan-Korrektur-Modus (M7 Schritt 6): geladener Scan wartet auf Korrektur.
@@ -134,6 +140,8 @@ export function App() {
       setDreieck(null);
       setFlaeche(null);
       setFlaechen(null);
+      setFarbWahl({});
+      setManuelleFlaechen(null);
       setOberflaechenWahl({ boden: null, wand: null });
       // Für Küchen den Katalog/Regeln des effektiven Raumtyps laden.
       const istKueche =
@@ -224,16 +232,21 @@ export function App() {
             kurator = k.kurator;
             setBegruendung(`${k.port}: ${k.kurator.begruendung ?? ""}`);
           }
-          // Flächen-Wünsche des Kurators mit an /solve geben; der Server reicht
-          // sie unverändert zurück (res.flaechen) → Optik im 3D-Viewer.
+          // Flächen-Wünsche + Farbwahl des Kurators mit an /solve geben; die
+          // Flächen kommen unverändert zurück (res.flaechen), die Farben landen
+          // als placement.farbe im Plan → Optik im 3D-Viewer.
           res = await api.solve(room, s, {
             kurator,
             stilprofilRef: stilprofil?.id,
             flaechen: kurator?.flaechen,
+            farben: kurator?.farben,
           });
         }
         setPlan(res.plan);
         setFlaechen(res.flaechen ?? null);
+        // Neuer Plan → neue placementIds: manuelle Overrides zurücksetzen.
+        setFarbWahl({});
+        setManuelleFlaechen(null);
         setPlanRoom(res.room);
         setDreieck(res.arbeitsdreieck ?? null);
         setSeed(s);
@@ -396,6 +409,50 @@ export function App() {
     setOberflaechenWahl((prev) => ({ ...prev, [art]: id }));
   }, []);
 
+  // Welle 3 – Farb-Override je gewähltem Objekt (MANUELL gewinnt). Rein
+  // client-seitig; kein Re-Solve (Farben sind keine Norm).
+  const setzeFarbe = useCallback((placementId: string, slug: string) => {
+    setFarbWahl((prev) => ({ ...prev, [placementId]: slug }));
+  }, []);
+
+  // Manuelle Flächen wechseln KI/Stil-Optik → NORMKONTROLLE über Python
+  // (/flaechen/pruefen): kein TS-Nachbau der Regeln (Drift). Übernimmt die
+  // korrigierte Fassung und weist einen Norm-Eingriff deutsch aus.
+  const waehleFlaechenMaterial = useCallback(
+    async (art: FlaechenWahl, slug: MaterialSlug) => {
+      const raum = planRoom ?? room;
+      if (!raum) return;
+      const basis: FlaechenKonzept = manuelleFlaechen ?? flaechen ?? {};
+      const neu: FlaechenKonzept =
+        art === "boden"
+          ? { ...basis, boden: { material: slug } }
+          : {
+              ...basis,
+              waende: raum.shell.walls.map((_, i) => ({
+                wandIndex: i,
+                material: slug,
+                bereich: "voll" as const,
+              })),
+            };
+      try {
+        const { verstoesse, korrigiert } = await api.pruefeFlaechen(raum, neu);
+        setManuelleFlaechen(korrigiert);
+        setMeldung(
+          verstoesse.length
+            ? `Flächen normkonform angepasst (${verstoesse.length} Norm-Eingriff${
+                verstoesse.length > 1 ? "e" : ""
+              }).`
+            : "",
+        );
+      } catch {
+        // Norm-Endpoint nicht erreichbar → Wahl trotzdem lokal anwenden (der
+        // 3D-Viewer bleibt bedienbar; die harte Prüfung fehlt dann nur visuell).
+        setManuelleFlaechen(neu);
+      }
+    },
+    [planRoom, room, manuelleFlaechen, flaechen],
+  );
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       // Im 3D-Begehungsmodus steuert WASD/Pfeile die Kamera – dann keine
@@ -485,6 +542,20 @@ export function App() {
           (c) => c.id === plan.placements.find((p) => p.id === gewaehltId)?.catalogItemId,
         )
       : null;
+
+  // Manuelle Flächen schlagen die Kurator-/Stil-Optik (Welle 3, «Manuell gewinnt»).
+  const effektiveFlaechen = manuelleFlaechen ?? flaechen;
+  // Aktive Farbvariante des gewählten Objekts (MANUELL > KI > Default) – für die
+  // Markierung im Farb-Picker.
+  const gewaehltesPlacement =
+    plan && gewaehltId ? plan.placements.find((p) => p.id === gewaehltId) : null;
+  const farbAktiv = gewaehltesItem
+    ? loeseFarbSlug(
+        gewaehltesItem.farbVarianten,
+        gewaehltesPlacement?.farbe,
+        gewaehltId ? farbWahl[gewaehltId] : undefined,
+      )
+    : undefined;
 
   // Tausch-Alternativen: gleicher Funktionstyp, gleiche Normprofil-Variante
   // (Küchenzeile bleibt konsistent), ohne das aktuelle Item selbst.
@@ -592,7 +663,8 @@ export function App() {
               gewaehlteFlaeche={flaeche}
               onSelectFlaeche={waehleFlaeche}
               oberflaechenWahl={oberflaechenWahl}
-              flaechen={flaechen}
+              flaechen={effektiveFlaechen}
+              farbWahl={farbWahl}
               modus={viewer3dModus}
               onModus={setViewer3dModus}
             />
@@ -707,6 +779,11 @@ export function App() {
               oberflaechenWahl={oberflaechenWahl}
               aktuelleSpez={aktuelleSpez}
               onFlaecheVariante={flaecheVariante}
+              farbVarianten={gewaehltesItem?.farbVarianten}
+              farbAktiv={farbAktiv}
+              onFarbe={(slug) => gewaehltId && setzeFarbe(gewaehltId, slug)}
+              flaechenKonzept={effektiveFlaechen}
+              onFlaechenMaterial={(art, slug) => void waehleFlaechenMaterial(art, slug)}
             />
           </div>
         )}

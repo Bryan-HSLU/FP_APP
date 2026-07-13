@@ -20,6 +20,7 @@
 
 import { RoundedBox } from "@react-three/drei";
 import { Vector2 } from "three";
+import { FARBSLUG_HEX, type FarbSlug } from "./farben";
 
 /** Material-/Basisfarbe je funktionsTyp für den 3D-Viewer (Bryans Möbel-
  *  Materialwunsch). WICHTIG: Nur wirksam, wenn die Norm-Ampel «ok» ist –
@@ -2416,9 +2417,25 @@ function TeilMaterial({ rolle, farbwert }: { rolle: Rolle; farbwert: string }) {
   );
 }
 
-/** Rendert ein einzelnes Bauteil als Mesh (lokale Koordinaten der Gruppe). */
-function TeilMesh({ teil, farbe }: { teil: Teil; farbe: string }) {
-  const farbwert = rolleFarbe(teil.rolle, farbe);
+/** Rendert ein einzelnes Bauteil als Mesh (lokale Koordinaten der Gruppe).
+ *
+ * `farbeKoerper` (optional, Welle 3): überschreibt die Basisfarbe der
+ * Korpus-Rollen (`koerper|hell|dunkel`) durch die gewählte Farbvariante –
+ * `hell`/`dunkel` werden wie bisher via `mischen` daraus abgeleitet. Die
+ * Material-Rollen `glas`/`chrom` bleiben BEWUSST aus `farbe` abgeleitet (Glas
+ * bleibt Glas, Chrom bleibt Chrom – keine bunten Armaturen). Ohne Override ist
+ * das exakt das bisherige Verhalten. */
+function TeilMesh({
+  teil,
+  farbe,
+  farbeKoerper,
+}: {
+  teil: Teil;
+  farbe: string;
+  farbeKoerper?: string;
+}) {
+  const basis = teil.rolle === "glas" || teil.rolle === "chrom" ? farbe : (farbeKoerper ?? farbe);
+  const farbwert = rolleFarbe(teil.rolle, basis);
   const material = <TeilMaterial rolle={teil.rolle} farbwert={farbwert} />;
   if (teil.form === "box") {
     return (
@@ -2497,6 +2514,7 @@ export function Moebel3D({
   d,
   h,
   farbe,
+  farbSlug,
 }: {
   funktionsTyp: string;
   /** Optionale 3D-Bausatz-Variante (Katalog-Feld modell3d); wählt den Bausatz. */
@@ -2504,13 +2522,18 @@ export function Moebel3D({
   w: number;
   d: number;
   h: number;
+  /** Basis-/Ampelfarbe (dominiert weiter: Status/Auswahl kommen aus Viewer3D). */
   farbe: string;
+  /** Gewählte Farbvariante (Welle 3): überschreibt die Korpus-Basisfarbe, ohne
+   *  Glas/Chrom oder die Norm-Ampel anzutasten. Fehlt sie → bisheriges Verhalten. */
+  farbSlug?: FarbSlug;
 }) {
   const teile = bauteile(bausatzSchluessel(funktionsTyp, modell3d), w, d, h);
+  const farbeKoerper = farbSlug ? FARBSLUG_HEX[farbSlug] : undefined;
   return (
     <>
       {teile.map((teil, i) => (
-        <TeilMesh key={i} teil={teil} farbe={farbe} />
+        <TeilMesh key={i} teil={teil} farbe={farbe} farbeKoerper={farbeKoerper} />
       ))}
     </>
   );

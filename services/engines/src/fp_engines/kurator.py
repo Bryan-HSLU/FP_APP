@@ -310,6 +310,61 @@ def _validiere(
     return None
 
 
+def _farb_varianten(item: dict[str, Any] | None) -> list[str]:
+    """Farbvarianten eines Katalog-Items (leer, wenn keine gepflegt sind)."""
+    return list((item or {}).get("farbVarianten") or [])
+
+
+def _validiere_farben(
+    farben: Any, auswahl: list[str], by_id: dict[str, dict[str, Any]]
+) -> str | None:
+    """Call-A-Farbwahl prüfen (Kurator-Pipeline v3, Welle 3). None = ok.
+
+    Eigener Validierungsschritt NACH `_validiere` (Auswahl), damit der bestehende
+    A-Fallback unberührt bleibt. Farben ist optional; ist es vorhanden, gilt die
+    Erdung analog zu den Material-Slugs: es muss ein Objekt itemId→Slug sein, die
+    Keys eine Teilmenge der Auswahl, und jeder Slug in den `farbVarianten` des
+    jeweiligen Items liegen. Sonst konkreter Repair-Hinweis.
+    """
+    if farben is None:
+        return None
+    if not isinstance(farben, dict):
+        return "Feld «farben» muss ein Objekt itemId→Farb-Slug sein."
+    erlaubt = set(auswahl)
+    for iid, slug in farben.items():
+        if iid not in erlaubt:
+            return (
+                f"farben verweist auf Item ausserhalb der Auswahl: {iid}. "
+                "Nur gewählte itemIds färben."
+            )
+        varianten = _farb_varianten(by_id.get(iid))
+        if slug not in varianten:
+            return (
+                f"Farbe «{slug}» für Item {iid} nicht in dessen farbVarianten "
+                f"({varianten}). Nur diese Slugs sind erlaubt."
+            )
+    return None
+
+
+def _bereinige_farben(
+    farben: Any, auswahl: list[str], by_id: dict[str, dict[str, Any]]
+) -> dict[str, str]:
+    """Behält nur die gültigen Farb-Einträge (Key ∈ Auswahl UND Slug ∈ farbVarianten).
+
+    Teil-Fallback-Muster: scheitert die Farbwahl auch nach dem Repair, wird nicht
+    die ganze (gültige) Auswahl verworfen – nur die ungültigen Farb-Einträge
+    fallen weg, der Rest bleibt (Client nutzt für den Rest die Default-Optik).
+    """
+    if not isinstance(farben, dict):
+        return {}
+    erlaubt = set(auswahl)
+    return {
+        iid: slug
+        for iid, slug in farben.items()
+        if iid in erlaubt and slug in _farb_varianten(by_id.get(iid))
+    }
+
+
 def _ist_int(v: Any) -> TypeGuard[int]:
     """Echte Ganzzahl (bool ist in Python eine int-Unterklasse → ausschliessen)."""
     return isinstance(v, int) and not isinstance(v, bool)
@@ -778,6 +833,9 @@ class BaselineKurator:
             "relationaleAbsichten": absichten,
             "anordnung": _baseline_anordnung(auswahl, by_id),
             "flaechen": None,
+            # Baseline trifft keine Farbwahl → kein farben-Feld (Client nutzt die
+            # Default-Optik = erste farbVariante je Item).
+            "farben": None,
             "begruendung": "Deterministische Baseline: bestes Item je Slot nach "
             "Stil-Score (cos zu den Achsen-Tags) mit Seed-Rauschen.",
         }
@@ -824,10 +882,12 @@ class LlmKurator:
             kandidaten.append(f"Slot {typ}{pflicht}:")
             for i in items:
                 m = i["masse"]
+                varianten = _farb_varianten(i)
+                farb_zeile = f" · Farben: {'|'.join(varianten)}" if varianten else ""
                 kandidaten.append(
                     f"  {i['id']} · {i['name']} · {m['w']}×{m['d']}×{m['h']} m · "
                     f"Tags {json.dumps(i.get('achsenTags', {}), ensure_ascii=False)} · "
-                    f"CHF {i['preis']['value']}"
+                    f"CHF {i['preis']['value']}{farb_zeile}"
                 )
         budget_zeile = f"Budget: CHF {budget}" if budget is not None else "Budget: keines"
         area = room["shell"]["floor"].get("area") or 0.0
@@ -1059,6 +1119,39 @@ class LlmKurator:
             return None
         return flaechen
 
+    def _farben_repair(
+        self,
+        basis_messages: list[dict[str, str]],
+        voriges: dict[str, Any],
+        fehler: str,
+        auswahl: list[str],
+        by_id: dict[str, dict[str, Any]],
+        seed: int | None = None,
+    ) -> dict[str, str] | None:
+        """Ein einziger Farb-Repair-Aufruf (analog `_flaechen_norm_repair`): gibt den
+        konkreten Farb-Fehler zurück ans LLM und verlangt eine korrigierte
+        `farben`-Abbildung. Rückgabe = geerdetes farben-Objekt, sonst None (dann
+        greift `_bereinige_farben`)."""
+        hinweis = (
+            f"Deine Farb-Zuordnung ist ungültig: {fehler} "
+            "Nutze je Item NUR einen Slug aus dessen farbVarianten und als Schlüssel "
+            "nur gewählte itemIds. Antworte erneut nur mit JSON (Feld «farben»)."
+        )
+        messages = [
+            *basis_messages,
+            {"role": "assistant", "content": json.dumps({"farben": voriges.get("farben")})},
+            {"role": "user", "content": hinweis},
+        ]
+        try:
+            antwort = self._rufe_llm(messages, seed)
+        except (httpx.HTTPError, json.JSONDecodeError, KeyError) as e:
+            log.warning("kurator[farben]: repair-aufruf fehlgeschlagen (%s)", e)
+            return None
+        farben = antwort.get("farben")
+        if _validiere_farben(farben, auswahl, by_id) is not None:
+            return None
+        return farben
+
     # --- Pipeline ------------------------------------------------------------
 
     def kuratiere(
@@ -1091,6 +1184,30 @@ class LlmKurator:
         konzept = antwort_a.get("konzept")
         begruendung = str(antwort_a.get("begruendung", ""))
         gewaehlte_typen = {by_id[i]["funktionsTyp"] for i in auswahl}
+
+        # Farben (Welle 3) – EIGENER Validierungsschritt NACH _validiere/Call A:
+        # die Auswahl steht bereits (A-Fallback unberührt). Ungültige Farbwahl →
+        # 1 Farb-Repair; scheitert auch der NUR an den Farben, werden die
+        # ungültigen Einträge entfernt (Rest behalten) statt alles zu verwerfen.
+        roh_farben = antwort_a.get("farben")
+        farb_fehler = _validiere_farben(roh_farben, auswahl, by_id)
+        farben: dict[str, str] | None
+        if farb_fehler is None:
+            farben = roh_farben
+        else:
+            repariert_f = self._farben_repair(
+                self._prompt_auswahl(stilprofil, room, slots, budget),
+                antwort_a,
+                farb_fehler,
+                auswahl,
+                by_id,
+                seed,
+            )
+            if repariert_f is not None:
+                farben = repariert_f
+            else:
+                farben = _bereinige_farben(roh_farben, auswahl, by_id)
+                begruendung += " (Farben bereinigt: CURATOR_FARBEN_BEREINIGT)"
 
         # Call B – Anordnung. Scheitert B → Teil-Fallback aus relationalRules.
         antwort_b = self._call_json(
@@ -1146,6 +1263,7 @@ class LlmKurator:
             "relationaleAbsichten": _absichten_aus_anordnung(anordnung),
             "anordnung": anordnung,
             "flaechen": flaechen,
+            "farben": farben,
             "begruendung": begruendung,
         }
 

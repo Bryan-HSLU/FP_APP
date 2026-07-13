@@ -331,6 +331,45 @@ export function materialLook(slug: MaterialSlug): FlaechenLook {
   return { ...MATERIAL_LOOK[slug] };
 }
 
+/** Alle geerdeten Material-Slugs (aus dem Look-Register = Vertrags-Enum). */
+export const MATERIAL_SLUGS = Object.keys(MATERIAL_LOOK) as MaterialSlug[];
+
+/** Deutsche Labels für die manuelle Flächen-Wahl (Welle 3, UI). */
+export const MATERIAL_LABEL: Record<MaterialSlug, string> = {
+  "fliesen-hell": "Fliesen hell",
+  "fliesen-gruen": "Fliesen grün",
+  "fliesen-anthrazit": "Fliesen anthrazit",
+  "putz-weiss": "Putz weiss",
+  "putz-warm": "Putz warm",
+  "holz-hell": "Holz hell",
+  "holz-dunkel": "Holz dunkel",
+  "parkett-eiche": "Parkett Eiche",
+  beton: "Beton",
+  naturstein: "Naturstein",
+  "tapete-hell": "Tapete hell",
+  "taefer-holz": "Täfer Holz",
+};
+
+/** Sinnvolle Boden-Materialien (harte Böden; Wandbekleidungen ausgenommen). Die
+ *  harte Norm (bad/kueche) filtert weiter serverseitig via /flaechen/pruefen. */
+export const BODEN_SLUGS: MaterialSlug[] = [
+  "fliesen-hell",
+  "fliesen-anthrazit",
+  "parkett-eiche",
+  "holz-hell",
+  "holz-dunkel",
+  "naturstein",
+  "beton",
+];
+
+/** Wand-Materialien (alle Slugs zulässig; die Norm prüft Nasswände hart). */
+export const WAND_SLUGS: MaterialSlug[] = MATERIAL_SLUGS;
+
+/** Swatch-Farbe (Hex) eines Material-Slugs für die UI. */
+export function materialSwatch(slug: MaterialSlug): string {
+  return MATERIAL_LOOK[slug].farbe;
+}
+
 /** Akzent-Variante: dezent dunkler/kräftiger (Boden bleibt unberührt, nur Wände). */
 export function akzentLook(look: FlaechenLook): FlaechenLook {
   return {

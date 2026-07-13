@@ -1,5 +1,6 @@
 /** API-Client zum lokalen Engines-Dienst (Vite-Proxy: /api → FastAPI :8000). */
 import type { CatalogItemInput, RoomInput } from "@fp/shared/rules";
+import type { FarbSlug } from "./farben";
 import type { FlaechenKonzept } from "./oberflaechen";
 
 export interface Placement {
@@ -10,6 +11,8 @@ export interface Placement {
   locked: boolean;
   source: string;
   mountHeight?: number;
+  /** Gewählte Farbvariante (KI oder Nutzer), Welle 3. Fehlt = Default-Optik. */
+  farbe?: FarbSlug;
 }
 
 export interface Plan {
@@ -27,6 +30,9 @@ export interface KatalogItem extends CatalogItemInput {
   priorityClass: "P1" | "P2" | "P3";
   /** Optionale 3D-Bausatz-Variante für den Viewer (Katalog-Feld modell3d). */
   modell3d?: string;
+  /** Wählbare Farbvarianten (Welle 2); erste = Default-Optik. Grundlage für den
+   *  UI-Farbpicker und die KI-Farbwahl. */
+  farbVarianten?: FarbSlug[];
   /** Stil-Achsen-Ausprägungen des Items (für Stil-Match/Kurator). */
   achsenTags?: Record<string, number>;
   /** Preis-Stammdaten (für Kostenanzeige & LV). Provenance liegt im Schema. */
@@ -97,6 +103,8 @@ export interface SolveOpts {
   /** Flächen-Wünsche des Kurators (Call C); der Server reicht sie unverändert
    *  in der Antwort zurück (der Client rendert daraus die Optik). */
   flaechen?: FlaechenKonzept | null;
+  /** Farbwahl je Item (Welle 3): itemId→Slug → placement.farbe im Plan. */
+  farben?: Record<string, FarbSlug> | null;
 }
 
 export class ApiFehler extends Error {
@@ -125,6 +133,10 @@ export interface KuratorAntwort {
   relationaleAbsichten: { itemId: string; relation: string }[];
   /** Flächen-Konzept (Boden-/Wand-Material je Wand). Fehlt bei Teil-Fallback. */
   flaechen?: FlaechenKonzept | null;
+  /** Design-Leitidee aus Call A (roter Faden), optional. */
+  konzept?: string | null;
+  /** KI-Farbwahl je Item (itemId→Slug), Welle 3. Fehlt/leer = Default-Optik. */
+  farben?: Record<string, FarbSlug> | null;
   begruendung?: string;
 }
 
@@ -210,7 +222,15 @@ export const api = {
         form: opts.form,
         zoneId: opts.zoneId,
         flaechen: opts.flaechen ?? undefined,
+        farben: opts.farben ?? undefined,
       }),
+    }),
+  /** Manuelle Flächen-Wahl (Welle 3) gegen die Norm prüfen + korrigieren lassen.
+   *  Quelle bleibt Python (kein TS-Nachbau der Regeln → kein Drift). */
+  pruefeFlaechen: (room: Room, flaechen: FlaechenKonzept) =>
+    call<{ verstoesse: string[]; korrigiert: FlaechenKonzept }>("/flaechen/pruefen", {
+      method: "POST",
+      body: JSON.stringify({ room, flaechen }),
     }),
   evaluate: (room: Room, plan: Plan) =>
     call<KV>("/evaluate", { method: "POST", body: JSON.stringify({ room, plan }) }),

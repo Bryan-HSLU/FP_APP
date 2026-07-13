@@ -321,6 +321,8 @@ class SolveRequest(BaseModel):
     relationaleAbsichten: list[dict[str, Any]] = []
     anordnung: list[dict[str, Any]] | None = None
     flaechen: dict[str, Any] | None = None
+    # Kurator-Farbwahl je Item (Welle 3): itemId→Farb-Slug → placement.farbe.
+    farben: dict[str, str] | None = None
     stilprofil: dict[str, Any] | None = None
     stilprofilRef: str | None = None
 
@@ -385,6 +387,7 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
                 stilprofil_ref=req.stilprofilRef,
                 style_profile=req.stilprofil,
                 anordnung=anordnung,
+                farben=req.farben,
                 created_at=created,
             )
     except NoFeasiblePlacement as e:
@@ -532,6 +535,34 @@ def curate(req: CurateRequest) -> JSONResponse:
     port = waehle_port()
     antwort = port.kuratiere(profil, req.room, katalog, req.budget, req.seed)
     return JSONResponse(content={"kurator": antwort, "port": port.name})
+
+
+class FlaechenPruefRequest(BaseModel):
+    """Manuelle Flächen-Wahl (Welle 3) + Raum → Norm-Kontrolle.
+
+    Quellenunabhängige harte Flächen-Normprüfung: dieselbe Kontrolle wie beim
+    Kurator-Call C (`pruefe_flaechen`/`korrigiere_flaechen`) – die eiserne Regel
+    (Normen bleiben hart, auch bei manueller Wahl) gilt so auch für die UI.
+    """
+
+    room: dict[str, Any]
+    flaechen: dict[str, Any] | None = None
+
+
+@app.post("/flaechen/pruefen")
+def flaechen_pruefen(req: FlaechenPruefRequest) -> JSONResponse:
+    """Prüft die (manuell gewählten) Flächen gegen die Norm und korrigiert sie.
+
+    Kein TS-Nachbau der Regeln (Drift vermeiden): die Python-Quelle
+    `pruefe_flaechen`/`korrigiere_flaechen` ist die EINZIGE Norm-Instanz. Liefert
+    `verstoesse` (deutsche Klartext-Liste, leer = konform) und `korrigiert` (die
+    normkonforme Fassung, die die UI übernimmt).
+    """
+    from fp_engines.kurator import FLAECHEN_REGELN, korrigiere_flaechen, pruefe_flaechen
+
+    verstoesse = pruefe_flaechen(req.flaechen, req.room, FLAECHEN_REGELN)
+    korrigiert = korrigiere_flaechen(req.flaechen, req.room, FLAECHEN_REGELN)
+    return JSONResponse(content={"verstoesse": verstoesse, "korrigiert": korrigiert})
 
 
 @app.get("/images/{room_type}")

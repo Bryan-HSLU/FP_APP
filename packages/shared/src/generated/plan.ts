@@ -45,6 +45,26 @@ export interface PlanObjekt {
      * Unterkante über Boden (m) bei wandmontierten Objekten.
      */
     mountHeight?: number;
+    /**
+     * Gewählte Farbvariante des generischen Objekts (KI oder Nutzer). Optional (additiv, Kurator-Pipeline v3, Welle 3); fehlend = Default-Optik (erste farbVariante). Nur solange Eigen-Objekte, keine Hersteller-Assets.
+     */
+    farbe?:
+      | "weiss"
+      | "creme"
+      | "sand"
+      | "beige"
+      | "hellgrau"
+      | "anthrazit"
+      | "schwarz"
+      | "eiche-hell"
+      | "nussbaum"
+      | "salbei"
+      | "olive"
+      | "terracotta"
+      | "bordeaux"
+      | "blaugrau"
+      | "dunkelblau"
+      | "messing";
   }[];
   /**
    * Lineare Baugruppen (v.a. Küchenzeile): Form + Korpus-Slots im Raster.

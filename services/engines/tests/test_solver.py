@@ -13,6 +13,7 @@ from typing import Any
 
 import pytest
 from jsonschema import Draft202012Validator, FormatChecker
+from referencing import Registry, Resource
 
 from fp_engines.baseline import baseline_auswahl
 from fp_engines.rules.geometry import footprint, overlap_depth
@@ -20,6 +21,7 @@ from fp_engines.solver import NoFeasiblePlacement, _tuer_korridore, solve
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 FIXTURES = REPO_ROOT / "packages" / "shared" / "fixtures" / "artefakte"
+SCHEMAS = REPO_ROOT / "packages" / "shared" / "schemas"
 
 
 def _load(path: Path) -> Any:
@@ -45,8 +47,15 @@ ALLE_RAEUME = [
     ("raummodell.r1-wc", "bad"),
     ("raummodell.wohnen-sample", "wohnen"),
 ]
+# Registry über ALLE Schemas: plan.schema.json referenziert seit Welle 3
+# katalog-item.schema.json#/$defs/farbSlug (Cross-File-$ref) – der Validator muss
+# die anderen Verträge kennen, um ihn aufzulösen (Muster aus test_schemas.py).
+_REGISTRY = Registry().with_resources(
+    (f.name, Resource.from_contents(_load(f))) for f in SCHEMAS.glob("*.schema.json")
+)
 PLAN_VALIDATOR = Draft202012Validator(
-    _load(REPO_ROOT / "packages" / "shared" / "schemas" / "plan.schema.json"),
+    _load(SCHEMAS / "plan.schema.json"),
+    registry=_REGISTRY,
     format_checker=FormatChecker(),
 )
 
@@ -103,6 +112,33 @@ def test_varianten_verschiedene_seeds() -> None:
         for s in range(6)
     }
     assert len(posen) > 1
+
+
+def test_farben_durchgereicht_bis_placement() -> None:
+    """Welle 3: `farben` (itemId→Slug) landet als `placement.farbe` im Plan –
+    nur für gefärbte Items, Rest bleibt ohne Feld; Plan bleibt schema-valide."""
+    room = _load(FIXTURES / "raummodell.bad-sample.json")
+    sel = baseline_auswahl(room, CATALOG)
+    ziel_id = sel["auswahl"][0]
+    slug = next(c for c in CATALOG if c["id"] == ziel_id)["farbVarianten"][0]
+    plan = solve(
+        room,
+        sel["auswahl"],
+        sel["relationaleAbsichten"],
+        CATALOG,
+        RULES,
+        seed=1,
+        farben={ziel_id: slug},
+        created_at="2026-06-11T12:00:00Z",
+    )
+    gefaerbt = [p for p in plan["placements"] if p["catalogItemId"] == ziel_id]
+    assert gefaerbt and all(p["farbe"] == slug for p in gefaerbt)
+    # Nur das gewählte Item trägt eine Farbe – die übrigen bleiben ohne Feld.
+    assert all("farbe" not in p for p in plan["placements"] if p["catalogItemId"] != ziel_id)
+    assert [e.message for e in PLAN_VALIDATOR.iter_errors(plan)] == []
+    # Ohne farben bleibt jedes placement farblos (unveränderter Pfad).
+    ohne = _solve("raummodell.bad-sample", 1)
+    assert all("farbe" not in p for p in ohne["placements"])
 
 
 def test_p1_pflicht_im_grossen_bad_komplett() -> None:

@@ -69,6 +69,25 @@ class Meta(BaseModel):
     contributors: list[str] | None = None
 
 
+class FarbSlug(Enum):
+    weiss = "weiss"
+    creme = "creme"
+    sand = "sand"
+    beige = "beige"
+    hellgrau = "hellgrau"
+    anthrazit = "anthrazit"
+    schwarz = "schwarz"
+    eiche_hell = "eiche-hell"
+    nussbaum = "nussbaum"
+    salbei = "salbei"
+    olive = "olive"
+    terracotta = "terracotta"
+    bordeaux = "bordeaux"
+    blaugrau = "blaugrau"
+    dunkelblau = "dunkelblau"
+    messing = "messing"
+
+
 class Uuid(RootModel[UUID]):
     root: UUID
 
@@ -179,6 +198,10 @@ class Placement(BaseModel):
     assembly: Uuid | None = None
     mountHeight: confloat(ge=0.0) | None = Field(
         None, description="Unterkante über Boden (m) bei wandmontierten Objekten."
+    )
+    farbe: FarbSlug | None = Field(
+        None,
+        description="Gewählte Farbvariante des generischen Objekts (KI oder Nutzer). Optional (additiv, Kurator-Pipeline v3, Welle 3); fehlend = Default-Optik (erste farbVariante). Nur solange Eigen-Objekte, keine Hersteller-Assets.",
     )
 
 

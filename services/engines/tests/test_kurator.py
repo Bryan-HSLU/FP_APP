@@ -17,10 +17,12 @@ from fp_engines.kurator import (
     MATERIAL_SLUGS,
     BaselineKurator,
     LlmKurator,
+    _bereinige_farben,
     _footprint,
     _platz_budget,
     _validiere,
     _validiere_anordnung,
+    _validiere_farben,
     _validiere_flaechen,
     bewegungs_hinweise,
     korrigiere_flaechen,
@@ -476,6 +478,96 @@ _BAD_TYPEN = {"wc", "lavabo", "dusche"}
 def test_validiere_anordnung_relation_ziel_gut() -> None:
     gut = {"anordnung": [{"itemId": P1_IDS[0], "relationen": ["near:lavabo:0.5"]}]}
     assert _validiere_anordnung(gut, P1_IDS, N_WALLS, _BAD_TYPEN) is None
+
+
+# --- Welle 3: Farbwahl (Call A, geerdet auf farbVarianten) -------------------
+
+BY_ID = {c["id"]: c for c in CATALOG}
+# Gültige Farben für die AUSWAHL_IDS: je erste (bzw. eine) Variante des Items.
+FARBEN_GUELTIG = {iid: BY_ID[iid]["farbVarianten"][0] for iid in AUSWAHL_IDS}
+
+
+def _auswahl_farben(farben: dict[str, str]) -> dict[str, Any]:
+    return {"auswahl": AUSWAHL_IDS, "farben": farben, "begruendung": "Test"}
+
+
+def test_validiere_farben_gueltig() -> None:
+    assert _validiere_farben(FARBEN_GUELTIG, AUSWAHL_IDS, BY_ID) is None
+    # Optional: fehlend ist ok (weiche Freiheit, keine Norm).
+    assert _validiere_farben(None, AUSWAHL_IDS, BY_ID) is None
+
+
+def test_validiere_farben_kein_objekt() -> None:
+    fehler = _validiere_farben("weiss", AUSWAHL_IDS, BY_ID)
+    assert fehler is not None and "Objekt" in fehler
+
+
+def test_validiere_farben_fremde_id() -> None:
+    fremd = {"99999999-0000-4000-8000-000000000000": "weiss"}
+    fehler = _validiere_farben(fremd, AUSWAHL_IDS, BY_ID)
+    assert fehler is not None and "ausserhalb der Auswahl" in fehler
+
+
+def test_validiere_farben_fremde_variante() -> None:
+    # bordeaux liegt nicht in den farbVarianten der Dusche (hellgrau/schwarz).
+    fehler = _validiere_farben({AUSWAHL_IDS[2]: "bordeaux"}, AUSWAHL_IDS, BY_ID)
+    assert fehler is not None and "farbVarianten" in fehler
+
+
+def test_bereinige_farben_behaelt_nur_gueltige() -> None:
+    gemischt = {
+        AUSWAHL_IDS[0]: BY_ID[AUSWAHL_IDS[0]]["farbVarianten"][0],  # gültig
+        AUSWAHL_IDS[2]: "bordeaux",  # ungültige Variante → raus
+        "99999999-0000-4000-8000-000000000000": "weiss",  # fremde ID → raus
+    }
+    sauber = _bereinige_farben(gemischt, AUSWAHL_IDS, BY_ID)
+    assert sauber == {AUSWAHL_IDS[0]: BY_ID[AUSWAHL_IDS[0]]["farbVarianten"][0]}
+
+
+def test_llm_farben_durchgereicht(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Call A liefert gültige Farben → unverändert im Ergebnis, kein Repair."""
+    port = _llm_mit_antworten(
+        monkeypatch, [_auswahl_farben(FARBEN_GUELTIG), _anordnung_ok(), _flaechen_ok()]
+    )
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert ergebnis["farben"] == FARBEN_GUELTIG
+    assert "CURATOR_FARBEN_BEREINIGT" not in ergebnis["begruendung"]
+
+
+def test_llm_farben_repair(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Call A färbt eine fremde Variante → 1 Farb-Repair, LLM korrigiert →
+    gültige Farben übernommen, kein Bereinigungs-Marker."""
+    schlecht = _auswahl_farben({AUSWAHL_IDS[2]: "bordeaux"})
+    farb_repair = {"farben": FARBEN_GUELTIG}
+    port = _llm_mit_antworten(
+        monkeypatch, [schlecht, farb_repair, _anordnung_ok(), _flaechen_ok()]
+    )
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert ergebnis["farben"] == FARBEN_GUELTIG
+    assert "CURATOR_FARBEN_BEREINIGT" not in ergebnis["begruendung"]
+    assert ergebnis["auswahl"] == AUSWAHL_IDS
+
+
+def test_llm_farben_bereinigt_statt_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Farb-Repair scheitert AUCH → NUR die Farben werden bereinigt (Rest behalten),
+    die gültige Auswahl bleibt (kein kompletter Baseline-Fallback), Marker gesetzt."""
+    schlecht = _auswahl_farben(
+        {AUSWAHL_IDS[0]: BY_ID[AUSWAHL_IDS[0]]["farbVarianten"][0], AUSWAHL_IDS[2]: "bordeaux"}
+    )
+    port = _llm_mit_antworten(
+        monkeypatch, [schlecht, schlecht, _anordnung_ok(), _flaechen_ok()]
+    )
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert "CURATOR_FARBEN_BEREINIGT" in ergebnis["begruendung"]
+    assert "CURATOR_FALLBACK_USED" not in ergebnis["begruendung"]
+    assert ergebnis["auswahl"] == AUSWAHL_IDS
+    # Nur der gültige Farb-Eintrag überlebt.
+    assert ergebnis["farben"] == {AUSWAHL_IDS[0]: BY_ID[AUSWAHL_IDS[0]]["farbVarianten"][0]}
+
+
+def test_baseline_kein_farben_feld() -> None:
+    a = BaselineKurator().kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert a["farben"] is None
 
 
 def test_validiere_anordnung_relation_ziel_schlecht() -> None:

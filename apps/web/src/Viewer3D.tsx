@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState, type ComponentRef, type CSSProper
 import { ACESFilmicToneMapping, Euler, Shape, Vector3, type Camera } from "three";
 import type { DressingItem, KatalogItem, Placement, Plan, Room } from "./api";
 import { DressingLayer3D } from "./dressing3d.tsx";
+import { loeseFarbSlug } from "./farben";
 import { materialFarbe, Moebel3D } from "./moebel3d.tsx";
 import {
   leiteOberflaechen,
@@ -155,6 +156,7 @@ function PlacementBox({
   gewaehlt,
   status,
   ampelAn,
+  manuellFarbe,
   onClick,
 }: {
   placement: Placement;
@@ -162,11 +164,18 @@ function PlacementBox({
   gewaehlt: boolean;
   status: Status | undefined;
   ampelAn: boolean;
+  /** Manueller Farb-Override (Slug) aus dem UI-State (pro placementId). */
+  manuellFarbe?: string;
   onClick: () => void;
 }) {
   const { w, d, h } = item.masse;
   const y = (placement.mountHeight ?? 0) + h / 2;
-  // Ampel dominiert: nur bei Status «ok» zeigt das Möbel seine Materialfarbe.
+  // Ampel dominiert: nur wenn KEIN Status-/Auswahl-Zustand aktiv ist, zeigt das
+  // Möbel seine Objektfarbe.
+  const zeigtMaterial = !(
+    gewaehlt ||
+    (ampelAn && (status === "verletzt" || status === "knapp" || placement.locked))
+  );
   const farbe = gewaehlt
     ? FARBE_GEWAEHLT
     : ampelAn && status === "verletzt"
@@ -176,6 +185,12 @@ function PlacementBox({
         : ampelAn && placement.locked
           ? FARBE_GESPERRT
           : materialFarbe(item.funktionsTyp);
+  // Farbvariante MANUELL > KI (placement.farbe) > Default (erste Variante) –
+  // aber nur solange die Ampel nicht ohnehin eine Statusfarbe zeigt (Norm/Auswahl
+  // dominiert; Farben sind keine Norm, dürfen den Status aber nicht verdecken).
+  const farbSlug = zeigtMaterial
+    ? loeseFarbSlug(item.farbVarianten, placement.farbe, manuellFarbe)
+    : undefined;
   // 3D ist reine Ansicht/Begehung: Klick wählt aus (öffnet die Produktkarte),
   // aber Möbel werden hier NICHT mehr verschoben/gedreht – das Bearbeiten läuft
   // über den 2D-Grundriss (Bryan 2026-07-07).
@@ -195,6 +210,7 @@ function PlacementBox({
         d={d}
         h={h}
         farbe={farbe}
+        farbSlug={farbSlug}
       />
     </group>
   );
@@ -503,6 +519,7 @@ export function Viewer3D({
   onSelectFlaeche,
   oberflaechenWahl,
   flaechen,
+  farbWahl,
   modus,
   onModus,
 }: {
@@ -529,6 +546,8 @@ export function Viewer3D({
   /** Flächen-Konzept des Kurators (Boden-/Wand-Material je Wand). Fehlt es
    *  (Baseline/alte Pläne) → stilabgeleiteter Fallback, exakt wie bisher. */
   flaechen?: FlaechenKonzept | null;
+  /** Manuelle Farb-Overrides je placementId (Welle 3): MANUELL > KI > Default. */
+  farbWahl?: Record<string, string>;
   /** Begehungsmodus (in App gehalten, damit die Möbel-Pfeiltasten dort ruhen). */
   modus: Begehungsmodus;
   onModus: (m: Begehungsmodus) => void;
@@ -641,6 +660,7 @@ export function Viewer3D({
                 gewaehlt={p.id === gewaehltId}
                 status={statusById.get(p.id)}
                 ampelAn={ampel}
+                manuellFarbe={farbWahl?.[p.id]}
                 onClick={() => onSelect(p.id)}
               />
             );

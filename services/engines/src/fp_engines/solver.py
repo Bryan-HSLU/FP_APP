@@ -486,6 +486,7 @@ def solve(
     stilprofil_ref: str | None = None,
     style_profile: dict[str, Any] | None = None,
     anordnung: list[dict[str, Any]] | None = None,
+    farben: dict[str, str] | None = None,
     created_at: str = "1970-01-01T00:00:00Z",
 ) -> dict[str, Any]:
     """Raummodell + Auswahl + Regeln + seed → normkonformes Plan-Objekt.
@@ -499,6 +500,10 @@ def solve(
     (Fallback auf alle Kandidaten, wenn dort nichts Zulässiges frei ist),
     `prioritaet` ordnet innerhalb P2/P3. Nichts davon berührt die harten Regeln –
     jeder Plan endet mit 0 ❌.
+
+    `farben` (Welle 3, optional) ist eine itemId→Farb-Slug-Abbildung (KI oder
+    manuelle UI-Wahl); die gewählte Farbe je Item landet als `placement.farbe`.
+    Rein visuell, Determinismus unberührt.
     """
     rnd = random.Random(seed)
     by_id = {c["id"]: c for c in catalog}
@@ -643,6 +648,16 @@ def solve(
 
     report = _zulaessig(room, placements, catalog, rules, norm_profile)
     assert report is not None  # per Konstruktion – Solver-Invariante
+
+    # Farbwahl je Objekt (Kurator-Pipeline v3, Welle 3) durchreichen: der Kurator
+    # (oder die manuelle UI-Wahl) liefert `farben` als itemId→Slug; hier landet
+    # sie als `placement.farbe`. Rein visuell (Slug ist auf `farbVarianten`
+    # geerdet, keine Norm-Relevanz) → Determinismus/Solver-Invariante unberührt.
+    if farben:
+        for pl in placements:
+            slug = farben.get(pl["catalogItemId"])
+            if slug:
+                pl["farbe"] = slug
 
     return {
         "id": str(uuid.UUID(int=rnd.getrandbits(128), version=4)),

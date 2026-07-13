@@ -19,7 +19,7 @@ export type MaterialSlug =
   | "taefer-holz";
 
 /**
- * Vertrag 7: Schnittstelle zum KI-Kurator (ADR-0007). Erdung als Schema-Regel: Response-IDs müssen Teilmenge des katalogAuszug sein – sonst Retry/Fallback deterministische Baseline. v0.2 (additiv/minor): optionale Felder «anordnung» (weiche Anordnungs-Anweisungen je Item) und «flaechen» (Boden-/Wand-Material-Wünsche) – Kurator-Pipeline v2 (3 Calls). v0.4 (additiv/minor): optionales Feld «konzept» (Design-Leitidee aus Call A, «erst denken, dann wählen») – Kurator-Pipeline v3 (ADR-0013).
+ * Vertrag 7: Schnittstelle zum KI-Kurator (ADR-0007). Erdung als Schema-Regel: Response-IDs müssen Teilmenge des katalogAuszug sein – sonst Retry/Fallback deterministische Baseline. v0.2 (additiv/minor): optionale Felder «anordnung» (weiche Anordnungs-Anweisungen je Item) und «flaechen» (Boden-/Wand-Material-Wünsche) – Kurator-Pipeline v2 (3 Calls). v0.4 (additiv/minor): optionales Feld «konzept» (Design-Leitidee aus Call A, «erst denken, dann wählen») – Kurator-Pipeline v3 (ADR-0013). v0.5 (additiv/minor): optionales Feld «farben» (itemId→Farb-Slug, KI-Farbwahl je Objekt, geerdet auf farbVarianten) – Kurator-Pipeline v3, Welle 3.
  */
 export interface KuratorVertrag {
   request?: KuratorRequest;
@@ -128,6 +128,28 @@ export interface KuratorResponse {
       hoeheM?: number;
       akzent?: boolean;
     }[];
+  };
+  /**
+   * Gewählte Farbvariante je generischem Objekt (Call A, Kurator-Pipeline v3, Welle 3): Abbildung itemId → Farb-Slug. Optional; wenn vorhanden, müssen die Keys eine Teilmenge von «auswahl» sein und jeder Slug in den farbVarianten des jeweiligen Katalog-Items liegen (hart validiert – Erdung wie bei den Material-Slugs). Fehlt/leer = kein KI-Farbwunsch; der Client nutzt die Default-Optik (erste farbVariante).
+   */
+  farben?: {
+    [k: string]:
+      | "weiss"
+      | "creme"
+      | "sand"
+      | "beige"
+      | "hellgrau"
+      | "anthrazit"
+      | "schwarz"
+      | "eiche-hell"
+      | "nussbaum"
+      | "salbei"
+      | "olive"
+      | "terracotta"
+      | "bordeaux"
+      | "blaugrau"
+      | "dunkelblau"
+      | "messing";
   };
   begruendung?: string;
 }

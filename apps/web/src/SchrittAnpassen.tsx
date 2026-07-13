@@ -9,8 +9,19 @@
 import type { ReactNode } from "react";
 import type { ConstraintReport } from "@fp/shared/rules";
 import type { KatalogItem } from "./api";
+import { farbHex } from "./farben";
 import { materialFarbe } from "./moebel3d";
-import type { OberflaechenSpez, OberflaechenVarianten, OberflaechenWahl } from "./oberflaechen";
+import {
+  BODEN_SLUGS,
+  MATERIAL_LABEL,
+  materialSwatch,
+  WAND_SLUGS,
+  type FlaechenKonzept,
+  type MaterialSlug,
+  type OberflaechenSpez,
+  type OberflaechenVarianten,
+  type OberflaechenWahl,
+} from "./oberflaechen";
 import { ObjektInfoPanel } from "./ObjektInfoPanel";
 import { Piktogramm } from "./Piktogramm";
 import type { Stilprofil } from "./Stil";
@@ -39,6 +50,117 @@ export interface SchrittAnpassenProps {
   /** Effektive (ggf. überschriebene) Oberflächen-Spez zur Anzeige. */
   aktuelleSpez?: OberflaechenSpez | null;
   onFlaecheVariante?: (art: FlaechenWahl, id: string) => void;
+  /** Farbvarianten des gewählten Möbels (Welle 3) – Swatch-Reihe im Picker. */
+  farbVarianten?: string[];
+  /** Aktive Farbvariante (MANUELL > KI > Default) zur Markierung. */
+  farbAktiv?: string;
+  /** Farbwahl setzen (Slug) – manuelle Wahl gewinnt über die KI. */
+  onFarbe?: (slug: string) => void;
+  /** Effektives (ggf. manuell überschriebenes) Flächen-Konzept zur Markierung. */
+  flaechenKonzept?: FlaechenKonzept | null;
+  /** Manuelle Material-Wahl je Fläche (Welle 3) – Boden/Wand, normgeprüft. */
+  onFlaechenMaterial?: (art: FlaechenWahl, slug: MaterialSlug) => void;
+}
+
+/** Swatch-Reihe der Farbvarianten eines Objekts (Welle 3). Nur die Varianten des
+ *  Katalog-Items; aktive markiert; Klick setzt den manuellen Override. */
+function FarbPicker({
+  varianten,
+  aktiv,
+  onWahl,
+}: {
+  varianten: string[];
+  aktiv?: string;
+  onWahl: (slug: string) => void;
+}) {
+  if (varianten.length < 1) return null;
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <p style={{ fontSize: 12.5, margin: "0 0 6px", color: THEME.gruen }}>Farbe</p>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {varianten.map((slug) => {
+          const an = slug === aktiv;
+          return (
+            <button
+              key={slug}
+              type="button"
+              title={slug}
+              aria-label={`Farbe ${slug}`}
+              aria-pressed={an}
+              onClick={() => onWahl(slug)}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: "50%",
+                cursor: "pointer",
+                background: farbHex(slug),
+                border: `2px solid ${an ? THEME.orange : THEME.salbei}`,
+                boxShadow: an ? `0 0 0 2px ${THEME.offwhite}` : "none",
+                flexShrink: 0,
+              }}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Material-Swatch-Reihe (geerdete Slugs) für Boden bzw. Wände. Manuelle Wahl
+ *  überschreibt die Kurator-/Stil-Optik; die harte Norm prüft serverseitig. */
+function MaterialPicker({
+  flaeche,
+  aktiv,
+  onWahl,
+}: {
+  flaeche: FlaechenWahl;
+  aktiv?: string;
+  onWahl: (art: FlaechenWahl, slug: MaterialSlug) => void;
+}) {
+  const slugs = flaeche === "boden" ? BODEN_SLUGS : WAND_SLUGS;
+  return (
+    <div style={{ marginTop: 12 }}>
+      <p style={{ fontSize: 12.5, margin: "0 0 6px", color: THEME.gruen }}>
+        Material (überschreibt Vorschlag, normgeprüft):
+      </p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {slugs.map((slug) => {
+          const an = slug === aktiv;
+          return (
+            <button
+              key={slug}
+              type="button"
+              title={MATERIAL_LABEL[slug]}
+              aria-pressed={an}
+              onClick={() => onWahl(flaeche, slug)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "5px 8px",
+                cursor: "pointer",
+                borderRadius: 999,
+                background: an ? THEME.offwhite : "#fff",
+                border: `1px solid ${an ? THEME.orange : THEME.salbei}`,
+              }}
+            >
+              <span
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: 4,
+                  flexShrink: 0,
+                  background: materialSwatch(slug),
+                  border: `1px solid ${THEME.salbei}`,
+                }}
+              />
+              <span style={{ fontSize: 11.5, color: THEME.gruen }}>{MATERIAL_LABEL[slug]}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 const MUSTER_LABEL: Record<string, string> = {
@@ -57,15 +179,22 @@ function OberflaecheKarte({
   wahl,
   spez,
   onVariante,
+  flaechenKonzept,
+  onFlaechenMaterial,
 }: {
   flaeche: FlaechenWahl;
   varianten: OberflaechenVarianten;
   wahl: OberflaechenWahl | undefined;
   spez: OberflaechenSpez | null | undefined;
   onVariante: (art: FlaechenWahl, id: string) => void;
+  flaechenKonzept?: FlaechenKonzept | null;
+  onFlaechenMaterial?: (art: FlaechenWahl, slug: MaterialSlug) => void;
 }) {
   const istBoden = flaeche === "boden";
   const liste = istBoden ? varianten.boden : varianten.wand;
+  const materialAktiv = istBoden
+    ? flaechenKonzept?.boden?.material
+    : flaechenKonzept?.waende?.[0]?.material;
   const aktuelleId = istBoden ? wahl?.boden : wahl?.wand;
   const aktSpez = istBoden ? spez?.boden : spez?.wand;
   const aktFarbe = aktSpez
@@ -143,8 +272,13 @@ function OberflaecheKarte({
           );
         })}
       </div>
+      {onFlaechenMaterial && (
+        <MaterialPicker flaeche={flaeche} aktiv={materialAktiv} onWahl={onFlaechenMaterial} />
+      )}
+
       <p style={{ fontSize: 11.5, color: THEME.salbei, marginTop: 12, marginBottom: 0 }}>
-        Rein visuell · bleibt beim Würfeln erhalten · Klick auf ein Möbel wechselt zurück.
+        Material überschreibt den Vorschlag und wird hart gegen die Norm geprüft · Varianten oben
+        sind rein visuell.
       </p>
     </div>
   );
@@ -180,6 +314,11 @@ export function SchrittAnpassen({
   oberflaechenWahl,
   aktuelleSpez,
   onFlaecheVariante,
+  farbVarianten,
+  farbAktiv,
+  onFarbe,
+  flaechenKonzept,
+  onFlaechenMaterial,
 }: SchrittAnpassenProps) {
   const statusKey =
     elementStatus === "verletzt" ? "anpassen" : elementStatus === "knapp" ? "knapp" : "passt";
@@ -202,6 +341,8 @@ export function SchrittAnpassen({
             wahl={oberflaechenWahl}
             spez={aktuelleSpez}
             onVariante={onFlaecheVariante}
+            flaechenKonzept={flaechenKonzept}
+            onFlaechenMaterial={onFlaechenMaterial}
           />
         ) : gewaehltesItem ? (
           <div className={`${CSS.card} ${CSS.cardAktiv}`} style={{ padding: 16 }}>
@@ -252,6 +393,11 @@ export function SchrittAnpassen({
                 {gewaehltesItem.masse.w} × {gewaehltesItem.masse.d} × {gewaehltesItem.masse.h} m
               </span>
             </div>
+
+            {/* Farb-Picker: nur die Farbvarianten dieses Objekts (Welle 3) */}
+            {farbVarianten && farbVarianten.length > 0 && onFarbe && (
+              <FarbPicker varianten={farbVarianten} aktiv={farbAktiv} onWahl={onFarbe} />
+            )}
 
             {/* Normstatus des Elements */}
             <div

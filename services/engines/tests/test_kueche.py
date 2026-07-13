@@ -14,6 +14,7 @@ from typing import Any
 
 import pytest
 from jsonschema import Draft202012Validator, FormatChecker
+from referencing import Registry, Resource
 
 from fp_engines.kueche import arbeitsdreieck, formwahl, solve_kueche
 from fp_engines.zonen import zone_room
@@ -35,8 +36,12 @@ RULES = _load(REPO_ROOT / "data" / "rules" / "basis.json") + _load(
     REPO_ROOT / "data" / "rules" / "kueche.json"
 )
 BY_ID = {c["id"]: c for c in CATALOG}
+# Registry über alle Schemas (Cross-File-$ref plan → katalog-item farbSlug, Welle 3).
+_REGISTRY = Registry().with_resources(
+    (f.name, Resource.from_contents(_load(f))) for f in SCHEMAS.glob("*.schema.json")
+)
 PLAN_VALIDATOR = Draft202012Validator(
-    _load(SCHEMAS / "plan.schema.json"), format_checker=FormatChecker()
+    _load(SCHEMAS / "plan.schema.json"), registry=_REGISTRY, format_checker=FormatChecker()
 )
 
 
