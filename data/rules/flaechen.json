@@ -4,11 +4,17 @@
     "roomType": "bad",
     "gilt": "boden",
     "anforderung": "wasserfest",
-    "erlaubteMaterialien": ["fliesen-hell", "fliesen-gruen", "fliesen-anthrazit", "naturstein", "beton"],
+    "erlaubteMaterialien": [
+      "fliesen-hell",
+      "fliesen-gruen",
+      "fliesen-anthrazit",
+      "naturstein",
+      "beton"
+    ],
     "severity": "hard",
-    "quelle": "SIA 271 / DIN 18195 – Abdichtung Nassraum / Richtwert",
-    "status": "zu-verifizieren",
-    "hinweis": "Bad-Boden muss wasserfest sein (Fliesen/Naturstein/Beton) – kein Parkett/Holz/Putz/Tapete. Rutschhemmung (R-Klassen) erst prüfbar, wenn Materialien Produktdaten tragen."
+    "quelle": "DIN 18534 (W2-I haeusliche Baeder) / SIA 271; Rutschhemmung: bfu 2.032 (GB2/B barfuss nass)",
+    "status": "richtwert-verifiziert",
+    "hinweis": "Bad-Boden muss wasserfest sein (Fliesen/Naturstein/Beton) – kein Parkett/Holz/Putz/Tapete. Rutschhemmung: Ziel bfu-Klasse GB2 (DIN 51097 B) fuer Dusch-/Nasszonen – erst prüfbar, wenn Materialien Produktdaten tragen."
   },
   {
     "id": "bad-wand-nass-wasserfest",
@@ -16,11 +22,16 @@
     "gilt": "wand-nass",
     "anforderung": "wasserfest",
     "minHoeheM": 2.0,
-    "erlaubteMaterialien": ["fliesen-hell", "fliesen-gruen", "fliesen-anthrazit", "naturstein"],
+    "erlaubteMaterialien": [
+      "fliesen-hell",
+      "fliesen-gruen",
+      "fliesen-anthrazit",
+      "naturstein"
+    ],
     "severity": "hard",
-    "quelle": "SIA 271 / DIN 18534 – Nassbereich Dusche/Wanne / Richtwert",
-    "status": "zu-verifizieren",
-    "hinweis": "Wände mit Wasser-/Abwasser-Anschluss (Dusche/Wanne/Lavabo) wasserfest verkleidet bis ≥ 2.0 m."
+    "quelle": "DIN 18534: Abdichtung >= 20 cm ueber hoechster Wasserentnahmestelle / SIA 271",
+    "status": "richtwert-verifiziert",
+    "hinweis": "Waende mit Wasser-/Abwasser-Anschluss (Dusche/Wanne/Lavabo) wasserfest verkleidet bis >= 2.0 m. DIN 18534: mind. 20 cm ueber Brausekopf – bei hohem Auslass (~2.05 m) eher 2.25 m oder raumhoch."
   },
   {
     "id": "bad-wand-alle-sockel",
@@ -28,10 +39,16 @@
     "gilt": "wand-alle",
     "anforderung": "wasserfest",
     "minHoeheM": 0.1,
-    "erlaubteMaterialien": ["fliesen-hell", "fliesen-gruen", "fliesen-anthrazit", "naturstein", "beton"],
+    "erlaubteMaterialien": [
+      "fliesen-hell",
+      "fliesen-gruen",
+      "fliesen-anthrazit",
+      "naturstein",
+      "beton"
+    ],
     "severity": "hard",
     "quelle": "Praxis – Spritzwasser-/Sockelschutz Nassraum / Richtwert",
-    "status": "zu-verifizieren",
+    "status": "richtwert-plausibel",
     "hinweis": "Jede EXPLIZIT belegte Bad-Wand braucht ein wasserfestes Material am Boden (Sockel ≥ 0.1 m). Trockene Wände bleiben unbelegt (Client-Fallback), statt sie mit Putz/Tapete zu belegen."
   },
   {
@@ -39,10 +56,16 @@
     "roomType": "kueche",
     "gilt": "boden",
     "anforderung": "abwaschbar",
-    "erlaubteMaterialien": ["fliesen-hell", "fliesen-gruen", "fliesen-anthrazit", "beton", "naturstein"],
+    "erlaubteMaterialien": [
+      "fliesen-hell",
+      "fliesen-gruen",
+      "fliesen-anthrazit",
+      "beton",
+      "naturstein"
+    ],
     "severity": "hard",
     "quelle": "Küchen-Detailkonzept / Praxis – strapazierfähiger, abwaschbarer Boden / Richtwert",
-    "status": "zu-verifizieren",
+    "status": "richtwert-plausibel",
     "hinweis": "Küchenboden strapazierfähig/abwaschbar (Fliesen/Beton/Naturstein). Parkett-Eiche zwar praxisüblich, hier bewusst streng als Richtwert ausgeschlossen."
   },
   {
@@ -50,11 +73,17 @@
     "roomType": "kueche",
     "gilt": "wand-nass",
     "anforderung": "wasserfest",
-    "minHoeheM": 1.2,
-    "erlaubteMaterialien": ["fliesen-hell", "fliesen-gruen", "fliesen-anthrazit", "naturstein", "beton"],
+    "minHoeheM": 1.5,
+    "erlaubteMaterialien": [
+      "fliesen-hell",
+      "fliesen-gruen",
+      "fliesen-anthrazit",
+      "naturstein",
+      "beton"
+    ],
     "severity": "hard",
-    "quelle": "Spritzschutz Arbeitsbereich (Küchenspiegel/Spritzzone) / Praxis-Richtwert",
-    "status": "zu-verifizieren",
-    "hinweis": "Wände mit Wasser-Anschluss (Spüle/Arbeitsfläche) im Spritzbereich wasserfest bis ≥ 1.2 m (Küchenspiegel). Greift über die Wasser-Fixpunkte der Spüle."
+    "quelle": "Fachpraxis Fliesenspiegel: Arbeitsplatte ~0.9 m + Nische ~0.6 m = OK ~1.5 m ab Boden; DIN 18534 W1-I",
+    "status": "richtwert-verifiziert",
+    "hinweis": "Waende mit Wasser-Anschluss (Spuele/Arbeitsflaeche) wasserfest bis >= 1.5 m ab Boden (Spritzzone endet an OK Fliesenspiegel ~1.5 m, nicht 1.2 m – unsere Zonen messen ab Boden). Greift ueber die Wasser-Fixpunkte der Spuele."
   }
 ]
