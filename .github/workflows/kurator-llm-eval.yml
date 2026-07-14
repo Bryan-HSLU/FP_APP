@@ -1,0 +1,80 @@
+# Manueller LLM-Lauf: Kurator-Diagnose + Eval gegen das ECHTE LLM (Groq).
+#
+# Warum ein eigener Workflow: Remote-Sessions haben keinen Netzzugang zu
+# api.groq.com (Proxy-Policy) — GitHub-Runner schon. Der Key kommt bevorzugt
+# aus dem Repo-Secret FP_KURATOR_API_KEY; das Input-Feld ist nur der Fallback
+# (Achtung: Inputs erscheinen in den Run-Metadaten — Secret bevorzugen).
+# Ergebnisse landen im Step-Summary + als Artefakt (diagnose.md, eval.md).
+
+name: Kurator LLM-Eval
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Groq-Modell-ID
+        default: qwen/qwen3-32b
+        required: true
+      reasoning:
+        description: FP_KURATOR_REASONING (leer = aus, sonst none|default)
+        default: ""
+        required: false
+      seeds:
+        description: Seeds für die Diagnose
+        default: "2"
+        required: true
+      api_key:
+        description: NUR falls kein Repo-Secret FP_KURATOR_API_KEY existiert
+        default: ""
+        required: false
+
+jobs:
+  llm-eval:
+    runs-on: ubuntu-latest
+    env:
+      FP_KURATOR_URL: https://api.groq.com/openai/v1
+      FP_KURATOR_MODEL: ${{ inputs.model }}
+      FP_KURATOR_REASONING: ${{ inputs.reasoning }}
+      FP_KURATOR_API_KEY: ${{ secrets.FP_KURATOR_API_KEY || inputs.api_key }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Abhängigkeiten installieren
+        run: uv --project services/engines sync
+
+      - name: Key vorhanden?
+        run: |
+          if [ -z "$FP_KURATOR_API_KEY" ]; then
+            echo "::error::Kein Key: Repo-Secret FP_KURATOR_API_KEY setzen (oder Input api_key)."
+            exit 1
+          fi
+
+      - name: Kurator-Diagnose (echtes LLM)
+        working-directory: services/engines
+        run: |
+          uv run python scripts/kurator_diagnose.py --seeds "${{ inputs.seeds }}" | tee ../../diagnose.md
+
+      - name: Kurator-Eval LLM vs. Baseline
+        working-directory: services/engines
+        run: |
+          uv run python scripts/kurator_eval.py | tee ../../eval.md
+
+      - name: Step-Summary
+        if: always()
+        run: |
+          { echo "## Diagnose"; cat diagnose.md 2>/dev/null || echo "_fehlt_";
+            echo; echo "## Eval";  cat eval.md 2>/dev/null || echo "_fehlt_"; } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kurator-llm-berichte
+          path: |
+            diagnose.md
+            eval.md
+            services/engines/reports/kurator_eval.json
+          if-no-files-found: warn
