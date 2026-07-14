@@ -512,6 +512,7 @@ def solve(
     style_profile: dict[str, Any] | None = None,
     anordnung: list[dict[str, Any]] | None = None,
     farben: dict[str, str] | None = None,
+    mengen: dict[str, int] | None = None,
     created_at: str = "1970-01-01T00:00:00Z",
 ) -> dict[str, Any]:
     """Raummodell + Auswahl + Regeln + seed → normkonformes Plan-Objekt.
@@ -529,10 +530,19 @@ def solve(
     `farben` (Welle 3, optional) ist eine itemId→Farb-Slug-Abbildung (KI oder
     manuelle UI-Wahl); die gewählte Farbe je Item landet als `placement.farbe`.
     Rein visuell, Determinismus unberührt.
+
+    `mengen` (Objekt-Ebenen-Modell, ADR-0014, optional) ist eine
+    itemId→anzahl-Abbildung: das Item wird n-mal platziert (n eigenständige
+    Placements mit eindeutigen IDs, z.B. 4 Stühle `near:esstisch`). Fehlt eine ID,
+    gilt anzahl 1 → Alt-Verhalten byte-identisch (Determinismus unberührt). Jede
+    Instanz durchläuft Kollision/Feasibility normal; Relationen (near:esstisch …)
+    gelten je Instanz.
     """
     rnd = random.Random(seed)
     by_id = {c["id"]: c for c in catalog}
-    items = [by_id[i] for i in auswahl_ids]
+    # Mengen-Expansion: jede itemId erscheint anzahl-mal (Default 1) – konsekutiv,
+    # damit die deterministische P1→P2→P3-Aufteilung/Reihenfolge stabil bleibt.
+    items = [by_id[i] for i in auswahl_ids for _ in range(max(1, (mengen or {}).get(i, 1)))]
     p1 = [i for i in items if i["priorityClass"] == "P1"]
     p2 = [i for i in items if i["priorityClass"] == "P2"]
     p3 = [i for i in items if i["priorityClass"] == "P3"]

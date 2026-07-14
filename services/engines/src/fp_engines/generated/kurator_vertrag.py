@@ -122,6 +122,14 @@ class KuratorRequest(BaseModel):
     normProfile: NormProfile
 
 
+class ErgaenzungenItem(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    itemId: Uuid
+    anzahl: conint(ge=1, le=6)
+
+
 class RelationaleAbsichtenItem(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -228,7 +236,15 @@ class KuratorResponse(BaseModel):
     )
     auswahl: list[Uuid] = Field(
         ...,
-        description="catalogItemIds – MUSS Teilmenge von request.katalogAuszug sein (harte Validierung).",
+        description="catalogItemIds – MUSS Teilmenge von request.katalogAuszug sein (harte Validierung). Enthält jede gewählte itemId genau EINMAL (Haupt- und Ergänzungs-Items zusammen, expandiert); die Mengen stehen in «ergaenzungen» (Objekt-Ebenen-Modell, ADR-0014).",
+    )
+    hauptObjekte: list[Uuid] | None = Field(
+        None,
+        description="Raumprägende Items (objektEbene=haupt), ZUERST bestimmt (Call A, Objekt-Ebenen-Modell v0.6). Optional; wenn vorhanden Teilmenge von «auswahl». Jedes P1-Pflicht-Item muss hier stehen (harte Validierung).",
+    )
+    ergaenzungen: list[ErgaenzungenItem] | None = Field(
+        None,
+        description="Ergänzende Items (objektEbene=ergaenzung) mit Anzahl (Call A, Objekt-Ebenen-Modell v0.6). Optional. Jedes itemId muss in «auswahl» stehen; anzahl 1..maxAnzahl des Items; ein Item mit ankerTyp nur, wenn ein Haupt-Objekt dieses funktionsTyps gewählt ist (harte Validierung).",
     )
     relationaleAbsichten: list[RelationaleAbsichtenItem]
     anordnung: list[AnordnungItem] | None = Field(
@@ -248,7 +264,7 @@ class KuratorResponse(BaseModel):
 
 class KuratorVertrag(BaseModel):
     """
-    Vertrag 7: Schnittstelle zum KI-Kurator (ADR-0007). Erdung als Schema-Regel: Response-IDs müssen Teilmenge des katalogAuszug sein – sonst Retry/Fallback deterministische Baseline. v0.2 (additiv/minor): optionale Felder «anordnung» (weiche Anordnungs-Anweisungen je Item) und «flaechen» (Boden-/Wand-Material-Wünsche) – Kurator-Pipeline v2 (3 Calls). v0.4 (additiv/minor): optionales Feld «konzept» (Design-Leitidee aus Call A, «erst denken, dann wählen») – Kurator-Pipeline v3 (ADR-0013). v0.5 (additiv/minor): optionales Feld «farben» (itemId→Farb-Slug, KI-Farbwahl je Objekt, geerdet auf farbVarianten) – Kurator-Pipeline v3, Welle 3.
+    Vertrag 7: Schnittstelle zum KI-Kurator (ADR-0007). Erdung als Schema-Regel: Response-IDs müssen Teilmenge des katalogAuszug sein – sonst Retry/Fallback deterministische Baseline. v0.2 (additiv/minor): optionale Felder «anordnung» (weiche Anordnungs-Anweisungen je Item) und «flaechen» (Boden-/Wand-Material-Wünsche) – Kurator-Pipeline v2 (3 Calls). v0.4 (additiv/minor): optionales Feld «konzept» (Design-Leitidee aus Call A, «erst denken, dann wählen») – Kurator-Pipeline v3 (ADR-0013). v0.5 (additiv/minor): optionales Feld «farben» (itemId→Farb-Slug, KI-Farbwahl je Objekt, geerdet auf farbVarianten) – Kurator-Pipeline v3, Welle 3. v0.6 (additiv/minor): optionale Felder «hauptObjekte» (raumprägende Items zuerst) und «ergaenzungen» (Item + anzahl, an Haupt-Objekte verankert) – Objekt-Ebenen-Modell (ADR-0014). «auswahl» bleibt Pflicht und enthält weiterhin JEDE gewählte itemId genau einmal (Kompatibilität).
     """
 
     model_config = ConfigDict(

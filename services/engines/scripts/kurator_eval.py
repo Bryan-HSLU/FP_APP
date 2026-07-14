@@ -42,7 +42,14 @@ from pathlib import Path
 from statistics import mean
 from typing import Any
 
-from fp_engines.kurator import BaselineKurator, KuratorPort, _footprint, stil_score, waehle_port
+from fp_engines.kurator import (
+    BaselineKurator,
+    KuratorPort,
+    _footprint,
+    mengen_aus_antwort,
+    stil_score,
+    waehle_port,
+)
 from fp_engines.solver import NoFeasiblePlacement, solve
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -179,6 +186,7 @@ def _miss(port: KuratorPort) -> dict[str, Any]:
     palette_treffer: list[float] = []
     norm_korrektur: list[bool] = []
     invarianten: list[bool] = []
+    anker_erfuellt: list[float] = []
 
     for raum_name in RAEUME:
         room, catalog, regeln = RAUM_KATALOG_REGELN[raum_name]
@@ -193,14 +201,36 @@ def _miss(port: KuratorPort) -> dict[str, Any]:
                 if not auswahl:
                     continue
                 gueltig += 1
+                # Mengen (Objekt-Ebenen-Modell): Instanz-Anzahl je Item (Default 1).
+                mengen = mengen_aus_antwort(antwort)
+                gesamt_instanzen = sum(mengen.get(i, 1) for i in auswahl)
 
                 scores = [stil_score(profil, by_id[i]) for i in auswahl if i in by_id]
                 if scores:
                     treue.append(mean(scores))
                 sets.add(json.dumps(sorted(auswahl)))
 
+                # Anker-Erfüllung (NEU): Anteil verankerter Ergänzungen, deren
+                # ankerTyp durch ein gewähltes Haupt-Objekt gedeckt ist. Die harte
+                # Validierung erzwingt das bereits (Erwartung ~1.0) – die Spalte
+                # macht es im Report sichtbar (Diagnose).
+                haupt_ids = antwort.get("hauptObjekte") or auswahl
+                haupt_typen = {by_id[i]["funktionsTyp"] for i in haupt_ids if i in by_id}
+                verankert = [
+                    e
+                    for e in (antwort.get("ergaenzungen") or [])
+                    if e["itemId"] in by_id and by_id[e["itemId"]].get("ankerTyp")
+                ]
+                if verankert:
+                    erfuellt = sum(
+                        1 for e in verankert if by_id[e["itemId"]]["ankerTyp"] in haupt_typen
+                    )
+                    anker_erfuellt.append(erfuellt / len(verankert))
+
                 if bodenflaeche > 0:
-                    footprint_summe = sum(_footprint(by_id[i]) for i in auswahl if i in by_id)
+                    footprint_summe = sum(
+                        _footprint(by_id[i]) * mengen.get(i, 1) for i in auswahl if i in by_id
+                    )
                     auslastung.append(footprint_summe / bodenflaeche)
 
                 if profil["palette"]:
@@ -226,6 +256,7 @@ def _miss(port: KuratorPort) -> dict[str, Any]:
                         style_profile=profil,
                         anordnung=antwort.get("anordnung"),
                         farben=antwort.get("farben"),
+                        mengen=mengen,
                     )
                 except NoFeasiblePlacement:
                     # Ehrliches Solver-Ergebnis (Engineering-Grundlagen §1): die
@@ -239,7 +270,9 @@ def _miss(port: KuratorPort) -> dict[str, Any]:
                     f"Solver-Invariante verletzt ({raum_name}/{seed}): {report['hard']}"
                 )
                 invarianten.append(bool(report["hard"]["ok"]))
-                ueberleben.append(len(plan["placements"]) / len(auswahl))
+                # Überlebensrate zählt jetzt INSTANZEN (Haupt + Ergänzungen×anzahl):
+                # ein 4er-Stuhlsatz sind 4 platzierbare Instanzen, nicht ein Item.
+                ueberleben.append(len(plan["placements"]) / gesamt_instanzen)
 
     norm_korrektur_pct: float | str
     if port.name == "baseline":
@@ -254,6 +287,7 @@ def _miss(port: KuratorPort) -> dict[str, Any]:
         "ueberlebensrate_mittel": round(mean(ueberleben), 3) if ueberleben else 0.0,
         "auslastung_mittel": round(mean(auslastung), 3) if auslastung else 0.0,
         "palette_treffer_mittel": round(mean(palette_treffer), 3) if palette_treffer else 0.0,
+        "anker_erfuellt_pct": round(100 * mean(anker_erfuellt), 1) if anker_erfuellt else "n/a",
         "norm_korrektur_pct": norm_korrektur_pct,
         "invariante_gehalten": all(invarianten) if invarianten else True,
         "laeufe": laeufe,
@@ -267,6 +301,7 @@ _SPALTEN: list[tuple[str, str]] = [
     ("Solver-Überlebensrate", "ueberlebensrate_mittel"),
     ("Platz-Auslastung", "auslastung_mittel"),
     ("Palette-Treffer", "palette_treffer_mittel"),
+    ("Anker-Erfüllung %", "anker_erfuellt_pct"),
     ("Norm-Korrektur %", "norm_korrektur_pct"),
     ("0-❌-Invariante", "invariante_gehalten"),
     ("Läufe", "laeufe"),

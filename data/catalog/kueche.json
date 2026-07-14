@@ -16,6 +16,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P1",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.3,
@@ -62,6 +63,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P1",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.3,
@@ -108,6 +110,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P1",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "helligkeit": -0.4,
@@ -154,6 +157,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P1",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "helligkeit": -0.4,
@@ -200,6 +204,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P1",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "epoche": 0.7,
@@ -246,6 +251,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P1",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "epoche": 0.7,
@@ -292,6 +298,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P1",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "epoche": 0.3,
@@ -337,6 +344,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P1",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "epoche": 0.3,
@@ -382,6 +390,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P1",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "helligkeit": 0.4,
@@ -428,6 +437,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P1",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "helligkeit": 0.4,
@@ -474,6 +484,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P1",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.2,
@@ -519,6 +530,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P1",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.2,
@@ -564,6 +576,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P1",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "epoche": 0.5,
@@ -614,6 +627,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P1",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "epoche": 0.5,
@@ -664,6 +678,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.8,
@@ -708,6 +723,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.8,
@@ -752,6 +768,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "helligkeit": 0.8,
@@ -795,6 +812,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "helligkeit": 0.8,
@@ -838,6 +856,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "wand",
     "achsenTags": {
       "materialitaet": 0.8,
@@ -886,6 +905,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "wand",
     "achsenTags": {
       "materialitaet": 0.8,
@@ -934,6 +954,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "wand",
     "achsenTags": {
       "helligkeit": 0.8,
@@ -981,6 +1002,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "wand",
     "achsenTags": {
       "helligkeit": 0.8,
@@ -1028,6 +1050,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.8,
@@ -1072,6 +1095,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.8,
@@ -1116,6 +1140,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "helligkeit": 0.8,
@@ -1159,6 +1184,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "helligkeit": 0.8,
@@ -1202,6 +1228,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "wand",
     "achsenTags": {
       "materialitaet": 0.2,
@@ -1254,6 +1281,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "wand",
     "achsenTags": {
       "materialitaet": 0.2,
@@ -1306,6 +1334,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "wand",
     "achsenTags": {
       "helligkeit": -0.6,
@@ -1358,6 +1387,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "wand",
     "achsenTags": {
       "helligkeit": -0.6,
@@ -1410,6 +1440,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "temperatur": 0.0,
@@ -1454,6 +1485,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "temperatur": 0.0,
@@ -1498,6 +1530,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "temperatur": 0.0,
@@ -1542,6 +1575,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "temperatur": 0.0,
@@ -1586,6 +1620,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.8,
@@ -1629,6 +1664,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.7,
@@ -1672,6 +1708,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
     "mount": "boden",
     "achsenTags": {
       "helligkeit": 0.4,
@@ -1715,6 +1752,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.8,
@@ -1759,6 +1797,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P2",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "materialitaet": -0.2,
@@ -1802,6 +1841,8 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
+    "maxAnzahl": 4,
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.8,
@@ -1849,6 +1890,8 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
+    "maxAnzahl": 4,
     "mount": "boden",
     "achsenTags": {
       "helligkeit": -0.6,
@@ -1895,6 +1938,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.8,
@@ -1940,6 +1984,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
     "mount": "boden",
     "achsenTags": {
       "epoche": 0.6,
@@ -1984,6 +2029,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P3",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "materialitaet": 0.8,
@@ -2031,6 +2077,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P3",
+    "objektEbene": "haupt",
     "mount": "boden",
     "achsenTags": {
       "helligkeit": 0.8,
@@ -2077,6 +2124,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
     "mount": "boden",
     "achsenTags": {
       "epoche": 0.6,
@@ -2125,6 +2173,7 @@
     },
     "assetStatus": "placeholder",
     "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
     "mount": "boden",
     "achsenTags": {
       "helligkeit": -0.6,

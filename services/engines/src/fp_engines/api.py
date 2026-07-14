@@ -320,6 +320,9 @@ class SolveRequest(BaseModel):
     auswahl: list[str] | None = None
     relationaleAbsichten: list[dict[str, Any]] = []
     anordnung: list[dict[str, Any]] | None = None
+    # Mehrfach-Instanzen (Objekt-Ebenen-Modell, ADR-0014): itemId→anzahl. Additiv/
+    # optional – fehlt es, wird jede Auswahl-ID einmal platziert (Alt-Verhalten).
+    mengen: dict[str, int] | None = None
     # K-Varianten (Welle 5): true → K=3 Solver-Läufe, beste wird gewählt; Response
     # trägt zusätzlich `varianteInfo`. DEFAULT false → Verhalten exakt wie bisher
     # (bestehende Golden-/Determinismus-Tests unberührt). Nur Nicht-Küche.
@@ -368,7 +371,7 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
             )
         else:
             if req.auswahl is None:
-                from fp_engines.kurator import BaselineKurator
+                from fp_engines.kurator import BaselineKurator, mengen_aus_antwort
 
                 neutral: dict[str, Any] = {
                     "styleVector": {},
@@ -378,9 +381,14 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
                 sel = BaselineKurator().kuratiere(neutral, raum, katalog, None, req.seed)
                 auswahl, absichten = sel["auswahl"], sel["relationaleAbsichten"]
                 anordnung = sel.get("anordnung")
+                # Mengen aus der Kurator-Antwort (ergaenzungen) ableiten – der
+                # kleinste saubere Weg, ohne den Vertrag um ein internes Feld zu
+                # erweitern (mengen_aus_antwort liest die ergaenzungen).
+                mengen: dict[str, int] | None = mengen_aus_antwort(sel)
             else:
                 auswahl, absichten = req.auswahl, req.relationaleAbsichten
                 anordnung = req.anordnung
+                mengen = req.mengen
             if req.varianten:
                 # Welle 5: K=3 Varianten, beste deterministisch gewählt; die
                 # Auswahl-Spur (varianteInfo) geht in die Response-Hülle.
@@ -398,6 +406,7 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
                     style_profile=req.stilprofil,
                     anordnung=anordnung,
                     farben=req.farben,
+                    mengen=mengen,
                     created_at=created,
                 )
             else:
@@ -413,6 +422,7 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
                     style_profile=req.stilprofil,
                     anordnung=anordnung,
                     farben=req.farben,
+                    mengen=mengen,
                     created_at=created,
                 )
     except NoFeasiblePlacement as e:

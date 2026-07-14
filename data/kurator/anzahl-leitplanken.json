@@ -1,0 +1,18 @@
+{
+  "_hinweis": "Anzahl-Leitplanken (ADR-0014, Objekt-Ebenen-Modell, Welle A): Ziel-Korridor der platzierten OBJEKT-INSTANZEN je Raumtyp und Fläche (Haupt-Objekte + Ergänzungen×anzahl, OHNE Deko/Dressing). Weiche Kontrolle: der Korridor steht im Kurator-Prompt UND wird nach Call A geprüft (1 Repair-Hinweis, dann akzeptiert + Marker CURATOR_ANZAHL_AUSSERHALB); hart bleibt nur das Platz-Budget. Lookup: erste Zeile mit flaeche_m2 <= bisM2; überschreitet die Fläche alle Bänder, gilt die letzte Zeile. Werte fachlich plausibel gewählt (POC), im Diagnose-/Eval-Lauf kalibrierbar. bad: kompakte Nassräume, wenige Instanzen. wohnen: Wohn-/Essbereich mit Stühlen → höhere Instanzzahl. kueche: die Küche wird über solve_kueche (Formwahl) gebaut, nicht über die generische Auswahl – der Korridor greift hier nur, falls der generische Kurator/die Baseline eine Küche kuratiert (Eval).",
+  "bad": [
+    { "bisM2": 6, "min": 3, "max": 5 },
+    { "bisM2": 12, "min": 4, "max": 8 },
+    { "bisM2": 999, "min": 5, "max": 10 }
+  ],
+  "wohnen": [
+    { "bisM2": 18, "min": 6, "max": 12 },
+    { "bisM2": 30, "min": 8, "max": 15 },
+    { "bisM2": 999, "min": 10, "max": 20 }
+  ],
+  "kueche": [
+    { "bisM2": 8, "min": 4, "max": 8 },
+    { "bisM2": 15, "min": 6, "max": 12 },
+    { "bisM2": 999, "min": 8, "max": 16 }
+  ]
+}

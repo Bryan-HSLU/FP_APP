@@ -480,3 +480,52 @@ def test_tuer_korridor_frei_von_optionalen() -> None:
             p["pose"]["yawDeg"],
         )
         assert all(overlap_depth(quad, z) is None for z in korridore), item["funktionsTyp"]
+
+
+# --- Objekt-Ebenen: Mehrfach-Instanzen (mengen, ADR-0014, Welle A) -----------
+
+
+def test_solver_platziert_vier_stuehle_near_esstisch() -> None:
+    """mengen={stuhl:4} → 4 eigenständige Placements (eindeutige IDs), 0 ❌, jede
+    Instanz nahe am Esstisch (near:esstisch gilt je Instanz)."""
+    room = _load(FIXTURES / "raummodell.wohnen-sample.json")
+    catalog = _catalog("wohnen")
+    rules = _rules("wohnen")
+    esstisch = next(c["id"] for c in catalog if c["funktionsTyp"] == "esstisch")
+    stuhl = next(c["id"] for c in catalog if c["funktionsTyp"] == "stuhl")
+    plan = solve(
+        room,
+        [esstisch, stuhl],
+        [{"itemId": stuhl, "relation": "near:esstisch:1.3"}],
+        catalog,
+        rules,
+        seed=1,
+        mengen={stuhl: 4},
+        created_at="2026-06-11T12:00:00Z",
+    )
+    stuhl_pl = [p for p in plan["placements"] if p["catalogItemId"] == stuhl]
+    assert len(stuhl_pl) == 4
+    assert len({p["id"] for p in stuhl_pl}) == 4  # eindeutige placement-ids
+    assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+    et = next(p for p in plan["placements"] if p["catalogItemId"] == esstisch)["pose"]["pos"]
+    assert all(math.dist(et, p["pose"]["pos"]) <= 1.3 + 1e-6 for p in stuhl_pl)
+
+
+def test_solver_mengen_default_eins_unveraendert() -> None:
+    """Ohne mengen (bzw. anzahl 1) exakt wie bisher – Determinismus unberührt."""
+    room = _load(FIXTURES / "raummodell.wohnen-sample.json")
+    catalog = _catalog("wohnen")
+    rules = _rules("wohnen")
+    esstisch = next(c["id"] for c in catalog if c["funktionsTyp"] == "esstisch")
+    ohne = solve(room, [esstisch], [], catalog, rules, seed=1, created_at="2026-06-11T12:00:00Z")
+    eins = solve(
+        room,
+        [esstisch],
+        [],
+        catalog,
+        rules,
+        seed=1,
+        mengen={esstisch: 1},
+        created_at="2026-06-11T12:00:00Z",
+    )
+    assert ohne == eins

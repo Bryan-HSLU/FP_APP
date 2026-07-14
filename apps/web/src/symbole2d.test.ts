@@ -45,6 +45,7 @@ const KATALOG_TYPEN = [
   "sideboard",
   "sofa",
   "stehleuchte",
+  "stuhl",
   "teppich",
   "tvmoebel",
   "wandbild",

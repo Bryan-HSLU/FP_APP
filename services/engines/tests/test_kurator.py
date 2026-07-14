@@ -18,14 +18,19 @@ from fp_engines.kurator import (
     BaselineKurator,
     LlmKurator,
     _bereinige_farben,
+    _extrahiere_ebenen,
     _footprint,
+    _instanz_anzahl,
     _platz_budget,
     _validiere,
     _validiere_anordnung,
+    _validiere_ebenen,
     _validiere_farben,
     _validiere_flaechen,
+    anzahl_leitplanke,
     bewegungs_hinweise,
     korrigiere_flaechen,
+    mengen_aus_antwort,
     nasswaende,
     norm_kontext_flaechen,
     pruefe_flaechen,
@@ -539,9 +544,7 @@ def test_llm_farben_repair(monkeypatch: pytest.MonkeyPatch) -> None:
     gültige Farben übernommen, kein Bereinigungs-Marker."""
     schlecht = _auswahl_farben({AUSWAHL_IDS[2]: "bordeaux"})
     farb_repair = {"farben": FARBEN_GUELTIG}
-    port = _llm_mit_antworten(
-        monkeypatch, [schlecht, farb_repair, _anordnung_ok(), _flaechen_ok()]
-    )
+    port = _llm_mit_antworten(monkeypatch, [schlecht, farb_repair, _anordnung_ok(), _flaechen_ok()])
     ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
     assert ergebnis["farben"] == FARBEN_GUELTIG
     assert "CURATOR_FARBEN_BEREINIGT" not in ergebnis["begruendung"]
@@ -554,9 +557,7 @@ def test_llm_farben_bereinigt_statt_baseline(monkeypatch: pytest.MonkeyPatch) ->
     schlecht = _auswahl_farben(
         {AUSWAHL_IDS[0]: BY_ID[AUSWAHL_IDS[0]]["farbVarianten"][0], AUSWAHL_IDS[2]: "bordeaux"}
     )
-    port = _llm_mit_antworten(
-        monkeypatch, [schlecht, schlecht, _anordnung_ok(), _flaechen_ok()]
-    )
+    port = _llm_mit_antworten(monkeypatch, [schlecht, schlecht, _anordnung_ok(), _flaechen_ok()])
     ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
     assert "CURATOR_FARBEN_BEREINIGT" in ergebnis["begruendung"]
     assert "CURATOR_FALLBACK_USED" not in ergebnis["begruendung"]
@@ -686,3 +687,212 @@ def test_sampling_temperature_und_seed(monkeypatch: pytest.MonkeyPatch) -> None:
     payloads = _capture_pipeline(monkeypatch, [_auswahl_ok(), _anordnung_ok(), _flaechen_ok()])
     assert payloads[0]["temperature"] == 0.3
     assert payloads[0]["seed"] == 7
+
+
+# --- Welle A: Objekt-Ebenen (Haupt/Ergänzung, Anzahl, ADR-0014) --------------
+
+WOHNEN_ROOM = _load("raummodell.wohnen-sample.json")
+WOHNEN_CATALOG = json.loads((REPO_ROOT / "data" / "catalog" / "wohnen.json").read_text())
+WOHNEN_BY = {c["id"]: c for c in WOHNEN_CATALOG}
+WOHNEN_N_WALLS = len(WOHNEN_ROOM["shell"]["walls"])
+
+
+def _w(funktionsTyp: str) -> str:
+    return next(c["id"] for c in WOHNEN_CATALOG if c["funktionsTyp"] == funktionsTyp)
+
+
+ESSTISCH, SOFA, TV, STUHL, REGAL = (
+    _w("esstisch"),
+    _w("sofa"),
+    _w("tvmoebel"),
+    _w("stuhl"),
+    _w("regal"),
+)
+WOHNEN_SLOTS = vorfilter(PROFIL, WOHNEN_ROOM, WOHNEN_CATALOG, None)
+
+
+def test_anzahl_leitplanke_lookup() -> None:
+    # Erstes Band mit area <= bisM2; überschreitet die Fläche alle → letztes Band.
+    assert anzahl_leitplanke("wohnen", 16.0) == (6, 12)
+    assert anzahl_leitplanke("wohnen", 25.0) == (8, 15)
+    assert anzahl_leitplanke("wohnen", 500.0) == (10, 20)
+    assert anzahl_leitplanke("gibtsnicht", 10.0) is None
+
+
+def test_validiere_ebenen_anker_ohne_haupt() -> None:
+    """Ergänzung «stuhl» (Anker esstisch) ohne esstisch in hauptObjekte → Fehler."""
+    antwort = {"hauptObjekte": [SOFA, TV], "ergaenzungen": [{"itemId": STUHL, "anzahl": 4}]}
+    fehler = _validiere_ebenen(antwort, WOHNEN_SLOTS, "wohnen", None, None, WOHNEN_BY)
+    assert fehler is not None and "esstisch" in fehler
+
+
+def test_validiere_ebenen_anker_mit_haupt_ok() -> None:
+    antwort = {"hauptObjekte": [ESSTISCH, SOFA], "ergaenzungen": [{"itemId": STUHL, "anzahl": 4}]}
+    assert _validiere_ebenen(antwort, WOHNEN_SLOTS, "wohnen", None, None, WOHNEN_BY) is None
+
+
+def test_validiere_ebenen_anzahl_ueber_max() -> None:
+    """Regal hat maxAnzahl 1 → anzahl 3 sprengt die Obergrenze (konkreter Hinweis)."""
+    antwort = {"hauptObjekte": [ESSTISCH], "ergaenzungen": [{"itemId": REGAL, "anzahl": 3}]}
+    fehler = _validiere_ebenen(antwort, WOHNEN_SLOTS, "wohnen", None, None, WOHNEN_BY)
+    assert fehler is not None and "maxAnzahl" in fehler
+
+
+def test_validiere_ebenen_platz_budget_ueber_instanzen() -> None:
+    """Platz-Budget zählt anzahl×Footprint: 4 Stühle sprengen ein winziges Budget."""
+    antwort = {"hauptObjekte": [ESSTISCH], "ergaenzungen": [{"itemId": STUHL, "anzahl": 4}]}
+    fehler = _validiere_ebenen(antwort, WOHNEN_SLOTS, "wohnen", None, 1.0, WOHNEN_BY)
+    assert fehler is not None and "Platz-Budget" in fehler
+
+
+def test_extrahiere_ebenen_altform_nur_auswahl() -> None:
+    """Alt-Form (nur `auswahl`, keine Ebenen) → alles Haupt, keine Ergänzungen."""
+    haupt, erg = _extrahiere_ebenen({"auswahl": [SOFA, ESSTISCH]})
+    assert haupt == [SOFA, ESSTISCH] and erg == []
+
+
+def test_mengen_aus_antwort_nur_ueber_eins() -> None:
+    antwort = {"ergaenzungen": [{"itemId": STUHL, "anzahl": 4}, {"itemId": REGAL, "anzahl": 1}]}
+    # Haupt (anzahl 1) und anzahl-1-Ergänzungen bleiben implizit (kein Eintrag).
+    assert mengen_aus_antwort(antwort) == {STUHL: 4}
+
+
+def test_baseline_ebenen_reihenfolge_und_stuhl_anzahl() -> None:
+    a = BaselineKurator().kuratiere(PROFIL, WOHNEN_ROOM, WOHNEN_CATALOG, None, seed=1)
+    b = BaselineKurator().kuratiere(PROFIL, WOHNEN_ROOM, WOHNEN_CATALOG, None, seed=1)
+    assert a == b  # deterministisch
+    haupt_typen = [WOHNEN_BY[i]["funktionsTyp"] for i in a["hauptObjekte"]]
+    assert "esstisch" in haupt_typen and "sofa" in haupt_typen
+    # Alle Haupt sind objektEbene haupt, alle Ergänzungen ergaenzung.
+    assert all(WOHNEN_BY[i]["objektEbene"] == "haupt" for i in a["hauptObjekte"])
+    assert all(WOHNEN_BY[e["itemId"]]["objektEbene"] == "ergaenzung" for e in a["ergaenzungen"])
+    # Stühle verankert am Esstisch, deterministisch mehrfach (2..4).
+    stuehle = [e for e in a["ergaenzungen"] if WOHNEN_BY[e["itemId"]]["funktionsTyp"] == "stuhl"]
+    assert stuehle and 2 <= stuehle[0]["anzahl"] <= 4
+    # auswahl = Haupt + Ergänzungs-IDs (jede genau einmal).
+    assert a["auswahl"] == a["hauptObjekte"] + [e["itemId"] for e in a["ergaenzungen"]]
+
+
+def test_baseline_alt_katalog_ohne_ebene_bricht_nicht() -> None:
+    """Katalog ohne objektEbene/ankerTyp/maxAnzahl → alles Haupt, keine Anker-Pflicht."""
+    alt = [
+        {k: v for k, v in c.items() if k not in ("objektEbene", "ankerTyp", "maxAnzahl")}
+        for c in CATALOG
+    ]
+    a = BaselineKurator().kuratiere(PROFIL, ROOM, alt, None, seed=1)
+    assert a["auswahl"] and a["ergaenzungen"] == []
+    assert set(a["hauptObjekte"]) == set(a["auswahl"])
+    slots = vorfilter(PROFIL, ROOM, alt, None)
+    assert _validiere(a, slots, "bad", None) is None
+    assert _validiere_ebenen(a, slots, "bad", None, None, {c["id"]: c for c in alt}) is None
+
+
+# --- LLM-Pipeline mit Objekt-Ebenen ------------------------------------------
+
+
+def _haupt(*typen: str) -> list[str]:
+    return [_w(t) for t in typen]
+
+
+def _anordnung_w() -> dict[str, Any]:
+    return {"anordnung": [{"itemId": ESSTISCH, "prioritaet": 1}]}
+
+
+def _flaechen_w() -> dict[str, Any]:
+    # Wohnen ist Trockenraum (keine harten Flächenregeln) → beliebiger valider Slug.
+    return {"flaechen": {"boden": {"material": "parkett-eiche"}}}
+
+
+def _kuratiere_wohnen(port: LlmKurator) -> dict[str, Any]:
+    return port.kuratiere(PROFIL, WOHNEN_ROOM, WOHNEN_CATALOG, None, seed=1)
+
+
+def test_llm_ebenen_anker_repair(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Call A liefert Stühle ohne Esstisch-Haupt → harter Fehler → 1 Repair mit
+    Esstisch → gültige zweistufige Auswahl übernommen (Haupt + verankerte Stühle)."""
+    schlecht = {
+        "hauptObjekte": _haupt("sofa", "tvmoebel"),
+        "ergaenzungen": [{"itemId": STUHL, "anzahl": 4}],
+    }
+    gut = {
+        "hauptObjekte": _haupt("esstisch", "sofa"),
+        "ergaenzungen": [{"itemId": STUHL, "anzahl": 4}],
+    }
+    port = _llm_mit_antworten(monkeypatch, [schlecht, gut, _anordnung_w(), _flaechen_w()])
+    ergebnis = _kuratiere_wohnen(port)
+    haupt_typen = {WOHNEN_BY[i]["funktionsTyp"] for i in ergebnis["hauptObjekte"]}
+    assert "esstisch" in haupt_typen
+    stuehle = [e for e in ergebnis["ergaenzungen"] if e["itemId"] == STUHL]
+    assert stuehle and stuehle[0]["anzahl"] == 4
+    # auswahl expandiert (jede itemId einmal), mengen trägt die 4.
+    assert ergebnis["auswahl"].count(STUHL) == 1
+    assert mengen_aus_antwort(ergebnis) == {STUHL: 4}
+
+
+def test_llm_korridor_weich_marker(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Zu wenige Instanzen (2 < Korridor-Min): 1 weicher Repair, bleibt drunter →
+    akzeptiert + Marker CURATOR_ANZAHL_AUSSERHALB (hart bleibt nur das Platz-Budget)."""
+    wenig = {"hauptObjekte": _haupt("esstisch", "sofa"), "ergaenzungen": []}
+    port = _llm_mit_antworten(monkeypatch, [wenig, wenig, _anordnung_w(), _flaechen_w()])
+    ergebnis = _kuratiere_wohnen(port)
+    assert "CURATOR_ANZAHL_AUSSERHALB" in ergebnis["begruendung"]
+    assert _instanz_anzahl(ergebnis["hauptObjekte"], ergebnis["ergaenzungen"]) == 2
+
+
+def test_llm_korridor_repair_bringt_in_korridor(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Erst zu wenige (2), Repair liefert Korridor-konform (esstisch+sofa+4 Stühle
+    = 6) → KEIN Marker."""
+    wenig = {"hauptObjekte": _haupt("esstisch", "sofa"), "ergaenzungen": []}
+    gut = {
+        "hauptObjekte": _haupt("esstisch", "sofa"),
+        "ergaenzungen": [{"itemId": STUHL, "anzahl": 4}],
+    }
+    port = _llm_mit_antworten(monkeypatch, [wenig, gut, _anordnung_w(), _flaechen_w()])
+    ergebnis = _kuratiere_wohnen(port)
+    assert "CURATOR_ANZAHL_AUSSERHALB" not in ergebnis["begruendung"]
+    assert _instanz_anzahl(ergebnis["hauptObjekte"], ergebnis["ergaenzungen"]) == 6
+
+
+def test_llm_altform_auswahl_kein_korridor(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Alt-Form (nur `auswahl`) fällt NICHT in die Korridor-Prüfung (additive
+    Evolution) – der bestehende Auswahl-Weg bleibt unberührt."""
+    port = _llm_mit_antworten(monkeypatch, [_auswahl_ok(), _anordnung_ok(), _flaechen_ok()])
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert "CURATOR_ANZAHL_AUSSERHALB" not in ergebnis["begruendung"]
+    assert ergebnis["auswahl"] == AUSWAHL_IDS
+    assert ergebnis["ergaenzungen"] == []
+
+
+# --- Thinking-/Sampling-Steuerung (FP_KURATOR_REASONING/_TEMP, ADR-0014) ------
+
+
+def _erster_payload(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+    payloads: list[dict[str, Any]] = []
+
+    def fake_post(url: str, **kwargs: Any) -> httpx.Response:
+        payloads.append(kwargs["json"])
+        body = {"choices": [{"message": {"content": json.dumps(_auswahl_ok())}}]}
+        return httpx.Response(200, json=body, request=httpx.Request("POST", url))
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    LlmKurator(url="http://test/v1", model="test", api_key=None).kuratiere(
+        PROFIL, ROOM, CATALOG, None, seed=1
+    )
+    return payloads[0]
+
+
+def test_reasoning_payload_nur_bei_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("FP_KURATOR_REASONING", "default")
+    monkeypatch.setenv("FP_KURATOR_TEMP", "0.15")
+    payload = _erster_payload(monkeypatch)
+    assert payload["reasoning_effort"] == "default"
+    assert payload["reasoning_format"] == "hidden"  # hält Denktext aus dem JSON
+    assert payload["temperature"] == 0.15
+
+
+def test_reasoning_payload_absent_ohne_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("FP_KURATOR_REASONING", raising=False)
+    monkeypatch.delenv("FP_KURATOR_TEMP", raising=False)
+    payload = _erster_payload(monkeypatch)
+    assert "reasoning_effort" not in payload and "reasoning_format" not in payload
+    assert payload["temperature"] == 0.3  # unveränderter Standard

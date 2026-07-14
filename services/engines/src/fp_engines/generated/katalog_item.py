@@ -14,6 +14,7 @@ from pydantic import (
     PositiveFloat,
     RootModel,
     confloat,
+    conint,
     constr,
 )
 
@@ -64,6 +65,15 @@ class PriorityClass(Enum):
     P1 = "P1"
     P2 = "P2"
     P3 = "P3"
+
+
+class ObjektEbene(Enum):
+    """
+    Objekt-Ebenen-Modell (ADR-0014): «haupt» = raumprägend (Sofa, Esstisch, WC, Küchenzeile …), zuerst gewählt; «ergaenzung» = ergänzt ein Haupt-Objekt (Stuhl zum Esstisch, Couchtisch zum Sofa …). Optional/additiv – fehlt es, gilt das Item als eigenständig (eine Gruppe, keine Anker-Pflicht). Orthogonal zu priorityClass (Auswahl-Semantik vs. Platzierungs-Konkurrenz).
+    """
+
+    haupt = "haupt"
+    ergaenzung = "ergaenzung"
 
 
 class Mount(Enum):
@@ -170,6 +180,18 @@ class KatalogItem(BaseModel):
     priorityClass: PriorityClass = Field(
         ...,
         description="P1 Pflicht/Anschluss · P2 Funktion · P3 Ergänzung (Gestaltungs-Engine).",
+    )
+    objektEbene: ObjektEbene | None = Field(
+        None,
+        description="Objekt-Ebenen-Modell (ADR-0014): «haupt» = raumprägend (Sofa, Esstisch, WC, Küchenzeile …), zuerst gewählt; «ergaenzung» = ergänzt ein Haupt-Objekt (Stuhl zum Esstisch, Couchtisch zum Sofa …). Optional/additiv – fehlt es, gilt das Item als eigenständig (eine Gruppe, keine Anker-Pflicht). Orthogonal zu priorityClass (Auswahl-Semantik vs. Platzierungs-Konkurrenz).",
+    )
+    ankerTyp: constr(min_length=1) | None = Field(
+        None,
+        description="Nur bei objektEbene=ergaenzung: funktionsTyp des Haupt-Objekts, an dem die Ergänzung hängt (z.B. «esstisch» für Stühle). Harte Kontrolle: die Ergänzung ist nur wählbar, wenn ein Haupt-Objekt dieses funktionsTyps gewählt ist. Fehlt es, ist die Ergänzung frei wählbar (kein Anker).",
+    )
+    maxAnzahl: conint(ge=1, le=6) | None = Field(
+        1,
+        description="Obergrenze der Instanzen dieses Items in einem Raum (z.B. Stuhl 6, Barhocker 4). Default 1 (Einzelstück). Der Kurator/die Baseline wählt anzahl ≤ maxAnzahl; das Platz-Budget begrenzt zusätzlich.",
     )
     mount: Mount | None = Field(None, description="Host-Bindung; Default boden.")
     mountHeightRange: MountHeightRange | None = Field(

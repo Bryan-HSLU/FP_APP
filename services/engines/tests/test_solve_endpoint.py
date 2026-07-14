@@ -229,9 +229,7 @@ def test_flaechen_pruefen_verstoss_wird_korrigiert() -> None:
     assert any("bad-boden-wasserfest" in v for v in body["verstoesse"])
     assert body["korrigiert"]["boden"]["material"] == "fliesen-hell"
     # Die korrigierte Fassung ist normkonform: erneut prüfen liefert leer.
-    erneut = client.post(
-        "/flaechen/pruefen", json={"room": room, "flaechen": body["korrigiert"]}
-    )
+    erneut = client.post("/flaechen/pruefen", json={"room": room, "flaechen": body["korrigiert"]})
     assert erneut.json()["verstoesse"] == []
 
 
@@ -247,3 +245,44 @@ def test_solve_wohnen_kernmoebel() -> None:
     by_id = {c["id"]: c for c in katalog}
     typen = {by_id[p["catalogItemId"]]["funktionsTyp"] for p in plan["placements"]}
     assert {"sofa", "esstisch", "tvmoebel"} <= typen
+
+
+def test_solve_mengen_mehrfach_instanzen() -> None:
+    """Welle A (ADR-0014): /solve nimmt optionales `mengen` (itemId→anzahl) →
+    n eigenständige Placements desselben Katalog-Items, 0 ❌."""
+    client = TestClient(app)
+    room = _room("raummodell.wohnen-sample")
+    katalog = client.get("/catalog/wohnen").json()
+    esstisch = next(c["id"] for c in katalog if c["funktionsTyp"] == "esstisch")
+    stuhl = next(c["id"] for c in katalog if c["funktionsTyp"] == "stuhl")
+    res = client.post(
+        "/solve",
+        json={
+            "room": room,
+            "seed": 1,
+            "auswahl": [esstisch, stuhl],
+            "relationaleAbsichten": [{"itemId": stuhl, "relation": "near:esstisch:1.3"}],
+            "mengen": {stuhl: 4},
+        },
+    )
+    assert res.status_code == 200
+    plan = res.json()["plan"]
+    assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+    stuhl_pl = [p for p in plan["placements"] if p["catalogItemId"] == stuhl]
+    assert len(stuhl_pl) == 4
+    assert len({p["id"] for p in stuhl_pl}) == 4
+
+
+def test_solve_baseline_stuehle_als_instanzen() -> None:
+    """/solve ohne auswahl (Baseline-Kurator) leitet mengen aus den Ergänzungen ab
+    → das Wohnzimmer bekommt mehrere Stuhl-Instanzen am Esstisch."""
+    client = TestClient(app)
+    room = _room("raummodell.wohnen-sample")
+    katalog = client.get("/catalog/wohnen").json()
+    by_id = {c["id"]: c for c in katalog}
+    plan = client.post("/solve", json={"room": room, "seed": 1}).json()["plan"]
+    assert plan["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+    stuehle = [
+        p for p in plan["placements"] if by_id[p["catalogItemId"]]["funktionsTyp"] == "stuhl"
+    ]
+    assert len(stuehle) >= 2  # Mehrfach-Instanzen aus der Baseline

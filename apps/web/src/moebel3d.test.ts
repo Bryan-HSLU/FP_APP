@@ -29,6 +29,7 @@ const KATALOG_TYPEN = [
   "badteppich",
   "sofa",
   "esstisch",
+  "stuhl",
   "couchtisch",
   "beistelltisch",
   "regal",

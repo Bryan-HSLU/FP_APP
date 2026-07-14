@@ -84,9 +84,7 @@ def _relation_score(
     summiert das solver-eigene `_kandidat_score` je Placement. So misst das
     Scoring die Layout-Güte mit demselben Objektiv, das die Platzierung ordnet.
     """
-    floor: list[Vec2] = [
-        (float(p[0]), float(p[1])) for p in room["shell"]["floor"]["polygon"]
-    ]
+    floor: list[Vec2] = [(float(p[0]), float(p[1])) for p in room["shell"]["floor"]["polygon"]]
     ctx = _PlatzKontext(
         floor=floor,
         style_vector=(style_profile or {}).get("styleVector", {}) or {},
@@ -146,6 +144,7 @@ def loese_mit_varianten(
     style_profile: dict[str, Any] | None = None,
     anordnung: list[dict[str, Any]] | None = None,
     farben: dict[str, str] | None = None,
+    mengen: dict[str, int] | None = None,
     created_at: str = "1970-01-01T00:00:00Z",
     k: int = K_VARIANTEN,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -177,6 +176,7 @@ def loese_mit_varianten(
             style_profile=style_profile,
             anordnung=anordnung,
             farben=farben,
+            mengen=mengen,
             created_at=created_at,
         )
         score, info = _bewerte(plan, index, room, by_id, rel_map, style_profile)

@@ -1,14 +1,15 @@
 {
   "ports": {
     "baseline": {
-      "auslastung_mittel": 0.886,
-      "diversitaet_sets": 27,
+      "anker_erfuellt_pct": 100.0,
+      "auslastung_mittel": 0.756,
+      "diversitaet_sets": 24,
       "invariante_gehalten": true,
       "laeufe": 45,
       "norm_korrektur_pct": "n/a",
-      "palette_treffer_mittel": 0.855,
-      "stil_treue_mittel": 0.366,
-      "ueberlebensrate_mittel": 0.867,
+      "palette_treffer_mittel": 0.85,
+      "stil_treue_mittel": 0.349,
+      "ueberlebensrate_mittel": 0.84,
       "validitaet_pct": 100.0
     }
   },

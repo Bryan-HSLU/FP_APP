@@ -152,6 +152,10 @@ async function call<T>(pfad: string, init?: RequestInit): Promise<T> {
 export interface KuratorAntwort {
   auswahl: string[];
   relationaleAbsichten: { itemId: string; relation: string }[];
+  /** Raumprägende Haupt-Objekte (Objekt-Ebenen-Modell, ADR-0014), zuerst gewählt. */
+  hauptObjekte?: string[];
+  /** Ergänzungen mit Anzahl (Stühle zum Esstisch …). Grundlage für `mengen`. */
+  ergaenzungen?: { itemId: string; anzahl: number }[];
   /** Flächen-Konzept (Boden-/Wand-Material je Wand). Fehlt bei Teil-Fallback. */
   flaechen?: FlaechenKonzept | null;
   /** Design-Leitidee aus Call A (roter Faden), optional. */
@@ -159,6 +163,13 @@ export interface KuratorAntwort {
   /** KI-Farbwahl je Item (itemId→Slug), Welle 3. Fehlt/leer = Default-Optik. */
   farben?: Record<string, FarbSlug> | null;
   begruendung?: string;
+}
+
+/** Instanz-Mengen (itemId→anzahl) aus den Kurator-Ergänzungen für /solve.
+ *  Nur Einträge mit anzahl > 1 (Default 1 bleibt implizit) – ADR-0014. */
+export function mengenAusKurator(kurator?: KuratorAntwort): Record<string, number> | undefined {
+  const erg = kurator?.ergaenzungen?.filter((e) => e.anzahl > 1) ?? [];
+  return erg.length ? Object.fromEntries(erg.map((e) => [e.itemId, e.anzahl])) : undefined;
 }
 
 /** Gemessenes AMK-Arbeitsdreieck eines Küchenplans (server-berechnet, M6-Politur). */
@@ -238,6 +249,8 @@ export const api = {
         seed,
         auswahl: opts.kurator?.auswahl,
         relationaleAbsichten: opts.kurator?.relationaleAbsichten ?? [],
+        // Mehrfach-Instanzen (ADR-0014): itemId→anzahl aus den Kurator-Ergänzungen.
+        mengen: mengenAusKurator(opts.kurator),
         stilprofilRef: opts.stilprofilRef,
         stilprofil: opts.stilprofil ?? undefined,
         normProfile: opts.normProfile,

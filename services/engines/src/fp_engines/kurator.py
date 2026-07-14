@@ -31,6 +31,23 @@ Drei Port-Implementierungen (ADR-0007, austauschbar):
 Konfiguration über Umgebungsvariablen: FP_KURATOR_URL, FP_KURATOR_MODEL,
 FP_KURATOR_API_KEY. Ohne URL läuft die Baseline (Eval-Gate: Kurator muss die
 Baseline erst schlagen).
+
+Thinking-/Sampling-Steuerung (ADR-0014, best effort hinter Env-Flag – nur wenn
+gesetzt, sonst bleiben andere Provider unberührt):
+- FP_KURATOR_REASONING: Wert (z.B. "default"/"none"/"low") wird als
+  `reasoning_effort` ins Payload gelegt; zusätzlich `reasoning_format="hidden"`,
+  damit der Denktext (Qwen3 u.a.) das JSON nicht verschmutzt.
+- FP_KURATOR_TEMP: Float-Override der Standard-Temperatur 0.3.
+
+Objekt-Ebenen (ADR-0014, Welle A): Call A antwortet zweistufig – zuerst die
+raumprägenden `hauptObjekte`, dann `ergaenzungen` (Item + anzahl, an ein
+Haupt-Objekt via `ankerTyp` verankert). Harte Kontrollen (eiserne Regel):
+Auswahl ⊆ Kandidaten · P1-Pflicht in hauptObjekte · anzahl 1..maxAnzahl ·
+Ergänzung nur bei vorhandenem Anker-Haupt-Objekt · Platz-Budget über ALLE
+Instanzen (anzahl×Footprint). WEICH: Instanz-Gesamtzahl im Anzahl-Korridor
+(`data/kurator/anzahl-leitplanken.json`) – 1 Repair-Hinweis, dann akzeptiert +
+Marker CURATOR_ANZAHL_AUSSERHALB. Alte Kataloge ohne `objektEbene` funktionieren
+weiter (eine Gruppe, keine Anker-Pflicht – additive Evolution).
 """
 
 from __future__ import annotations
@@ -55,6 +72,7 @@ PROMPT_FLAECHEN = PROMPT_DIR / "kurator-flaechen.md"
 SCHEMA_DATEI = REPO_ROOT / "packages" / "shared" / "schemas" / "kurator-vertrag.schema.json"
 RULES_DIR = REPO_ROOT / "data" / "rules"
 FLAECHEN_REGELN_DATEI = RULES_DIR / "flaechen.json"
+ANZAHL_LEITPLANKEN_DATEI = REPO_ROOT / "data" / "kurator" / "anzahl-leitplanken.json"
 KANDIDATEN_JE_SLOT = 6  # Top 5–8 laut Konzept; kein RAG nötig im POC
 # Footprint-Daumenregel (identisch Baseline & Platz-Budget-Validierung, s.u.):
 # belegte Bodenfläche eines boden-montierten Items = Breite × Tiefe × 2.5
@@ -94,6 +112,54 @@ def _lade_flaechen_regeln() -> list[dict[str, Any]]:
 
 
 FLAECHEN_REGELN: list[dict[str, Any]] = _lade_flaechen_regeln()
+
+
+def _lade_anzahl_leitplanken() -> dict[str, list[dict[str, Any]]]:
+    """Anzahl-Leitplanken (`data/kurator/anzahl-leitplanken.json`) – Ziel-Korridor
+    der Objekt-Instanzen je Raumtyp und Fläche (ADR-0014, Welle A).
+
+    Eine Quelle für Prompt (`_leitplanke_zeile`) UND weiche Prüfung
+    (`anzahl_leitplanke`) – kein Drift. Der `_hinweis`-Schlüssel ist reine
+    Dokumentation und wird bei der Auswertung ignoriert.
+    """
+    daten = json.loads(ANZAHL_LEITPLANKEN_DATEI.read_text(encoding="utf-8"))
+    return {k: v for k, v in daten.items() if not k.startswith("_")}
+
+
+ANZAHL_LEITPLANKEN: dict[str, list[dict[str, Any]]] = _lade_anzahl_leitplanken()
+
+
+def anzahl_leitplanke(
+    room_type: str,
+    area: float,
+    leitplanken: dict[str, list[dict[str, Any]]] = ANZAHL_LEITPLANKEN,
+) -> tuple[int, int] | None:
+    """Ziel-Korridor (min, max) der Objekt-Instanzen für Raumtyp+Fläche.
+
+    Erstes Band mit `area <= bisM2`; überschreitet die Fläche alle Bänder, gilt
+    das letzte. None, wenn der Raumtyp keine Leitplanken hat.
+    """
+    baender = leitplanken.get(room_type)
+    if not baender:
+        return None
+    for band in baender:
+        if area <= band["bisM2"]:
+            return int(band["min"]), int(band["max"])
+    letzt = baender[-1]
+    return int(letzt["min"]), int(letzt["max"])
+
+
+def _leitplanke_zeile(room_type: str, area: float) -> list[str]:
+    """Anzahl-Korridor als kompakte Prompt-Zeile (Daten sind die einzige Quelle –
+    gleiches Muster wie `norm_kontext_flaechen`). Leer, wenn kein Korridor."""
+    korr = anzahl_leitplanke(room_type, area)
+    if korr is None:
+        return []
+    lo, hi = korr
+    return [
+        f"Ziel-Anzahl (weich geprüft): {lo}–{hi} Objekt-Instanzen für {area:.1f} m² "
+        "(Haupt-Objekte + Ergänzungen×anzahl, ohne Deko)."
+    ]
 
 
 # Geometrie-/Bewegungsflächen-Regeln (Norm-Regelsatz-v0) – dieselben Daten, die
@@ -310,6 +376,124 @@ def _validiere(
     return None
 
 
+# --- Objekt-Ebenen (Haupt/Ergänzung, ADR-0014, Welle A) ---------------------
+
+
+def _item_ebene(item: dict[str, Any]) -> str:
+    """objektEbene eines Items; fehlt es → «haupt» (Alt-Katalog: eigenständig,
+    keine Anker-Pflicht). So brechen alte Kataloge ohne das Feld nicht."""
+    return str(item.get("objektEbene") or "haupt")
+
+
+def _extrahiere_ebenen(antwort: dict[str, Any]) -> tuple[list[str], list[dict[str, Any]]]:
+    """Normalisiert eine Call-A-Antwort auf (hauptObjekte, ergaenzungen).
+
+    Neue Form: `hauptObjekte`/`ergaenzungen` (Objekt-Ebenen-Modell). Alt-Form
+    (nur `auswahl`, additive Evolution): alles Haupt, keine Ergänzungen. So bleibt
+    der bestehende Auswahl-Weg (und alte Fixtures/Tests) gültig.
+    """
+    haupt = antwort.get("hauptObjekte")
+    erg = antwort.get("ergaenzungen")
+    if haupt is None and erg is None:
+        return list(antwort.get("auswahl") or []), []
+    erg_norm: list[dict[str, Any]] = []
+    for e in erg or []:
+        if isinstance(e, dict) and "itemId" in e:
+            erg_norm.append({"itemId": e["itemId"], "anzahl": e.get("anzahl", 1)})
+    return list(haupt or []), erg_norm
+
+
+def _auswahl_aus_ebenen(haupt: list[str], erg: list[dict[str, Any]]) -> list[str]:
+    """Expandierte `auswahl` (jede itemId genau einmal) = Haupt + Ergänzungs-IDs.
+    Reihenfolge erhält Haupt-zuerst (Solver-Wissen: Anschluss/Kern zuerst)."""
+    return [*haupt, *[e["itemId"] for e in erg]]
+
+
+def mengen_aus_antwort(antwort: dict[str, Any]) -> dict[str, int]:
+    """itemId→anzahl aus den `ergaenzungen` (Haupt implizit 1 → nicht enthalten).
+
+    Der kleinste saubere Weg für den Aufrufer (API): `mengen` steht NICHT im
+    schema-validierten Kurator-Vertrag (rein internes Solver-Steuersignal),
+    sondern wird deterministisch aus den `ergaenzungen` abgeleitet. `solve()` liest
+    fehlende IDs als anzahl 1 (`.get(id, 1)`), Haupt-Objekte brauchen keinen Eintrag.
+    """
+    out: dict[str, int] = {}
+    for e in antwort.get("ergaenzungen") or []:
+        if isinstance(e, dict) and "itemId" in e:
+            n = e.get("anzahl", 1)
+            if _ist_int(n) and n > 1:
+                out[e["itemId"]] = n
+    return out
+
+
+def _validiere_ebenen(
+    antwort: dict[str, Any],
+    slots: dict[str, list[dict[str, Any]]],
+    room_type: str,
+    budget: float | None,
+    platz_budget: float | None,
+    by_id: dict[str, dict[str, Any]],
+) -> str | None:
+    """Call A (Objekt-Ebenen) hart validieren. None = ok, sonst Repair-Hinweis.
+
+    Prüft (eiserne Regel aus ADR-0013/0014): (1) alle IDs ⊆ Kandidaten; (2) jedes
+    P1-Pflicht-funktionsTyp in hauptObjekte; (3) je Ergänzung anzahl 1..maxAnzahl;
+    (4) Ergänzung mit ankerTyp nur, wenn ein Haupt-Objekt dieses funktionsTyps
+    gewählt ist; (5) Budget und (6) Platz-Budget über ALLE Instanzen
+    (anzahl×Footprint, wandmontiert = 0). Der Anzahl-Korridor bleibt WEICH (nicht
+    hier). Alt-Form (nur `auswahl`) wird über `_extrahiere_ebenen` als reines
+    Haupt-Set behandelt.
+    """
+    haupt, erg = _extrahiere_ebenen(antwort)
+    if not haupt and not erg:
+        return "Feld «hauptObjekte»/«auswahl» fehlt oder ist leer."
+    erlaubte = {i["id"]: i for items in slots.values() for i in items}
+    alle = _auswahl_aus_ebenen(haupt, erg)
+    fremde = [i for i in alle if i not in erlaubte]
+    if fremde:
+        return f"IDs ausserhalb der Kandidatenliste: {fremde}. Nur gelistete IDs wählen."
+    haupt_typen = {erlaubte[i]["funktionsTyp"] for i in haupt}
+    fehlend = [t for t in P1_PFLICHT.get(room_type, []) if t in slots and t not in haupt_typen]
+    if fehlend:
+        return f"P1-Pflicht-Slots nicht in hauptObjekte: {fehlend}."
+    for e in erg:
+        item = erlaubte[e["itemId"]]
+        maxn = int(item.get("maxAnzahl", 1) or 1)
+        n = e.get("anzahl", 1)
+        if not _ist_int(n) or n < 1 or n > maxn:
+            return (
+                f"anzahl {n} für «{item['funktionsTyp']}» ({e['itemId']}) ausserhalb "
+                f"1..{maxn} (maxAnzahl). Wähle eine Anzahl in diesem Bereich."
+            )
+        anker = item.get("ankerTyp")
+        if anker and anker not in haupt_typen:
+            return (
+                f"Ergänzung «{item['funktionsTyp']}» ({e['itemId']}) braucht ein "
+                f"Haupt-Objekt vom Typ «{anker}», das nicht in hauptObjekte steht – "
+                f"wähle ein {anker} als Haupt-Objekt oder entferne die Ergänzung."
+            )
+    if budget is not None:
+        summe = sum(erlaubte[i]["preis"]["value"] for i in haupt)
+        summe += sum(erlaubte[e["itemId"]]["preis"]["value"] * e.get("anzahl", 1) for e in erg)
+        if summe > budget:
+            return f"Budget überschritten: {summe} > {budget}."
+    if platz_budget is not None:
+        belegt = sum(_footprint(erlaubte[i]) for i in haupt)
+        belegt += sum(_footprint(erlaubte[e["itemId"]]) * e.get("anzahl", 1) for e in erg)
+        if belegt > platz_budget:
+            return (
+                f"Platz-Budget überschritten: belegte Bodenfläche {belegt:.1f} m² "
+                f"> {platz_budget:.1f} m² (Summe anzahl×Breite×Tiefe×2.5 der boden-"
+                "montierten Items). Wähle weniger/kleinere Objekte oder reduziere die Anzahl."
+            )
+    return None
+
+
+def _instanz_anzahl(haupt: list[str], erg: list[dict[str, Any]]) -> int:
+    """Gesamtzahl platzierter Objekt-Instanzen (Haupt×1 + Ergänzungen×anzahl)."""
+    return len(haupt) + sum(int(e.get("anzahl", 1)) for e in erg)
+
+
 def _farb_varianten(item: dict[str, Any] | None) -> list[str]:
     """Farbvarianten eines Katalog-Items (leer, wenn keine gepflegt sind)."""
     return list((item or {}).get("farbVarianten") or [])
@@ -370,9 +554,7 @@ def _ist_int(v: Any) -> TypeGuard[int]:
     return isinstance(v, int) and not isinstance(v, bool)
 
 
-def _relation_ziel_fehler(
-    rel: str, auswahl: set[str], gewaehlte_typen: set[str]
-) -> str | None:
+def _relation_ziel_fehler(rel: str, auswahl: set[str], gewaehlte_typen: set[str]) -> str | None:
     """Relations-Ziel-Prüfung für BEKANNTE Formen (Konzept v3).
 
     `near:`/`facing:`/`opposite:<typ>` → `<typ>` muss funktionsTyp eines gewählten
@@ -775,69 +957,135 @@ class BaselineKurator:
         seed: int,
     ) -> dict[str, Any]:
         rnd = random.Random(seed)
+        room_type = room["roomType"]
         slots = vorfilter(stilprofil, room, catalog, budget)
-        auswahl: list[str] = []
-        absichten: list[dict[str, Any]] = []
+        by_id = {c["id"]: c for c in catalog}
+        area = room["shell"]["floor"].get("area") or 0.0
+        korridor = anzahl_leitplanke(room_type, area)
         rest_budget = budget if budget is not None else math.inf
         # Flächen-Daumenregel: Footprint × 2.5 (inkl. Bewegungsfläche) muss in
         # die Rest-Bodenfläche passen – kleines Gäste-WC wählt ehrlich die
         # Teilmenge (Norm-Regelsatz-v0) statt den Solver scheitern zu lassen.
-        rest_flaeche = room["shell"]["floor"].get("area") or 0.0
+        rest_flaeche = area
 
-        def nimm(typ: str) -> None:
-            nonlocal rest_budget, rest_flaeche
+        haupt_objekte: list[str] = []
+        ergaenzungen: list[dict[str, Any]] = []
+        absichten: list[dict[str, Any]] = []
+        haupt_typen: set[str] = set()
+
+        def _fp(item: dict[str, Any]) -> float:
+            return (
+                0.0
+                if item.get("mount") == "wand"
+                else item["masse"]["w"] * item["masse"]["d"] * 2.5
+            )
+
+        def _instanzen() -> int:
+            return len(haupt_objekte) + sum(int(e["anzahl"]) for e in ergaenzungen)
+
+        def _bester(typ: str) -> dict[str, Any] | None:
             kandidaten = [
                 i
                 for i in slots.get(typ, [])
                 if i["preis"]["value"] <= rest_budget
-                and (
-                    i.get("mount") == "wand"
-                    or i["masse"]["w"] * i["masse"]["d"] * 2.5 <= rest_flaeche
-                )
+                and (i.get("mount") == "wand" or _fp(i) <= rest_flaeche)
             ]
             if not kandidaten:
-                return
+                return None
             # Seed-Rauschen erhält Variation, ohne den Score zu dominieren.
-            bester = max(
-                kandidaten,
-                key=lambda i: stil_score(stilprofil, i) + rnd.uniform(0, 0.1),
-            )
-            auswahl.append(bester["id"])
+            return max(kandidaten, key=lambda i: stil_score(stilprofil, i) + rnd.uniform(0, 0.1))
+
+        def nimm_haupt(typ: str) -> None:
+            nonlocal rest_budget, rest_flaeche
+            bester = _bester(typ)
+            if bester is None:
+                return
+            haupt_objekte.append(bester["id"])
+            haupt_typen.add(bester["funktionsTyp"])
             rest_budget -= bester["preis"]["value"]
-            if bester.get("mount") != "wand":
-                rest_flaeche -= bester["masse"]["w"] * bester["masse"]["d"] * 2.5
+            rest_flaeche -= _fp(bester)
             for rel in bester.get("relationalRules", []):
                 absichten.append({"itemId": bester["id"], "relation": rel})
 
-        for typ in P1_PFLICHT.get(room["roomType"], []):
-            nimm(typ)
-        p1_typen = set(P1_PFLICHT.get(room["roomType"], []))
-        # Rest nach priorityClass (P1 Kern → P2 Funktion → P3 Ergänzung), innerhalb
-        # der Klasse alphabetisch (deterministisch). Ohne diese Ordnung würden bei
-        # Raumtypen ohne P1_PFLICHT-Eintrag (wohnen/kueche) alphabetisch frühe
-        # P3-Ergänzungen (z.B. «barwagen», «recamiere») die knappe Flächen-
-        # Daumenregel aufbrauchen, bevor spätere P1-Kernmöbel («sofa») drankommen.
+        def nimm_ergaenzung(typ: str) -> None:
+            nonlocal rest_budget, rest_flaeche
+            items = slots.get(typ, [])
+            if not items:
+                return
+            # Anker-Kontrolle (funktionsTyp teilt ankerTyp): Ergänzung nur bei
+            # vorhandenem Haupt-Objekt des Anker-Typs.
+            anker = items[0].get("ankerTyp")
+            if anker and anker not in haupt_typen:
+                return
+            bester = _bester(typ)
+            if bester is None:
+                return
+            maxn = int(bester.get("maxAnzahl", 1) or 1)
+            fp = _fp(bester)
+            # Anzahl deterministisch: Stühle am Esstisch bis zu 4 (Konzept), sonst 1.
+            anzahl = min(4, maxn) if anker == "esstisch" else 1
+            # Korridor (weich): die Ergänzung überzieht die Obergrenze nicht.
+            if korridor is not None:
+                anzahl = min(anzahl, max(0, korridor[1] - _instanzen()))
+            # Budget + Platz respektieren (n×Preis bzw. n×Footprint).
+            while anzahl >= 1 and bester["preis"]["value"] * anzahl > rest_budget:
+                anzahl -= 1
+            while anzahl >= 1 and fp > 0 and fp * anzahl > rest_flaeche:
+                anzahl -= 1
+            if anzahl < 1:
+                return
+            ergaenzungen.append({"itemId": bester["id"], "anzahl": anzahl})
+            rest_budget -= bester["preis"]["value"] * anzahl
+            rest_flaeche -= fp * anzahl
+            for rel in bester.get("relationalRules", []):
+                absichten.append({"itemId": bester["id"], "relation": rel})
+
+        # Ordnung innerhalb einer Phase: priorityClass (P1 Kern → P2 → P3), dann
+        # alphabetisch (deterministisch). Ohne diese Ordnung würden alphabetisch
+        # frühe P3-Ergänzungen die knappe Flächen-Daumenregel aufbrauchen, bevor
+        # spätere P1-Kernmöbel drankommen.
         _RANG = {"P1": 0, "P2": 1, "P3": 2}
 
         def _slot_rang(typ: str) -> int:
             return min(_RANG.get(i["priorityClass"], 3) for i in slots[typ])
 
-        for typ in sorted(set(slots) - p1_typen, key=lambda t: (_slot_rang(t), t)):
-            nimm(typ)
+        haupt_slots = {t for t in slots if _item_ebene(slots[t][0]) == "haupt"}
+        erg_slots = {t for t in slots if _item_ebene(slots[t][0]) == "ergaenzung"}
+        # Phase 1 – Haupt: P1-Pflicht zuerst (Anschluss/Kern), dann Rang-Ordnung.
+        pflicht = [t for t in P1_PFLICHT.get(room_type, []) if t in slots]
+        for typ in pflicht:
+            nimm_haupt(typ)
+        for typ in sorted(haupt_slots - set(pflicht), key=lambda t: (_slot_rang(t), t)):
+            nimm_haupt(typ)
 
-        by_id = {c["id"]: c for c in catalog}
+        # Phase 2 – Ergänzungen: Anker-Check + deterministische Anzahl + Korridor.
+        # Verankerte Ergänzungen ZUERST (den Möbel-Satz vervollständigen – Stühle
+        # zum Esstisch, Couchtisch zum Sofa), dann freie Deko-Ergänzungen; so
+        # frisst der Korridor nicht die essenziellen Anker-Objekte (z.B. Stühle)
+        # zugunsten alphabetisch früher freistehender Deko auf.
+        def _erg_rang(typ: str) -> tuple[int, int, str]:
+            verankert = 0 if slots[typ][0].get("ankerTyp") else 1
+            return (verankert, _slot_rang(typ), typ)
+
+        for typ in sorted(erg_slots, key=_erg_rang):
+            nimm_ergaenzung(typ)
+
+        auswahl = _auswahl_aus_ebenen(haupt_objekte, ergaenzungen)
         return {
             # Baseline hat keine Design-Leitidee (rein deterministisch) → kein Konzept.
             "konzept": None,
             "auswahl": auswahl,
+            "hauptObjekte": haupt_objekte,
+            "ergaenzungen": ergaenzungen,
             "relationaleAbsichten": absichten,
             "anordnung": _baseline_anordnung(auswahl, by_id),
             "flaechen": None,
             # Baseline trifft keine Farbwahl → kein farben-Feld (Client nutzt die
             # Default-Optik = erste farbVariante je Item).
             "farben": None,
-            "begruendung": "Deterministische Baseline: bestes Item je Slot nach "
-            "Stil-Score (cos zu den Achsen-Tags) mit Seed-Rauschen.",
+            "begruendung": "Deterministische Baseline: Haupt-Objekte zuerst "
+            "(P1-Pflicht, dann Prioritätsklasse), dann verankerte Ergänzungen mit "
+            "Anzahl – bestes Item je Slot nach Stil-Score (cos) mit Seed-Rauschen.",
         }
 
 
@@ -858,6 +1106,11 @@ class LlmKurator:
         self.model = model
         self.api_key = api_key
         self.timeout_s = timeout_s
+        # Thinking-/Sampling-Steuerung (ADR-0014) – nur wenn Env gesetzt, sonst
+        # bleibt das Payload wie bisher (andere Provider unberührt).
+        self.reasoning: str | None = os.environ.get("FP_KURATOR_REASONING")
+        temp_env = os.environ.get("FP_KURATOR_TEMP")
+        self.temperature: float = float(temp_env) if temp_env else 0.3
 
     # --- Prompt-Bau ---------------------------------------------------------
 
@@ -875,25 +1128,48 @@ class LlmKurator:
             f"Öffnungen: {sorted({o['type'] for o in room['openings']})}",
         ]
         profil = _profil_zeilen(stilprofil)
-        kandidaten = []
         p1 = set(P1_PFLICHT.get(room["roomType"], []))
+
+        def _item_zeile(i: dict[str, Any]) -> str:
+            m = i["masse"]
+            varianten = _farb_varianten(i)
+            farb_zeile = f" · Farben: {'|'.join(varianten)}" if varianten else ""
+            return (
+                f"  {i['id']} · {i['name']} · {m['w']}×{m['d']}×{m['h']} m · "
+                f"Tags {json.dumps(i.get('achsenTags', {}), ensure_ascii=False)} · "
+                f"CHF {i['preis']['value']}{farb_zeile}"
+            )
+
+        # Zwei Gruppen (Objekt-Ebenen-Modell): Haupt-Objekte zuerst, dann
+        # Ergänzungen (mit Anker + maxAnzahl je Slot). Items ohne objektEbene
+        # gelten als Haupt (Alt-Katalog: eine Gruppe, keine Anker-Pflicht).
+        haupt_block: list[str] = []
+        erg_block: list[str] = []
         for typ, items in sorted(slots.items()):
-            pflicht = " (P1-PFLICHT)" if typ in p1 else ""
-            kandidaten.append(f"Slot {typ}{pflicht}:")
-            for i in items:
-                m = i["masse"]
-                varianten = _farb_varianten(i)
-                farb_zeile = f" · Farben: {'|'.join(varianten)}" if varianten else ""
-                kandidaten.append(
-                    f"  {i['id']} · {i['name']} · {m['w']}×{m['d']}×{m['h']} m · "
-                    f"Tags {json.dumps(i.get('achsenTags', {}), ensure_ascii=False)} · "
-                    f"CHF {i['preis']['value']}{farb_zeile}"
-                )
+            if _item_ebene(items[0]) == "ergaenzung":
+                anker = items[0].get("ankerTyp")
+                maxn = int(items[0].get("maxAnzahl", 1) or 1)
+                merkmale = ([f"Anker {anker}"] if anker else ["frei"]) + [f"max {maxn}"]
+                erg_block.append(f"Slot {typ} ({', '.join(merkmale)}):")
+                erg_block.extend(_item_zeile(i) for i in items)
+            else:
+                pflicht = " (P1-PFLICHT)" if typ in p1 else ""
+                haupt_block.append(f"Slot {typ}{pflicht}:")
+                haupt_block.extend(_item_zeile(i) for i in items)
+
+        kandidaten: list[str] = ["## Haupt-Objekte (raumprägend – ZUERST wählen)", *haupt_block]
+        if erg_block:
+            kandidaten += [
+                "",
+                "## Ergänzungen (nur mit passendem Haupt-Objekt; anzahl 1..max)",
+                *erg_block,
+            ]
+
         budget_zeile = f"Budget: CHF {budget}" if budget is not None else "Budget: keines"
         area = room["shell"]["floor"].get("area") or 0.0
         platz_zeile = (
-            f"Platz-Budget (hart geprüft): Summe Breite×Tiefe×2.5 aller "
-            f"boden-montierten Items ≤ {area:.1f} m² (wandmontierte Items zählen nicht)."
+            f"Platz-Budget (hart geprüft): Summe anzahl×Breite×Tiefe×2.5 aller "
+            f"boden-montierten Instanzen ≤ {area:.1f} m² (wandmontierte Items zählen nicht)."
         )
         return [
             {"role": "system", "content": rolle},
@@ -910,11 +1186,11 @@ class LlmKurator:
                         "## Raumgeometrie – Wände (0-basierter wandIndex)",
                         *_wandliste(room),
                         "",
-                        "## Kandidaten",
                         *kandidaten,
                         "",
                         budget_zeile,
                         platz_zeile,
+                        *_leitplanke_zeile(room["roomType"], area),
                     ]
                 ),
             },
@@ -983,8 +1259,7 @@ class LlmKurator:
             it = by_id[iid]
             m = it["masse"]
             moebel.append(
-                f"  {it['name']} · funktionsTyp {it['funktionsTyp']} · "
-                f"{m['w']}×{m['d']}×{m['h']} m"
+                f"  {it['name']} · funktionsTyp {it['funktionsTyp']} · {m['w']}×{m['d']}×{m['h']} m"
             )
         norm = norm_kontext_flaechen(room)
         norm_block = (
@@ -1024,17 +1299,25 @@ class LlmKurator:
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
-        # temperature 0.3: fokussierter als 0.7 (weniger Rauschen), aber nicht
-        # deterministisch-flach. seed: OpenAI-kompatibel «best effort» – reduziert
-        # Run-zu-Run-Streuung, wo das Serving es unterstützt (sonst ignoriert).
+        # temperature 0.3 (bzw. FP_KURATOR_TEMP-Override): fokussierter als 0.7
+        # (weniger Rauschen), aber nicht deterministisch-flach. seed: OpenAI-
+        # kompatibel «best effort» – reduziert Run-zu-Run-Streuung, wo das Serving
+        # es unterstützt (sonst ignoriert).
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
-            "temperature": 0.3,
+            "temperature": self.temperature,
             "response_format": {"type": "json_object"},
         }
         if seed is not None:
             payload["seed"] = seed
+        # Thinking-Modus (nur bei gesetztem FP_KURATOR_REASONING): reasoning_effort
+        # steuert den Denk-Aufwand; reasoning_format="hidden" hält den Qwen3-Denk-
+        # text aus dem JSON-Feld (sonst verschmutzt er die Antwort). Best effort –
+        # Server, die die Felder nicht kennen, ignorieren sie.
+        if self.reasoning:
+            payload["reasoning_effort"] = self.reasoning
+            payload["reasoning_format"] = "hidden"
         res = httpx.post(
             f"{self.url}/chat/completions",
             headers=headers,
@@ -1152,6 +1435,48 @@ class LlmKurator:
             return None
         return farben
 
+    def _anzahl_repair(
+        self,
+        basis_messages: list[dict[str, str]],
+        haupt: list[str],
+        erg: list[dict[str, Any]],
+        total: int,
+        korridor: tuple[int, int],
+        slots: dict[str, list[dict[str, Any]]],
+        room_type: str,
+        budget: float | None,
+        platz_budget: float | None,
+        by_id: dict[str, dict[str, Any]],
+        seed: int | None = None,
+    ) -> dict[str, Any] | None:
+        """Ein WEICHER Anzahl-Repair-Aufruf (analog `_farben_repair`): meldet die
+        Instanz-Gesamtzahl vs. Korridor zurück ans LLM und verlangt eine erneute
+        (voll gültige) Call-A-Antwort. Rückgabe = hart valide Antwort (die
+        Korridor-Lage entscheidet der Aufrufer), sonst None."""
+        lo, hi = korridor
+        richtung = "zu wenige" if total < lo else "zu viele"
+        hinweis = (
+            f"Du hast {total} Objekt-Instanzen gewählt – Ziel {lo}–{hi} für diesen "
+            f"Raum ({richtung}). Passe hauptObjekte/ergaenzungen (inkl. anzahl) an und "
+            "antworte erneut nur mit JSON im selben Schema."
+        )
+        messages = [
+            *basis_messages,
+            {
+                "role": "assistant",
+                "content": json.dumps({"hauptObjekte": haupt, "ergaenzungen": erg}),
+            },
+            {"role": "user", "content": hinweis},
+        ]
+        try:
+            antwort = self._rufe_llm(messages, seed)
+        except (httpx.HTTPError, json.JSONDecodeError, KeyError) as e:
+            log.warning("kurator[anzahl]: repair-aufruf fehlgeschlagen (%s)", e)
+            return None
+        if _validiere_ebenen(antwort, slots, room_type, budget, platz_budget, by_id) is not None:
+            return None
+        return antwort
+
     # --- Pipeline ------------------------------------------------------------
 
     def kuratiere(
@@ -1168,10 +1493,12 @@ class LlmKurator:
         room_type = room["roomType"]
         platz_budget = _platz_budget(room, slots, room_type)
 
-        # Call A – Auswahl. Scheitert A → alles Baseline (B/C brauchen die Auswahl).
+        # Call A – Auswahl (Objekt-Ebenen: hauptObjekte + ergaenzungen). Harte
+        # Kontrolle via _validiere_ebenen; scheitert A → alles Baseline (B/C
+        # brauchen die Auswahl). Alt-Form (nur `auswahl`) läuft transparent mit.
         antwort_a = self._call_json(
             self._prompt_auswahl(stilprofil, room, slots, budget),
-            lambda a: _validiere(a, slots, room_type, budget, platz_budget),
+            lambda a: _validiere_ebenen(a, slots, room_type, budget, platz_budget, by_id),
             "auswahl",
             seed,
         )
@@ -1179,17 +1506,53 @@ class LlmKurator:
             ergebnis = BaselineKurator().kuratiere(stilprofil, room, catalog, budget, seed)
             ergebnis["begruendung"] += " (Fallback: CURATOR_FALLBACK_USED)"
             return ergebnis
-        auswahl: list[str] = antwort_a["auswahl"]
+        finale_a = antwort_a
+        haupt_objekte, ergaenzungen = _extrahiere_ebenen(antwort_a)
+        auswahl: list[str] = _auswahl_aus_ebenen(haupt_objekte, ergaenzungen)
         # Konzept ist weich/optional (keine Norm) → fehlend = kein Konzept-Block.
         konzept = antwort_a.get("konzept")
         begruendung = str(antwort_a.get("begruendung", ""))
         gewaehlte_typen = {by_id[i]["funktionsTyp"] for i in auswahl}
 
+        # Anzahl-Korridor (WEICH, ADR-0014): nur bei der neuen zweistufigen Form
+        # (Alt-Form ohne hauptObjekte/ergaenzungen bleibt unberührt). Liegt die
+        # Instanz-Gesamtzahl ausserhalb → 1 Repair-Hinweis; bleibt sie draussen,
+        # wird akzeptiert + Marker CURATOR_ANZAHL_AUSSERHALB (hart bleibt nur das
+        # Platz-Budget aus _validiere_ebenen).
+        neue_form = (
+            antwort_a.get("hauptObjekte") is not None or antwort_a.get("ergaenzungen") is not None
+        )
+        korridor = anzahl_leitplanke(room_type, room["shell"]["floor"].get("area") or 0.0)
+        if neue_form and korridor is not None:
+            total = _instanz_anzahl(haupt_objekte, ergaenzungen)
+            if not (korridor[0] <= total <= korridor[1]):
+                repariert_a = self._anzahl_repair(
+                    self._prompt_auswahl(stilprofil, room, slots, budget),
+                    haupt_objekte,
+                    ergaenzungen,
+                    total,
+                    korridor,
+                    slots,
+                    room_type,
+                    budget,
+                    platz_budget,
+                    by_id,
+                    seed,
+                )
+                if repariert_a is not None:
+                    finale_a = repariert_a
+                    haupt_objekte, ergaenzungen = _extrahiere_ebenen(repariert_a)
+                    auswahl = _auswahl_aus_ebenen(haupt_objekte, ergaenzungen)
+                    gewaehlte_typen = {by_id[i]["funktionsTyp"] for i in auswahl}
+                    total = _instanz_anzahl(haupt_objekte, ergaenzungen)
+                if not (korridor[0] <= total <= korridor[1]):
+                    begruendung += " (Anzahl ausserhalb Korridor: CURATOR_ANZAHL_AUSSERHALB)"
+
         # Farben (Welle 3) – EIGENER Validierungsschritt NACH _validiere/Call A:
         # die Auswahl steht bereits (A-Fallback unberührt). Ungültige Farbwahl →
         # 1 Farb-Repair; scheitert auch der NUR an den Farben, werden die
         # ungültigen Einträge entfernt (Rest behalten) statt alles zu verwerfen.
-        roh_farben = antwort_a.get("farben")
+        roh_farben = finale_a.get("farben")
         farb_fehler = _validiere_farben(roh_farben, auswahl, by_id)
         farben: dict[str, str] | None
         if farb_fehler is None:
@@ -1197,7 +1560,7 @@ class LlmKurator:
         else:
             repariert_f = self._farben_repair(
                 self._prompt_auswahl(stilprofil, room, slots, budget),
-                antwort_a,
+                finale_a,
                 farb_fehler,
                 auswahl,
                 by_id,
@@ -1260,6 +1623,8 @@ class LlmKurator:
         return {
             "konzept": konzept,
             "auswahl": auswahl,
+            "hauptObjekte": haupt_objekte,
+            "ergaenzungen": ergaenzungen,
             "relationaleAbsichten": _absichten_aus_anordnung(anordnung),
             "anordnung": anordnung,
             "flaechen": flaechen,

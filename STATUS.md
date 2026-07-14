@@ -6,7 +6,43 @@
 > Abweichungen gibt es. Meilenstein-Definitionen: Brain →
 > `vault/50_Umsetzung/Bauplan-Meilensteine.md`.
 
-**Stand: 2026-07-13**
+**Stand: 2026-07-14**
+
+### Kurator v3.1 Welle A – Objekt-Ebenen + Anzahl + Thinking (2026-07-14, ADR-0014)
+Vorgabe: Brain `ADR-0014-objekt-ebenen-und-kurator-kontrolle` + `Objekt-Ebenen-Modell`.
+Eiserne Regel: jede neue KI-Freiheit ↔ deterministische Kontrolle.
+- **Schemas (additiv):** `katalog-item` bekommt `objektEbene` (haupt|ergaenzung),
+  `ankerTyp`, `maxAnzahl` (1..6, Default 1). `kurator-vertrag` v0.6: Response
+  `hauptObjekte` + `ergaenzungen[{itemId,anzahl}]` (beide optional); `auswahl`
+  bleibt Pflicht + expandiert (jede itemId genau einmal). Codegen TS+Python neu.
+- **Daten:** alle 127 Katalog-Items getaggt (bad 11 haupt/29 erg · wohnen 12/28
+  · kueche 38/9). **2 neue Esszimmerstuhl-Items** (wohnen, P2, ergaenzung,
+  ankerTyp esstisch, maxAnzahl 6, `near:esstisch:1.3`) – das 3D-Kit `stuhl` +
+  2D-Symbol existierten bereits (wiederverwendet, kein Duplikat). Neu
+  `data/kurator/anzahl-leitplanken.json` (Instanz-Korridor je Raumtyp/Fläche).
+- **Kurator:** Call A zweistufig (`hauptObjekte` zuerst, dann `ergaenzungen` mit
+  Anker+maxAnzahl je Slot; Anzahl-Leitplanke aus Daten gerendert). Harte
+  Kontrollen `_validiere_ebenen`: Auswahl⊆Kandidaten · P1-Pflicht in haupt ·
+  anzahl 1..maxAnzahl · Anker-Haupt-Pflicht · Platz-Budget über alle Instanzen.
+  WEICH: Korridor (1 Repair, dann Marker `CURATOR_ANZAHL_AUSSERHALB`). Baseline
+  zweiphasig (haupt → verankerte Ergänzungen, Stühle det. bis 4, Korridor-Cap).
+  Thinking: `FP_KURATOR_REASONING` (→ reasoning_effort + reasoning_format hidden,
+  nur bei Env) + `FP_KURATOR_TEMP`. Alte Kataloge ohne `objektEbene` brechen nicht.
+- **Solver/API:** `solve()`/`loese_mit_varianten()` neuer `mengen`-Param
+  (itemId→anzahl → n Placements, eindeutige IDs, `near:esstisch` je Instanz,
+  Determinismus unberührt). `/solve` optionales `mengen`; Baseline-Pfad leitet
+  es aus `ergaenzungen` ab (`mengen_aus_antwort`, kein Vertrags-Extra-Feld).
+  Client: `mengenAusKurator` → /solve. K-Varianten reichen mengen durch.
+- **Eval:** Überlebensrate zählt jetzt Instanzen; neue Spalte «Anker-Erfüllung».
+  Baseline-Report neu (0.84 Überleben / Anker 100 % / 0 ❌ in 45).
+- **Bewusste Abweichungen / offen:** (1) Korridore ggü. ADR-Beispiel etwas höher
+  gewählt, weil Stühle jetzt als Instanzen zählen. (2) Stuhl-Distanz 1.3 m (0.8 m
+  aus der ADR-Skizze kollidiert mit dem 1.4×1.2-Tisch). (3) **Doppelzählung
+  Esstisch↔Stühle:** die Esstisch-Items heissen «(inkl. 4 Stühlen)» und Preis/2D
+  deuten Stühle an – jetzt kommen zusätzlich echte Stuhl-Instanzen. Bewusst NICHT
+  angefasst (Naming/Preis/Rendering = grösserer Eingriff) → Bryan-Entscheid, ob
+  Esstisch entkoppeln (umbenennen/entpreisen) oder Stühle nur als eigene Instanzen.
+- Gates grün (lint/typecheck/test/schema-check); NICHT committet (Orchestrator).
 
 ### Kurator-Pipeline v3 – 5 Wellen (2026-07-13, ADR-0013)
 Vorgabe: Brain `Kurator-Pipeline-v3-Konzept` + `ADR-0013-kurator-pipeline-v3`.
