@@ -73,6 +73,8 @@ export function App() {
   // Manueller Raum-Editor (dritte Erstellungsvariante neben Sample/Scan).
   const [editorOffen, setEditorOffen] = useState(false);
   const [begruendung, setBegruendung] = useState<string>("");
+  // Design-Leitidee des Kurators (Call A, ADR-0014) - in der Vorschlags-Ansicht sichtbar.
+  const [konzept, setKonzept] = useState<string>("");
   // Küche (M6): Normprofil-Toggle, Formwahl-Karten, gewählte Form.
   const [normProfile, setNormProfile] = useState<"ch" | "eu">("ch");
   const [formen, setFormen] = useState<KuechenForm[] | null>(null);
@@ -147,6 +149,7 @@ export function App() {
       setGewaehltId(null);
       setStilprofil(null);
       setBegruendung("");
+      setKonzept("");
       setFormen(null);
       setForm(null);
       setPlanRoom(null);
@@ -248,6 +251,7 @@ export function App() {
             const k = await api.curate(room, stilprofil, s);
             kurator = k.kurator;
             setBegruendung(`${k.port}: ${k.kurator.begruendung ?? ""}`);
+            setKonzept(k.kurator.konzept ?? "");
           }
           // Flächen-Wünsche + Farbwahl des Kurators mit an /solve geben; die
           // Flächen kommen unverändert zurück (res.flaechen), die Farben landen
@@ -803,6 +807,7 @@ export function App() {
               statusById={statusById}
               stilprofil={stilprofil}
               begruendung={begruendung}
+              konzept={konzept}
               seed={seed}
               ladenVorschlag={ladenVorschlag}
               istKueche={kuecheInfo.istKueche}

@@ -23,6 +23,8 @@ export interface SchrittVorschlagProps {
   statusById: Map<string, "verletzt" | "knapp">;
   stilprofil: { meta: { method: string } } | null;
   begruendung: string;
+  /** Design-Leitidee des Kurators (Call A) – leer, wenn Baseline/kein Konzept. */
+  konzept?: string;
   seed: number;
   ladenVorschlag: boolean;
   // Küche
@@ -206,6 +208,7 @@ function Ergebnis({
   report,
   statusById,
   begruendung,
+  konzept,
   onNeueVariante,
   onAnpassen,
   variantenPlaene,
@@ -266,6 +269,15 @@ function Ergebnis({
               {status.text}
             </span>
           </div>
+
+          {konzept && (
+            <div className={CSS.soft} style={{ padding: 12, marginBottom: 12 }}>
+              <h4 style={{ ...titel, marginTop: 0, fontSize: 13 }}>Dein Einrichtungskonzept</h4>
+              <p style={{ fontSize: 13.5, margin: 0, lineHeight: 1.55, fontStyle: "italic" }}>
+                «{konzept}»
+              </p>
+            </div>
+          )}
 
           {begruendung && (
             <div className={CSS.soft} style={{ padding: 12, marginBottom: 12 }}>
