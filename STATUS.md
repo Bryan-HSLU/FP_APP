@@ -8,6 +8,31 @@
 
 **Stand: 2026-07-15**
 
+### LLM-Läufe real: Kurator antwortet echt – Groq-Debugging-Saga (2026-07-15)
+6 Workflow-Läufe (`kurator-llm-eval.yml`, Secret FP_KURATOR_API_KEY) bis zur
+ersten vollständigen echten KI-Antwort. Fehlerkette (je Lauf diagnostiziert):
+1. **413**: Call-A-Prompt zu gross (volle achsenTags-JSON je Kandidat) →
+   v3.2 Prompt-Diät (Kompakt-Stil-Notation, Kandidaten-Budget, adaptive
+   Kürzungs-Leiter, FP_KURATOR_MAX_PROMPT_TOKENS).
+2. **413 trotz Diät**: Groq zählt Prompt + MAXIMALES Antwort-Fenster; ohne
+   max_tokens wird das volle Kontextfenster angenommen → v3.2.1 max_tokens
+   explizit (FP_KURATOR_MAX_ANTWORT_TOKENS) + 429-Backoff.
+3. **400 json_validate_failed**: Qwen3 denkt DEFAULT laut, <think>-Präfix
+   bricht response_format=json_object, der gescheiterte Call verbrennt das
+   Minutenbudget → v3.2.2 reasoning_effort=none für Qwen3 (env-übersteuerbar).
+4. **429**: Free-Tier TPM (Qwen 6k, Llama 12k) drosselt Serien → v3.2.3
+   Backoff 3×/30s + FP_EVAL_PAUSE_S zwischen Läufen.
+**Ergebnis (Llama-3.3-70b-versatile):** 3/9 Diagnose-Kombis mit VOLLER echter
+Antwort, alle 6 Plausibilitäts-Ampeln grün – z.B. wohnen×mittig ohne jeden
+Marker: Konzept (Eiche+Leinen, erdig), 4 Stühle zum Esstisch, Farben je Item,
+Boden parkett-eiche, Wände putz-warm + EINE Täfer-Akzentwand. Rest-Fallbacks
+nur noch 429 (Budget). 413/400 mit Llama komplett weg.
+**Empfehlung:** Space-Secret FP_KURATOR_MODEL auf llama-3.3-70b-versatile –
+Einzelnutzer-App (3 Calls/Plan) liegt locker im 12k-TPM-Budget. Qwen3-Pfad
+bleibt funktionsfähig (Thinking default aus). Offen: Eval-Gate-Vergleich fair
+machen (9 vs 45 Läufe), Norm-Korrektur-Rate erst mit mehr echten C-Calls
+aussagekräftig.
+
 ### Welle C – UI-Trio + Diagnose/LLM-Workflow + Norm-Verifikation (2026-07-14/15)
 - **UI-Trio:** Einzelwand-Materialwahl (`apps/web/src/wandauswahl.ts`, Panel-
   Wandliste 1-basiert angezeigt, 2D-Highlight, Norm weiterhin über
