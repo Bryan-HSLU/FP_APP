@@ -7,7 +7,7 @@
  *  Solve-Aufruf selbst (`loesen`) liegt unverändert in App.tsx.
  */
 import type { ConstraintReport } from "@fp/shared/rules";
-import type { KatalogItem, KuechenForm, Plan, Room } from "./api";
+import type { KatalogItem, KuechenForm, Plan, Room, VariantenPlan } from "./api";
 import { Ladezustand } from "./Ladezustand";
 import { materialFarbe } from "./moebel3d";
 import { Piktogramm } from "./Piktogramm";
@@ -38,6 +38,10 @@ export interface SchrittVorschlagProps {
   onVorschlagen: () => void;
   onNeueVariante: () => void;
   onAnpassen: () => void;
+  // «3 Vorschläge» (Welle C): alle K Pläne best-first + Index der aktiven Karte.
+  variantenPlaene?: VariantenPlan[] | null;
+  aktiveVariante?: number;
+  onVariante?: (idx: number) => void;
 }
 
 /** Einfacher Normstatus aus dem constraintReport: grün / knapp / verletzt. */
@@ -204,6 +208,9 @@ function Ergebnis({
   begruendung,
   onNeueVariante,
   onAnpassen,
+  variantenPlaene,
+  aktiveVariante,
+  onVariante,
 }: SchrittVorschlagProps & { plan: Plan }) {
   const status = normStatus(report);
 
@@ -362,6 +369,100 @@ function Ergebnis({
           )}
         </div>
       </div>
+
+      {/* «3 Vorschläge» (Welle C): alle K Solver-Varianten als Karten – Klick
+          übernimmt den Plan in Viewer/Auswertung (App-State). */}
+      {variantenPlaene && variantenPlaene.length > 1 && onVariante && aktuellerRaum && (
+        <VorschlagsKarten
+          plaene={variantenPlaene}
+          aktiv={aktiveVariante ?? 0}
+          raum={aktuellerRaum}
+          catalog={catalog}
+          onVariante={onVariante}
+        />
+      )}
     </div>
+  );
+}
+
+/** Drei Karten «Vorschlag 1/2/3» (Welle C): Mini-2D-Vorschau (Viewer2D nicht
+ *  interaktiv, Zeigerereignisse aus) + Kennzahlen aus varianteInfo (platzierte
+ *  Objekte, Norm-Luft/knapp, Relations-Score). Aktive Karte ist markiert. */
+function VorschlagsKarten({
+  plaene,
+  aktiv,
+  raum,
+  catalog,
+  onVariante,
+}: {
+  plaene: VariantenPlan[];
+  aktiv: number;
+  raum: Room;
+  catalog: KatalogItem[];
+  onVariante: (idx: number) => void;
+}) {
+  return (
+    <section style={{ marginTop: 18 }}>
+      <h3 style={{ ...titel, fontSize: 15, marginBottom: 10 }}>Vorschläge im Vergleich</h3>
+      <div className={CSS.dreiKarten}>
+        {plaene.map((vp, idx) => {
+          const an = idx === aktiv;
+          return (
+            <button
+              key={vp.info.index}
+              type="button"
+              onClick={() => onVariante(idx)}
+              aria-pressed={an}
+              className={`${CSS.card} ${CSS.button} ${an ? CSS.cardAktiv : ""}`}
+              style={{ textAlign: "left", padding: 10, cursor: "pointer" }}
+            >
+              <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
+                <strong style={{ color: THEME.gruen, fontSize: 13.5 }}>Vorschlag {idx + 1}</strong>
+                {an && (
+                  <span
+                    style={{
+                      marginLeft: "auto",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#fff",
+                      background: THEME.orange,
+                      borderRadius: 999,
+                      padding: "2px 9px",
+                    }}
+                  >
+                    aktiv
+                  </span>
+                )}
+              </div>
+              {/* Mini-2D (read-only): pointerEvents aus, damit der Karten-Klick
+                  die Variante übernimmt statt im Plan zu selektieren. */}
+              <div style={{ height: 170, pointerEvents: "none", marginBottom: 8 }}>
+                <Viewer2D
+                  room={raum}
+                  placements={vp.plan.placements}
+                  catalog={catalog}
+                  gewaehltId={null}
+                  statusById={new Map()}
+                  onSelect={() => {}}
+                />
+              </div>
+              <ul
+                style={{
+                  listStyle: "none",
+                  padding: 0,
+                  margin: 0,
+                  fontSize: 12,
+                  color: THEME.gruen,
+                }}
+              >
+                <li>{vp.info.platziert} Objekte platziert</li>
+                <li>Norm: {vp.info.knapp === 0 ? "überall Luft" : `${vp.info.knapp}× knapp`}</li>
+                <li>Relations-Score {vp.info.relationScore.toFixed(1)}</li>
+              </ul>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }

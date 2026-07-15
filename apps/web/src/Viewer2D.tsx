@@ -32,6 +32,7 @@ import {
 } from "react";
 import { frontDir, type Rule, type Vec2 } from "@fp/shared/rules";
 import type { KatalogItem, Placement, Room } from "./api";
+import type { Flaechen2D } from "./flaechen2d";
 import {
   DARSTELLUNGS_LAYER,
   defaultLayers,
@@ -77,6 +78,19 @@ const WAND_FUELLUNG_MASSIV = "#d3d3d3";
 const WAND_FUELLUNG_LEICHT = "#e2e2e2";
 const WAND_KANTE = "#9a9a9a";
 const FENSTER_GLAS = "#6f8aa0";
+
+/** CAD-dezente Tönung: Materialfarbe Richtung Weiss aufgehellt – der Plan-Look
+ *  bleibt ruhig (keine grellen Füllungen), das Material ist trotzdem ablesbar. */
+function dezentton(hex: string, aufhellung = 0.45): string {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m?.[1]) return hex;
+  const n = Number.parseInt(m[1], 16);
+  const k = (c: number): string =>
+    Math.round(c + (255 - c) * aufhellung)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${k((n >> 16) & 0xff)}${k((n >> 8) & 0xff)}${k(n & 0xff)}`;
+}
 
 type Status = "verletzt" | "knapp";
 
@@ -264,6 +278,8 @@ export function Viewer2D({
   onMove,
   onRotate,
   interaktiv = false,
+  flaechen2d = null,
+  hervorgehobeneWand = null,
 }: {
   room: Room;
   placements: Placement[];
@@ -279,6 +295,11 @@ export function Viewer2D({
   onRotate?: (id: string, yawDeg: number) => void;
   /** Layer-Panel + Editier-Interaktion (Drag/Rotate/Messen). Default: aus. */
   interaktiv?: boolean;
+  /** Aufgelöste Flächen-Darstellung (Layer «Flächen», Welle C): dezente Boden-
+   *  Tönung + Wandband-Farbtöne + Legende. `null` = exakt heutige Darstellung. */
+  flaechen2d?: Flaechen2D | null;
+  /** Wand-Index (room.shell.walls) für das Einzelwand-Highlight (Flächen-Panel). */
+  hervorgehobeneWand?: number | null;
 }) {
   const byId = new Map(catalog.map((c) => [c.id, c]));
   const floor = room.shell.floor.polygon as Vec2[];
@@ -382,6 +403,17 @@ export function Viewer2D({
   };
 
   const ampelAn = sichtbareLayer.ampel;
+  // Flächen-Layer: nur wirksam, wenn eine aufgelöste Darstellung übergeben wurde –
+  // Layer AUS oder fehlende Daten = exakt die bisherige Plan-Optik.
+  const flaechenAn = sichtbareLayer.flaechen && !!flaechen2d;
+  const bodenStruktur =
+    flaechenAn && flaechen2d && flaechen2d.boden.spez.muster !== "uni"
+      ? {
+          kachel: Math.max(8, flaechen2d.boden.spez.masse_m * t.scale),
+          gitter: flaechen2d.boden.spez.muster !== "parkett",
+          fugen: flaechen2d.boden.spez.fugenfarbe,
+        }
+      : null;
   // Sichtbare Placements (Objekt-Layer): einzeln versteckte fliegen ganz raus –
   // inkl. ihres Platzbedarfs.
   const sichtbarePlacements = placements.filter((p) => objektSichtbar(versteckteObjekte, p.id));
@@ -444,17 +476,72 @@ export function Viewer2D({
               <rect width={5} height={5} fill="#ffffff" />
               <line x1={0} y1={0} x2={0} y2={5} stroke={FARBE_PLAN} strokeWidth={0.6} />
             </pattern>
+            {/* Fugen-Struktur des Boden-Materials (Flächen-Layer): feines Gitter
+                (Fliesen/Stein) bzw. Dielenlinien (Parkett) im Massstab des Plans. */}
+            {bodenStruktur && (
+              <pattern
+                id="fp-boden-struktur"
+                width={bodenStruktur.kachel}
+                height={bodenStruktur.kachel}
+                patternUnits="userSpaceOnUse"
+              >
+                <line
+                  x1={0}
+                  y1={0}
+                  x2={0}
+                  y2={bodenStruktur.kachel}
+                  stroke={bodenStruktur.fugen}
+                  strokeWidth={0.7}
+                  strokeOpacity={0.35}
+                />
+                {bodenStruktur.gitter && (
+                  <line
+                    x1={0}
+                    y1={0}
+                    x2={bodenStruktur.kachel}
+                    y2={0}
+                    stroke={bodenStruktur.fugen}
+                    strokeWidth={0.7}
+                    strokeOpacity={0.35}
+                  />
+                )}
+              </pattern>
+            )}
           </defs>
           {/* Boden: beige normal, im Planlook (Ampel aus) reinweiss. */}
           <polygon points={floorPts} fill={ampelAn ? "#efe9dc" : "#ffffff"} stroke="none" />
+          {/* Flächen-Layer: dezente Material-Tönung + Struktur über dem Boden. */}
+          {flaechenAn && flaechen2d && (
+            <g style={{ pointerEvents: "none" }}>
+              <polygon
+                points={floorPts}
+                fill={dezentton(flaechen2d.boden.spez.grundfarbe)}
+                fillOpacity={0.6}
+                stroke="none"
+              />
+              {bodenStruktur && (
+                <polygon points={floorPts} fill="url(#fp-boden-struktur)" stroke="none" />
+              )}
+            </g>
+          )}
 
           {/* Wände als gefüllte Polygone mit echter Wandstärke – pro Wand an den
               Öffnungen segmentiert (echte Aussparung in der Wandstärke). */}
           {sichtbareLayer.waende &&
-            room.shell.walls.map((w) => {
+            room.shell.walls.map((w, wandIdx) => {
               const dicke = (w as { thickness?: number }).thickness ?? WANDDICKE_FALLBACK;
               if (dicke <= 1e-6) return null; // offene Seite (Grossraum): keine Wand
               const massiv = w.kind === "massiv";
+              // Flächen-Layer: Wandband im (dezenten) Material-Farbton der Wand;
+              // Akzentwände werden weniger aufgehellt und bleiben so erkennbar.
+              const wandFlaeche = flaechenAn ? flaechen2d?.waende[wandIdx] : undefined;
+              const fuellung = wandFlaeche
+                ? dezentton(wandFlaeche.farbe, wandFlaeche.akzent ? 0.2 : 0.42)
+                : massiv
+                  ? WAND_FUELLUNG_MASSIV
+                  : WAND_FUELLUNG_LEICHT;
+              // Einzelwand-Highlight (Flächen-Panel): dezente CI-orange Kante.
+              const hervor = wandIdx === hervorgehobeneWand;
               const nIn = innwardNormal(w.start as Vec2, w.end as Vec2, floor);
               const nAus: Vec2 = [-nIn[0], -nIn[1]]; // Wand wächst nach aussen
               const eigene = room.openings
@@ -475,9 +562,9 @@ export function Viewer2D({
                     <polygon
                       key={i}
                       points={band.map((p) => toScreen(p, t).join(",")).join(" ")}
-                      fill={massiv ? WAND_FUELLUNG_MASSIV : WAND_FUELLUNG_LEICHT}
-                      stroke={WAND_KANTE}
-                      strokeWidth={0.8}
+                      fill={fuellung}
+                      stroke={hervor ? FARBE_GEWAEHLT : WAND_KANTE}
+                      strokeWidth={hervor ? 2.4 : 0.8}
                       fillOpacity={massiv ? 1 : 0.85}
                     />
                   ))}
@@ -672,6 +759,7 @@ export function Viewer2D({
           {messModus && <MessOverlay punkte={messPunkte} t={t} />}
 
           {ampelAn && <Legende />}
+          {flaechenAn && flaechen2d && <FlaechenLegende eintraege={flaechen2d.legende} />}
         </svg>
       </div>
     </div>
@@ -1014,6 +1102,33 @@ function LayerPanel({
         )}
       </div>
     </div>
+  );
+}
+
+/** Kleine Material-Legende des Flächen-Layers (unten rechts, Plan-dezent). */
+function FlaechenLegende({ eintraege }: { eintraege: { label: string; farbe: string }[] }) {
+  const breite = 230;
+  return (
+    <g
+      transform={`translate(${SIZE - PAD - breite}, ${SIZE - PAD - eintraege.length * 21})`}
+      style={{ pointerEvents: "none" }}
+    >
+      {eintraege.map((e, i) => (
+        <g key={e.label} transform={`translate(0, ${i * 21})`}>
+          <rect
+            width={15}
+            height={15}
+            fill={dezentton(e.farbe, 0.25)}
+            stroke={WAND_KANTE}
+            strokeWidth={0.6}
+            rx={3}
+          />
+          <text x={21} y={12} fontSize={12.5} fill="#3a3a33">
+            {e.label}
+          </text>
+        </g>
+      ))}
+    </g>
   );
 }
 

@@ -137,7 +137,7 @@ def _bewerte(
     return score, info
 
 
-def loese_mit_varianten(
+def _alle_varianten(
     room: dict[str, Any],
     auswahl_ids: list[str],
     relationale_absichten: list[dict[str, Any]],
@@ -145,31 +145,20 @@ def loese_mit_varianten(
     rules: list[dict[str, Any]],
     *,
     seed: int,
-    norm_profile: str = "ch",
-    stilprofil_ref: str | None = None,
-    style_profile: dict[str, Any] | None = None,
-    anordnung: list[dict[str, Any]] | None = None,
-    farben: dict[str, str] | None = None,
-    mengen: dict[str, int] | None = None,
-    created_at: str = "1970-01-01T00:00:00Z",
-    k: int = K_VARIANTEN,
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    """K deterministische Solver-Varianten erzeugen und die beste wählen.
+    norm_profile: str,
+    stilprofil_ref: str | None,
+    style_profile: dict[str, Any] | None,
+    anordnung: list[dict[str, Any]] | None,
+    farben: dict[str, str] | None,
+    mengen: dict[str, int] | None,
+    created_at: str,
+    k: int,
+) -> tuple[list[dict[str, Any]], list[tuple[int, int, float, int]], list[dict[str, Any]]]:
+    """K Sub-Seed-Läufe erzeugen; je Variante (Plan, Score-Tupel, Info) zurückgeben.
 
-    Rückgabe: `(bester Plan, varianteInfo)`. `varianteInfo` ist die kompakte
-    Auswahl-Spur (gewählter Index, Anzahl, Scores aller Varianten) für die
-    API-Response-Hülle – bewusst NICHT im Plan-Artefakt (keine Schema-Änderung).
-    Parameter spiegeln `solve()`; der Aufrufer entscheidet per Flag, ob er
-    `solve()` (eine Variante) oder diese Funktion (K Varianten) nutzt.
-
-    Begehbarkeit (Weg «hart am Ende», Begründung in `solver.solve_begehbar`):
-    verletzt die Score-beste Variante die circulation-Regel, greift die
-    dokumentierte Leiter – (1) nächstbeste BEGEHBARE Variante in Score-
-    Reihenfolge, (2) sind alle K verletzt: deterministischer Re-Solve mit
-    reduzierter Auswahl auf dem Basis-seed (max. `MAX_REDUKTIONEN`), (3)
-    sichtbarer Hinweis im Report des Score-Siegers. Die Massnahme steht additiv
-    in `variante_info["begehbarkeit"]`; der häufige Fall (beste Variante
-    begehbar) bleibt byte-identisch zum bisherigen Verhalten.
+    Index-ausgerichtet (Position i = Sub-Seed-Index i). Gemeinsamer Kern von
+    `loese_mit_varianten` (nur beste) und `loese_varianten_details` (alle Pläne);
+    die Begehbarkeits-Leiter lebt in `_waehle_begehbar` (eine Quelle für beide).
     """
     by_id = {c["id"]: c for c in catalog}
     rel_map = baue_rel_map(relationale_absichten, anordnung)
@@ -198,60 +187,234 @@ def loese_mit_varianten(
         plaene.append(plan)
         scores.append(score)
         infos.append(info)
+    return plaene, scores, infos
 
+
+def loese_mit_varianten(
+    room: dict[str, Any],
+    auswahl_ids: list[str],
+    relationale_absichten: list[dict[str, Any]],
+    catalog: list[dict[str, Any]],
+    rules: list[dict[str, Any]],
+    *,
+    seed: int,
+    norm_profile: str = "ch",
+    stilprofil_ref: str | None = None,
+    style_profile: dict[str, Any] | None = None,
+    anordnung: list[dict[str, Any]] | None = None,
+    farben: dict[str, str] | None = None,
+    mengen: dict[str, int] | None = None,
+    created_at: str = "1970-01-01T00:00:00Z",
+    k: int = K_VARIANTEN,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """K deterministische Solver-Varianten erzeugen und die beste wählen.
+
+    Rückgabe: `(bester Plan, varianteInfo)`. `varianteInfo` ist die kompakte
+    Auswahl-Spur (gewählter Index, Anzahl, Scores aller Varianten) für die
+    API-Response-Hülle – bewusst NICHT im Plan-Artefakt (keine Schema-Änderung).
+    Parameter spiegeln `solve()`; der Aufrufer entscheidet per Flag, ob er
+    `solve()` (eine Variante) oder diese Funktion (K Varianten) nutzt.
+
+    Begehbarkeit (Weg «hart am Ende», Begründung in `solver.solve_begehbar`):
+    verletzt die Score-beste Variante die circulation-Regel, greift die
+    Leiter in `_waehle_begehbar` – (1) nächstbeste BEGEHBARE Variante, (2)
+    deterministischer Re-Solve mit reduzierter Auswahl, (3) sichtbarer Hinweis.
+    Die Massnahme steht additiv in `variante_info["begehbarkeit"]`; der häufige
+    Fall (beste Variante begehbar) bleibt byte-identisch zum alten Verhalten.
+    """
+    plaene, scores, infos = _alle_varianten(
+        room,
+        auswahl_ids,
+        relationale_absichten,
+        catalog,
+        rules,
+        seed=seed,
+        norm_profile=norm_profile,
+        stilprofil_ref=stilprofil_ref,
+        style_profile=style_profile,
+        anordnung=anordnung,
+        farben=farben,
+        mengen=mengen,
+        created_at=created_at,
+        k=k,
+    )
+    plan, variante_info, _ = _waehle_begehbar(
+        plaene,
+        scores,
+        infos,
+        room,
+        auswahl_ids,
+        relationale_absichten,
+        catalog,
+        rules,
+        seed=seed,
+        norm_profile=norm_profile,
+        stilprofil_ref=stilprofil_ref,
+        style_profile=style_profile,
+        anordnung=anordnung,
+        farben=farben,
+        mengen=mengen,
+        created_at=created_at,
+    )
+    return plan, variante_info
+
+
+def _waehle_begehbar(
+    plaene: list[dict[str, Any]],
+    scores: list[tuple[int, int, float, int]],
+    infos: list[dict[str, Any]],
+    room: dict[str, Any],
+    auswahl_ids: list[str],
+    relationale_absichten: list[dict[str, Any]],
+    catalog: list[dict[str, Any]],
+    rules: list[dict[str, Any]],
+    *,
+    seed: int,
+    norm_profile: str,
+    stilprofil_ref: str | None,
+    style_profile: dict[str, Any] | None,
+    anordnung: list[dict[str, Any]] | None,
+    farben: dict[str, str] | None,
+    mengen: dict[str, int] | None,
+    created_at: str,
+) -> tuple[dict[str, Any], dict[str, Any], int | None]:
+    """Score-beste Variante wählen + Begehbarkeits-Leiter (EINE Quelle für beide
+    öffentlichen Pfade, damit «beste Variante» und «3 Vorschläge» nie divergieren).
+
+    Rückgabe: `(gewählter Plan, varianteInfo, index)` – `index` ist die Position
+    in `plaene` oder None, wenn die Leiter einen Reduktions-Plan erzeugt hat
+    (der dann NICHT in `plaene` liegt). Leiter wie in `loese_mit_varianten`
+    dokumentiert; greift nur bei verletzter circulation des Score-Siegers.
+    """
     gewaehlt = max(range(len(scores)), key=lambda i: scores[i])
     variante_info: dict[str, Any] = {
         "gewaehlt": gewaehlt,
         "anzahl": len(plaene),
         "varianten": infos,
     }
+    if not circulation_verletzt(plaene[gewaehlt]["constraintReport"], rules):
+        return plaene[gewaehlt], variante_info, gewaehlt
 
-    # Begehbarkeits-Leiter (siehe Docstring): greift NUR bei verletzter
-    # circulation der Score-besten Variante – sonst bleibt Auswahl UND Rangfolge
-    # exakt wie dokumentiert (kein stiller Semantik-Wechsel).
-    if circulation_verletzt(plaene[gewaehlt]["constraintReport"], rules):
-        rangfolge = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
-        alternative = next(
-            (
-                i
-                for i in rangfolge
-                if not circulation_verletzt(plaene[i]["constraintReport"], rules)
-            ),
-            None,
+    rangfolge = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
+    alternative = next(
+        (i for i in rangfolge if not circulation_verletzt(plaene[i]["constraintReport"], rules)),
+        None,
+    )
+    if alternative is not None:
+        variante_info["gewaehlt"] = alternative
+        variante_info["begehbarkeit"] = {"massnahme": "andere-variante", "index": alternative}
+        return plaene[alternative], variante_info, alternative
+
+    # Alle K verletzt → deterministischer Re-Solve mit reduzierter Auswahl auf
+    # dem Basis-seed (gleiche Mechanik wie solve_begehbar).
+    by_id = {c["id"]: c for c in catalog}
+    for schritt in range(1, MAX_REDUKTIONEN + 1):
+        red = reduzierte_auswahl(auswahl_ids, mengen, by_id, schritt)
+        if red is None:
+            break
+        kandidat = solve(
+            room,
+            red[0],
+            relationale_absichten,
+            catalog,
+            rules,
+            seed=seed,
+            norm_profile=norm_profile,
+            stilprofil_ref=stilprofil_ref,
+            style_profile=style_profile,
+            anordnung=anordnung,
+            farben=farben,
+            mengen=red[1],
+            created_at=created_at,
         )
-        if alternative is not None:
-            gewaehlt = alternative
-            variante_info["gewaehlt"] = alternative
-            variante_info["begehbarkeit"] = {"massnahme": "andere-variante", "index": alternative}
-        else:
-            # Alle K verletzt → deterministischer Re-Solve mit reduzierter
-            # Auswahl auf dem Basis-seed (gleiche Mechanik wie solve_begehbar).
-            for schritt in range(1, MAX_REDUKTIONEN + 1):
-                red = reduzierte_auswahl(auswahl_ids, mengen, by_id, schritt)
-                if red is None:
-                    break
-                kandidat = solve(
-                    room,
-                    red[0],
-                    relationale_absichten,
-                    catalog,
-                    rules,
-                    seed=seed,
-                    norm_profile=norm_profile,
-                    stilprofil_ref=stilprofil_ref,
-                    style_profile=style_profile,
-                    anordnung=anordnung,
-                    farben=farben,
-                    mengen=red[1],
-                    created_at=created_at,
-                )
-                if not circulation_verletzt(kandidat["constraintReport"], rules):
-                    variante_info["begehbarkeit"] = {
-                        "massnahme": "reduktion",
-                        "entfernteItems": schritt,
-                    }
-                    return kandidat, variante_info
-            markiere_begehbarkeit(plaene[gewaehlt]["constraintReport"], rules)
-            variante_info["begehbarkeit"] = {"massnahme": "hinweis"}
+        if not circulation_verletzt(kandidat["constraintReport"], rules):
+            variante_info["begehbarkeit"] = {"massnahme": "reduktion", "entfernteItems": schritt}
+            return kandidat, variante_info, None
+    markiere_begehbarkeit(plaene[gewaehlt]["constraintReport"], rules)
+    variante_info["begehbarkeit"] = {"massnahme": "hinweis"}
+    return plaene[gewaehlt], variante_info, gewaehlt
 
-    return plaene[gewaehlt], variante_info
+
+def loese_varianten_details(
+    room: dict[str, Any],
+    auswahl_ids: list[str],
+    relationale_absichten: list[dict[str, Any]],
+    catalog: list[dict[str, Any]],
+    rules: list[dict[str, Any]],
+    *,
+    seed: int,
+    norm_profile: str = "ch",
+    stilprofil_ref: str | None = None,
+    style_profile: dict[str, Any] | None = None,
+    anordnung: list[dict[str, Any]] | None = None,
+    farben: dict[str, str] | None = None,
+    mengen: dict[str, int] | None = None,
+    created_at: str = "1970-01-01T00:00:00Z",
+    k: int = K_VARIANTEN,
+) -> tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]]]:
+    """Wie `loese_mit_varianten`, aber zusätzlich ALLE K Pläne in Score-Reihenfolge.
+
+    Rückgabe: `(gewählter Plan, varianteInfo, geordnetePlaene)`. `geordnetePlaene`
+    ist die Liste `[{plan, info}, …]` – der GEWÄHLTE Plan steht immer vorn (auch
+    wenn die Begehbarkeits-Leiter statt des Score-Siegers eine begehbare
+    Alternative oder einen Reduktions-Plan gewählt hat: der Karten-Kopf ist
+    exakt der Plan, den `varianten:true` liefern würde), danach die übrigen
+    Varianten in Score-Reihenfolge – für die UI-«3 Vorschläge»-Karten. Wird nur
+    genutzt, wenn der Client `variantenDetails` anfordert.
+    """
+    plaene, scores, infos = _alle_varianten(
+        room,
+        auswahl_ids,
+        relationale_absichten,
+        catalog,
+        rules,
+        seed=seed,
+        norm_profile=norm_profile,
+        stilprofil_ref=stilprofil_ref,
+        style_profile=style_profile,
+        anordnung=anordnung,
+        farben=farben,
+        mengen=mengen,
+        created_at=created_at,
+        k=k,
+    )
+    plan, variante_info, gewaehlt_index = _waehle_begehbar(
+        plaene,
+        scores,
+        infos,
+        room,
+        auswahl_ids,
+        relationale_absichten,
+        catalog,
+        rules,
+        seed=seed,
+        norm_profile=norm_profile,
+        stilprofil_ref=stilprofil_ref,
+        style_profile=style_profile,
+        anordnung=anordnung,
+        farben=farben,
+        mengen=mengen,
+        created_at=created_at,
+    )
+    # Best-first wie die Wahl (stabil dank −index-Tiebreak → deterministisch);
+    # der gewählte Plan kommt nach vorn. Reduktions-Plan (gewaehlt_index None)
+    # steht vor allen K Varianten und erhält eine eigene kompakte Info-Zeile.
+    reihenfolge = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
+    if gewaehlt_index is None:
+        kopf_info = {
+            "index": None,
+            "seed": plan["meta"]["seed"],
+            "platziert": len(plan["placements"]),
+            "knapp": plan["constraintReport"]["hard"]["summary"]["knapp"],
+            "relationScore": None,
+            "begehbarkeit": variante_info.get("begehbarkeit"),
+        }
+        geordnete = [{"plan": plan, "info": kopf_info}] + [
+            {"plan": plaene[i], "info": infos[i]} for i in reihenfolge
+        ]
+    else:
+        rest = [i for i in reihenfolge if i != gewaehlt_index]
+        geordnete = [{"plan": plan, "info": infos[gewaehlt_index]}] + [
+            {"plan": plaene[i], "info": infos[i]} for i in rest
+        ]
+    return plan, variante_info, geordnete

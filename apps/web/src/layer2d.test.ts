@@ -27,6 +27,12 @@ describe("layer2d", () => {
     expect(toggleLayer(n, "platzbedarf").platzbedarf).toBe(false);
   });
 
+  it("Flächen-Layer (Welle C): Default AN, umschaltbar", () => {
+    const l = defaultLayers();
+    expect(l.flaechen).toBe(true);
+    expect(toggleLayer(l, "flaechen").flaechen).toBe(false);
+  });
+
   it("toggleObjekt versteckt/zeigt einzeln, neues Set", () => {
     const leer = new Set<string>();
     const versteckt = toggleObjekt(leer, "a");

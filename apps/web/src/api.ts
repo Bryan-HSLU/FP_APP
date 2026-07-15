@@ -108,6 +108,9 @@ export interface SolveOpts {
   /** K-Varianten (Welle 5): true → Server erzeugt K=3 Varianten und liefert die
    *  beste (+ varianteInfo). Nur Nicht-Küche. Default false. */
   varianten?: boolean;
+  /** «3 Vorschläge» (Welle C): true → Response zusätzlich `variantenPlaene`
+   *  (ALLE K Pläne best-first). Nur zusammen mit `varianten` wirksam. */
+  variantenDetails?: boolean;
 }
 
 /** Auswahl-Spur der K-Varianten (Welle 5), additiv in der /solve-Response-Hülle.
@@ -126,6 +129,13 @@ export interface VarianteInfo {
     /** Weiche Relations-/Stil-Zufriedenheit (höher = besser). */
     relationScore: number;
   }[];
+}
+
+/** Ein Vorschlag der «3 Vorschläge»-Ansicht (Welle C): kompletter Plan + die
+ *  zugehörige Score-Zeile aus varianteInfo. Liste kommt best-first vom Server. */
+export interface VariantenPlan {
+  plan: Plan;
+  info: VarianteInfo["varianten"][number];
 }
 
 export class ApiFehler extends Error {
@@ -242,6 +252,7 @@ export const api = {
       arbeitsdreieck?: Arbeitsdreieck;
       flaechen?: FlaechenKonzept | null;
       varianteInfo?: VarianteInfo;
+      variantenPlaene?: VariantenPlan[];
     }>("/solve", {
       method: "POST",
       body: JSON.stringify({
@@ -259,6 +270,7 @@ export const api = {
         flaechen: opts.flaechen ?? undefined,
         farben: opts.farben ?? undefined,
         varianten: opts.varianten ?? undefined,
+        variantenDetails: opts.variantenDetails ?? undefined,
       }),
     }),
   /** Manuelle Flächen-Wahl (Welle 3) gegen die Norm prüfen + korrigieren lassen.

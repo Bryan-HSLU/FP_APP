@@ -27,6 +27,7 @@ import { Piktogramm } from "./Piktogramm";
 import type { Stilprofil } from "./Stil";
 import { CSS, FP_VAR, THEME, titel } from "./theme";
 import type { FlaechenWahl } from "./Viewer3D";
+import { BEREICH_LABEL, wandEintrag, type WandBereich, type WandInfo } from "./wandauswahl";
 
 export interface SchrittAnpassenProps {
   viewer: ReactNode;
@@ -58,8 +59,22 @@ export interface SchrittAnpassenProps {
   onFarbe?: (slug: string) => void;
   /** Effektives (ggf. manuell überschriebenes) Flächen-Konzept zur Markierung. */
   flaechenKonzept?: FlaechenKonzept | null;
-  /** Manuelle Material-Wahl je Fläche (Welle 3) – Boden/Wand, normgeprüft. */
-  onFlaechenMaterial?: (art: FlaechenWahl, slug: MaterialSlug) => void;
+  /** Manuelle Material-Wahl je Fläche (Welle 3/C) – Boden ODER Wand; bei Wand
+   *  optional wandIndex (null = «Alle Wände») + Bereich. Der Server prüft die
+   *  Wahl hart gegen die Norm (POST /flaechen/pruefen). */
+  onFlaechenMaterial?: (
+    art: FlaechenWahl,
+    slug: MaterialSlug,
+    wandIndex?: number | null,
+    bereich?: WandBereich,
+  ) => void;
+  /** Wand-Zeilen (Länge · Öffnungen · Anschlüsse) fürs Einzelwand-Panel (Welle C). */
+  wandInfos?: WandInfo[];
+  /** Gewählte Einzelwand (null = «Alle Wände») – im 2D-Plan hervorgehoben. */
+  gewaehlteWand?: number | null;
+  onWandWahl?: (wandIndex: number | null) => void;
+  /** Flächen-Karte ohne 3D-Klick öffnen («Boden/Wände anpassen», Welle C). */
+  onFlaecheWaehlen?: (f: FlaechenWahl | null) => void;
 }
 
 /** Swatch-Reihe der Farbvarianten eines Objekts (Welle 3). Nur die Varianten des
@@ -170,9 +185,121 @@ const MUSTER_LABEL: Record<string, string> = {
   stein: "Stein",
 };
 
+/** Wand-Liste des Flächen-Panels (Welle C): «Alle Wände»-Schnellwahl + je Wand
+ *  eine Zeile mit Länge, Öffnungen und Anschlüssen (Daten aus dem Raummodell).
+ *  Anzeige 1-basiert («Wand 1…N»), intern bleibt der 0-basierte wandIndex des
+ *  Kurator-Vertrags. Die gewählte Wand wird im 2D-Plan hervorgehoben. */
+function WandListe({
+  wandInfos,
+  gewaehlteWand,
+  onWandWahl,
+}: {
+  wandInfos: WandInfo[];
+  gewaehlteWand: number | null;
+  onWandWahl: (wandIndex: number | null) => void;
+}) {
+  const zeile = (aktiv: boolean) => ({
+    display: "block" as const,
+    width: "100%",
+    textAlign: "left" as const,
+    padding: "6px 9px",
+    borderRadius: 8,
+    cursor: "pointer",
+    background: aktiv ? THEME.offwhite : "#fff",
+    border: `1px solid ${aktiv ? THEME.orange : THEME.salbei}`,
+  });
+  return (
+    <div style={{ marginTop: 12 }}>
+      <p style={{ fontSize: 12.5, margin: "0 0 6px", color: THEME.gruen }}>Gilt für:</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <button
+          type="button"
+          aria-pressed={gewaehlteWand === null}
+          onClick={() => onWandWahl(null)}
+          style={zeile(gewaehlteWand === null)}
+        >
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: THEME.gruen }}>Alle Wände</span>
+        </button>
+        {wandInfos.map((w) => {
+          const aktiv = gewaehlteWand === w.index;
+          const details = [
+            `${w.laengeM.toFixed(2)} m`,
+            w.oeffnungen.length ? w.oeffnungen.join(", ") : "keine Öffnung",
+            ...(w.anschluesse.length ? [`Anschlüsse: ${w.anschluesse.join(", ")}`] : []),
+          ].join(" · ");
+          return (
+            <button
+              key={w.index}
+              type="button"
+              aria-pressed={aktiv}
+              onClick={() => onWandWahl(w.index)}
+              style={zeile(aktiv)}
+            >
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: THEME.gruen }}>
+                Wand {w.index + 1}
+                {w.offen ? " (offen)" : ""}
+              </span>
+              <span style={{ display: "block", fontSize: 11.5, color: THEME.salbei }}>
+                {details}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Bereich-Chips (voll/halbhoch/sockel) für die gewählte Einzelwand. Ohne
+ *  Material an dieser Wand deaktiviert – der Bereich braucht ein Material. */
+function BereichWahl({
+  aktiv,
+  deaktiviert,
+  onWahl,
+}: {
+  aktiv: WandBereich;
+  deaktiviert: boolean;
+  onWahl: (b: WandBereich) => void;
+}) {
+  return (
+    <div style={{ marginTop: 10 }}>
+      <p style={{ fontSize: 12.5, margin: "0 0 6px", color: THEME.gruen }}>Bereich:</p>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {(Object.keys(BEREICH_LABEL) as WandBereich[]).map((b) => {
+          const an = aktiv === b;
+          return (
+            <button
+              key={b}
+              type="button"
+              aria-pressed={an}
+              disabled={deaktiviert}
+              title={deaktiviert ? "Zuerst ein Material wählen" : BEREICH_LABEL[b]}
+              onClick={() => onWahl(b)}
+              style={{
+                padding: "5px 12px",
+                borderRadius: 999,
+                cursor: deaktiviert ? "default" : "pointer",
+                opacity: deaktiviert ? 0.5 : 1,
+                background: an ? THEME.offwhite : "#fff",
+                border: `1px solid ${an ? THEME.orange : THEME.salbei}`,
+                fontSize: 11.5,
+                color: THEME.gruen,
+              }}
+            >
+              {BEREICH_LABEL[b]}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /** Elementkarte-Ersatz für eine gewählte Oberfläche (Boden/Wand). Zeigt das
  *  aktuelle Muster/Farbe und bietet die vordefinierten Varianten zur Auswahl –
- *  rein visuell, überschreibt lokal die stilabgeleitete Optik. */
+ *  rein visuell, überschreibt lokal die stilabgeleitete Optik. Für Wände kommt
+ *  die Einzelwand-Auswahl (Welle C) dazu: Material + Bereich je Wand ODER
+ *  «Alle Wände»; die Wahl läuft serverseitig durch die Norm-Prüfung. */
 function OberflaecheKarte({
   flaeche,
   varianten,
@@ -181,6 +308,9 @@ function OberflaecheKarte({
   onVariante,
   flaechenKonzept,
   onFlaechenMaterial,
+  wandInfos,
+  gewaehlteWand = null,
+  onWandWahl,
 }: {
   flaeche: FlaechenWahl;
   varianten: OberflaechenVarianten;
@@ -188,13 +318,35 @@ function OberflaecheKarte({
   spez: OberflaechenSpez | null | undefined;
   onVariante: (art: FlaechenWahl, id: string) => void;
   flaechenKonzept?: FlaechenKonzept | null;
-  onFlaechenMaterial?: (art: FlaechenWahl, slug: MaterialSlug) => void;
+  onFlaechenMaterial?: (
+    art: FlaechenWahl,
+    slug: MaterialSlug,
+    wandIndex?: number | null,
+    bereich?: WandBereich,
+  ) => void;
+  wandInfos?: WandInfo[];
+  gewaehlteWand?: number | null;
+  onWandWahl?: (wandIndex: number | null) => void;
 }) {
   const istBoden = flaeche === "boden";
   const liste = istBoden ? varianten.boden : varianten.wand;
+  // Aktive Wand-Werte: Einzelwand → deren Eintrag; «Alle Wände» → nur markieren,
+  // wenn wirklich alle Wände dasselbe Material tragen (sonst keine Markierung).
+  const einzel = !istBoden && gewaehlteWand !== null ? gewaehlteWand : null;
+  const einzelEintrag = einzel !== null ? wandEintrag(flaechenKonzept, einzel) : null;
+  const waende = flaechenKonzept?.waende ?? [];
+  const alleGleich =
+    waende.length > 0 &&
+    waende.length === (wandInfos?.length ?? waende.length) &&
+    waende.every((w) => w.material === waende[0]?.material)
+      ? waende[0]?.material
+      : undefined;
   const materialAktiv = istBoden
     ? flaechenKonzept?.boden?.material
-    : flaechenKonzept?.waende?.[0]?.material;
+    : einzel !== null
+      ? einzelEintrag?.material
+      : alleGleich;
+  const bereichAktiv: WandBereich = einzelEintrag?.bereich ?? "voll";
   const aktuelleId = istBoden ? wahl?.boden : wahl?.wand;
   const aktSpez = istBoden ? spez?.boden : spez?.wand;
   const aktFarbe = aktSpez
@@ -209,7 +361,9 @@ function OberflaecheKarte({
         <Piktogramm name="material" groesse={44} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <h3 style={{ ...titel, margin: 0, fontSize: 16 }}>Oberfläche</h3>
-          <span style={{ fontSize: 12, color: THEME.salbei }}>{istBoden ? "Boden" : "Wände"}</span>
+          <span style={{ fontSize: 12, color: THEME.salbei }}>
+            {istBoden ? "Boden" : einzel !== null ? `Wand ${einzel + 1}` : "Wände"}
+          </span>
         </div>
       </div>
 
@@ -272,13 +426,42 @@ function OberflaecheKarte({
           );
         })}
       </div>
+      {!istBoden && wandInfos && wandInfos.length > 0 && onWandWahl && (
+        <WandListe wandInfos={wandInfos} gewaehlteWand={gewaehlteWand} onWandWahl={onWandWahl} />
+      )}
       {onFlaechenMaterial && (
-        <MaterialPicker flaeche={flaeche} aktiv={materialAktiv} onWahl={onFlaechenMaterial} />
+        <MaterialPicker
+          flaeche={flaeche}
+          aktiv={materialAktiv}
+          onWahl={(art, slug) =>
+            onFlaechenMaterial(
+              art,
+              slug,
+              istBoden ? undefined : einzel,
+              istBoden ? undefined : bereichAktiv,
+            )
+          }
+        />
+      )}
+      {!istBoden && einzel !== null && onFlaechenMaterial && (
+        <BereichWahl
+          aktiv={bereichAktiv}
+          deaktiviert={!einzelEintrag?.material}
+          onWahl={(b) =>
+            einzelEintrag?.material && onFlaechenMaterial("wand", einzelEintrag.material, einzel, b)
+          }
+        />
       )}
 
       <p style={{ fontSize: 11.5, color: THEME.salbei, marginTop: 12, marginBottom: 0 }}>
-        Material überschreibt den Vorschlag und wird hart gegen die Norm geprüft · Varianten oben
-        sind rein visuell.
+        Material{" "}
+        {istBoden
+          ? ""
+          : einzel !== null
+            ? `gilt nur für Wand ${einzel + 1}, `
+            : "gilt für alle Wände, "}
+        überschreibt den Vorschlag und wird hart gegen die Norm geprüft – Korrekturen werden als
+        «normkonform angepasst» ausgewiesen · Varianten oben sind rein visuell.
       </p>
     </div>
   );
@@ -319,6 +502,10 @@ export function SchrittAnpassen({
   onFarbe,
   flaechenKonzept,
   onFlaechenMaterial,
+  wandInfos,
+  gewaehlteWand,
+  onWandWahl,
+  onFlaecheWaehlen,
 }: SchrittAnpassenProps) {
   const statusKey =
     elementStatus === "verletzt" ? "anpassen" : elementStatus === "knapp" ? "knapp" : "passt";
@@ -343,6 +530,9 @@ export function SchrittAnpassen({
             onVariante={onFlaecheVariante}
             flaechenKonzept={flaechenKonzept}
             onFlaechenMaterial={onFlaechenMaterial}
+            wandInfos={wandInfos}
+            gewaehlteWand={gewaehlteWand}
+            onWandWahl={onWandWahl}
           />
         ) : gewaehltesItem ? (
           <div className={`${CSS.card} ${CSS.cardAktiv}`} style={{ padding: 16 }}>
@@ -484,6 +674,38 @@ export function SchrittAnpassen({
             >
               <Piktogramm name="varianten" groesse={29} /> Andere Variante würfeln
             </button>
+
+            {/* Flächen ohne 3D-Klick anpassen (Welle C): öffnet die Oberflächen-
+                Karte mit Wand-Liste bzw. Boden-Material direkt aus dem Panel. */}
+            {onFlaecheWaehlen && (
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                {(
+                  [
+                    ["boden", "Boden anpassen"],
+                    ["wand", "Wände anpassen"],
+                  ] as const
+                ).map(([art, label]) => (
+                  <button
+                    key={art}
+                    type="button"
+                    className={CSS.button}
+                    onClick={() => onFlaecheWaehlen(art)}
+                    style={{
+                      flex: 1,
+                      borderRadius: 999,
+                      padding: "8px 12px",
+                      cursor: "pointer",
+                      border: `1px solid ${THEME.gruen}`,
+                      background: "#fff",
+                      color: THEME.gruen,
+                      fontSize: 12.5,
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {begruendung && (
               <div className={CSS.soft} style={{ padding: 12, marginTop: 12 }}>
