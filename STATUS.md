@@ -8,6 +8,30 @@
 
 **Stand: 2026-07-15**
 
+### Welle C – UI-Trio + Diagnose/LLM-Workflow + Norm-Verifikation (2026-07-14/15)
+- **UI-Trio:** Einzelwand-Materialwahl (`apps/web/src/wandauswahl.ts`, Panel-
+  Wandliste 1-basiert angezeigt, 2D-Highlight, Norm weiterhin über
+  `/flaechen/pruefen`) · **«3 Vorschläge»-Karten** in SchrittVorschlag
+  (Mini-2D readonly + Kennzahlen; `/solve` `variantenDetails` → additiv
+  `variantenPlaene` best-first) · **2D-Flächen-Layer** (Default AN, gleiche
+  Auflösung wie 3D via `flaechen2d.ts`, Legende; AUS = alte Darstellung,
+  testbelegt). Offen: Relations-Score in Karten roh/negativ → normalisieren.
+- **Merge-Erkenntnis C×D:** Begehbarkeits-Leiter in `varianten._waehle_begehbar`
+  zentralisiert — der Karten-Kopf ist IMMER der gelieferte begehbare Plan
+  (auch wenn nicht Score-Sieger), Rest best-first; Test präzisiert. Dabei
+  `by_id`-NameError im Reduktions-Zweig gefixt (Folge des Parallel-Refactors).
+- **Diagnose-Harness** `scripts/kurator_diagnose.py` (ADR-0014): Raum×Profil-
+  Matrix, echte Kurator-Antworten + 6 Plausibilitäts-Ampeln; Baseline 45/45
+  ohne ⚠️, byte-deterministisch. **LLM-Lauf:** Workflow
+  `.github/workflows/kurator-llm-eval.yml` (Runner haben Netz zu api.groq.com,
+  Remote-Sessions nicht; Thinking per Input `reasoning`) — **wartet auf
+  Repo-Secret `FP_KURATOR_API_KEY`** (Klartext-Key als Input wird vom
+  Secret-Scanning korrekt blockiert).
+- **Flächen-Normregeln verifiziert:** Küchen-Spritzzone 1.2→**1.5 m**
+  (Fliesenspiegel-OK ~1.5 m ab Boden), Nasswand 2.0 m bestätigt (DIN 18534:
+  ≥20 cm über Brausekopf), Rutschhemmung Ziel bfu GB2/B (erst mit Produkt-
+  daten prüfbar). Quellen: Brain `Quellen-Flaechen-Normen`.
+
 ### Welle D – softScore bad/wohnen echt + Begehbarkeit hart am Planende (2026-07-15)
 Zwei Qualitätspunkte aus dem v3-Fund («softScore bad/wohnen immer 0.0») und dem
 circulation-Learning (Metrik vertrauenswürdig, Hürde war nur Hot-Path-Performance).
