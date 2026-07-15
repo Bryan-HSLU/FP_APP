@@ -38,12 +38,17 @@ from typing import Any
 from fp_engines.kurator import _cos
 from fp_engines.rules.geometry import Quad, dist_point_to_segment, footprint, overlap_depth
 from fp_engines.solver import (
+    MAX_REDUKTIONEN,
     SOLVER_VERSION,
     NoFeasiblePlacement,
     _als_placement,
     _Kandidat,
     _schnell_unzulaessig,
     _zulaessig,
+    circulation_verletzt,
+    markiere_begehbarkeit,
+    softscore_relation,
+    softscore_stil,
 )
 
 # Normraster je Profil (Küchen-Detailkonzept Teil 0): CH = 55er, EU = 60er.
@@ -531,6 +536,35 @@ def arbeitsdreieck(
     }
 
 
+def _befuellter_report(
+    room: dict[str, Any],
+    placements: list[dict[str, Any]],
+    catalog: list[dict[str, Any]],
+    rules: list[dict[str, Any]],
+    norm_profile: str,
+    by_id: dict[str, dict[str, Any]],
+    style_profile: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Voller Regel-Report + ehrliche softScores für den fertigen Küchenplan.
+
+    softScore.ergonomie = gemessenes AMK-Arbeitsdreieck (echter Wert NACH der
+    Platzierung); stil/relation konsistent zum generischen Solver (Welle D):
+    mittlerer Stil-Score der Items bzw. Anteil erfüllter Relations-Wünsche –
+    die Küchen-Baugruppe kennt keine relationalen Wünsche, also vakuum-wahr 1.0.
+    Alles OHNE den Interpreter zu ändern (Paritäts-Gesetz unberührt: Goldens
+    sind reine Interpreter-Ausgaben).
+    """
+    report = _zulaessig(room, placements, catalog, rules, norm_profile)
+    assert report is not None  # Solver-Invariante: per Konstruktion 0 ❌.
+    dreieck = arbeitsdreieck(placements, by_id)
+    if dreieck is not None:
+        report["softScore"]["ergonomie"] = dreieck["score"]
+    report["softScore"]["stil"] = softscore_stil(placements, by_id, style_profile)
+    floor = [(float(pt[0]), float(pt[1])) for pt in room["shell"]["floor"]["polygon"]]
+    report["softScore"]["relation"] = softscore_relation(placements, by_id, {}, floor)
+    return report
+
+
 def solve_kueche(
     room: dict[str, Any],
     catalog: list[dict[str, Any]],
@@ -659,14 +693,36 @@ def solve_kueche(
         room, by_typ, by_id, placements, catalog, rules, norm_profile, rnd
     )
 
-    report = _zulaessig(room, placements, catalog, rules, norm_profile)
-    assert report is not None  # Solver-Invariante: per Konstruktion 0 ❌.
-    # softScore.ergonomie = gemessenes AMK-Arbeitsdreieck (echter Wert NACH der
-    # Platzierung). Befüllt das bisher leere Feld OHNE den Interpreter zu ändern
-    # (Paritäts-Gesetz unberührt: Goldens sind reine Interpreter-Ausgaben).
-    dreieck = arbeitsdreieck(placements, by_id)
-    if dreieck is not None:
-        report["softScore"]["ergonomie"] = dreieck["score"]
+    report = _befuellter_report(
+        room, placements, catalog, rules, norm_profile, by_id, style_profile
+    )
+
+    # Begehbarkeit hart am Planende (Weg «hart am Ende», Begründung im
+    # Abschnittskommentar von solver.solve_begehbar): verletzt der fertige Plan
+    # die circulation-Regel, wird die LETZTE P3-Deko-Platzierung entfernt – die
+    # einzige optionale Ebene der Küchen-Baugruppe (P1 Geräte/P2 Korpusse sind
+    # die Zeile selbst). Entfernen eines Objekts kann keine harte Regel neu
+    # verletzen (alle Regeln prüfen Anwesenheit, nie Abwesenheit) → Invariante
+    # bleibt. Max. MAX_REDUKTIONEN Schritte, danach sichtbarer Hinweis im Report.
+    schritte = 0
+    while circulation_verletzt(report, rules) and schritte < MAX_REDUKTIONEN:
+        idx = next(
+            (
+                i
+                for i in range(len(placements) - 1, -1, -1)
+                if by_id[placements[i]["catalogItemId"]]["priorityClass"] == "P3"
+            ),
+            None,
+        )
+        if idx is None:
+            break
+        placements.pop(idx)
+        schritte += 1
+        report = _befuellter_report(
+            room, placements, catalog, rules, norm_profile, by_id, style_profile
+        )
+    if circulation_verletzt(report, rules):
+        markiere_begehbarkeit(report, rules)
 
     return {
         "id": str(uuid.UUID(int=rnd.getrandbits(128), version=4)),

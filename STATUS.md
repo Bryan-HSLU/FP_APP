@@ -6,7 +6,49 @@
 > Abweichungen gibt es. Meilenstein-Definitionen: Brain →
 > `vault/50_Umsetzung/Bauplan-Meilensteine.md`.
 
-**Stand: 2026-07-14**
+**Stand: 2026-07-15**
+
+### Welle D – softScore bad/wohnen echt + Begehbarkeit hart am Planende (2026-07-15)
+Zwei Qualitätspunkte aus dem v3-Fund («softScore bad/wohnen immer 0.0») und dem
+circulation-Learning (Metrik vertrauenswürdig, Hürde war nur Hot-Path-Performance).
+- **softScore stil/relation echt befüllt (alle Raumtypen konsistent):** Muster
+  des Küchen-Ergonomie-Patches – der Domänen-Solver schreibt NACH dem
+  Interpreter-Lauf in die vorhandenen Felder; Interpreter/Schema/Goldens
+  unberührt (Paritäts-Gesetz aus dem Weg). `stil` = mittlerer Stil-Score der
+  platzierten Items (Wiederverwendung `kurator.stil_score`, kein Duplikat);
+  `relation` = Anteil erfüllter relationaler/Anordnungs-Wünsche am fertigen
+  Plan (gleiche Quelle `baue_rel_map` wie Platzierung + K-Scoring, binäre
+  v0-Urteile `solver._relation_erfuellt`, ohne Wünsche vakuum-wahr 1.0);
+  `ergonomie` bleibt Küchen-spezifisch (Arbeitsdreieck). Beispielwerte
+  bad-sample seed 1 mit Profil: stil 0.14 · relation 1.0.
+- **Begehbarkeit hart am Planende (Weg «hart am Ende», nicht im Filter):**
+  Messung: circulation kostet das 10–13-fache ALLER harten Regeln (~15 ms Bad /
+  ~33 ms Wohnen vs. 1.4–2.6 ms) bei 22–47 Feasibility-Aufrufen je solve ⇒ hart
+  im Filter wäre ~7–10× langsamer; zudem globale Grid-Eigenschaft, nicht
+  inkrementell. Regel-JSON bleibt **soft** (Parität/Goldens byte-identisch);
+  die Härte lebt in der Liefer-Schleife: `solver.solve_begehbar` (API-Pfad ohne
+  Varianten) prüft den fertigen Report, bei Verletzung deterministischer
+  Re-Solve mit reduzierter Auswahl (letztes P3-/Ergänzungs-Item ohne
+  Anker-Pflicht, max. 3), danach VOLLER Plan mit sichtbarem Hinweis
+  («BEGEHBARKEIT NICHT ERREICHT» im circulation-`ruleResult.hinweis` –
+  constraintReport ist additionalProperties:false, darum kein neues Feld).
+  K-Varianten (`loese_mit_varianten`): Leiter = nächstbeste BEGEHBARE Variante
+  → Reduktions-Re-Solve → Hinweis; Massnahme additiv in
+  `varianteInfo.begehbarkeit`, Rangfolge sonst byte-identisch (dokumentiert +
+  getestet). Küche: letzte P3-Deko-Platzierung entfernen (max. 3) → Hinweis.
+- **Tests:** neues `test_begehbarkeit.py` (54 Tests): Property ⭐ «jeder
+  gelieferte Plan begehbar ODER sichtbarer Hinweis» über bad/wohnen/kueche ×
+  Seeds + Varianten-Pfad, 0-❌-Invariante, Determinismus beider Leitern,
+  echter unfixbarer Bestands-Engpass (Hinweis-Pfad), Reduktions-Mechanik,
+  softScore-Diskriminierung/Defaults. `test_varianten`/`test_solve_endpoint`
+  «best ≥ v0» präzisiert (gilt, ausser die dokumentierte Leiter greift).
+- **Wirkung (echter Evaluator, seeds 0–11):** bad-sample 8 direkt ok · 1 durch
+  Reduktion · 3 Hinweis; wohnen-sample 6 · 1 · 5; Varianten-Pfad wohnen: alle
+  Seeds begehbar (meist via «andere-variante»). Küche unverändert (knapp/ok).
+- **Bewusst offen:** Regel-`hinweis`-Text in `data/rules/basis.json` erwähnt
+  noch «Hochstufung braucht Solver-Support» – Textupdate würde die 3 goldenen
+  Paritäts-Fixtures anfassen (dort eingebettet), bewusst verschoben. Learning-
+  Loop-Notiz ins Brain (Weg-1-Entscheid + Messzahlen) steht aus.
 
 ### Kurator v3.1 Welle A – Objekt-Ebenen + Anzahl + Thinking (2026-07-14, ADR-0014)
 Vorgabe: Brain `ADR-0014-objekt-ebenen-und-kurator-kontrolle` + `Objekt-Ebenen-Modell`.

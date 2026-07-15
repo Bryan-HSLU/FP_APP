@@ -68,7 +68,11 @@ def test_determinismus_identische_wahl_und_info() -> None:
 
 
 def test_best_mindestens_so_gut_wie_variante_0() -> None:
-    """Die gewählte Variante hat ein Score-Tupel ≥ Variante 0 (Selektion maximiert)."""
+    """Die gewählte Variante hat ein Score-Tupel ≥ Variante 0 (Selektion maximiert).
+
+    Ausnahme (dokumentiert, Welle D): greift die Begehbarkeits-Leiter, wird die
+    beste BEGEHBARE Variante geliefert – dann garantiert der Eintrag
+    `begehbarkeit` in varianteInfo die Nachvollziehbarkeit statt des Tupels."""
     _, info = _loese(5)
     g = info["gewaehlt"]
 
@@ -76,7 +80,10 @@ def test_best_mindestens_so_gut_wie_variante_0() -> None:
         # (platziert, −knapp, relationScore) – höher = besser (wie in varianten._bewerte).
         return (v["platziert"], -v["knapp"], v["relationScore"])
 
-    assert _tupel(info["varianten"][g]) >= _tupel(info["varianten"][0])
+    if "begehbarkeit" in info:
+        assert info["begehbarkeit"]["massnahme"] in {"andere-variante", "reduktion", "hinweis"}
+    else:
+        assert _tupel(info["varianten"][g]) >= _tupel(info["varianten"][0])
 
 
 def test_jede_variante_hat_0_verletzt() -> None:

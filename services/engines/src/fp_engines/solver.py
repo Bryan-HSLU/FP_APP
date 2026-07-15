@@ -28,6 +28,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
+from fp_engines.kurator import stil_score
 from fp_engines.relationen import (
     AgainstWall,
     Corner,
@@ -678,6 +679,14 @@ def solve(
     report = _zulaessig(room, placements, catalog, rules, norm_profile)
     assert report is not None  # per Konstruktion – Solver-Invariante
 
+    # Ehrliche softScores (gleiches Muster wie der Küchen-Ergonomie-Patch,
+    # kueche.arbeitsdreieck): der Domänen-Solver befüllt die schon vorhandenen
+    # Felder NACH dem Interpreter-Lauf – Interpreter, Schema und Goldens bleiben
+    # unberührt (Paritäts-Gesetz aus dem Weg). `ergonomie` bleibt Küchen-
+    # spezifisch (dort befüllt), hier ehrlich 0.0.
+    report["softScore"]["stil"] = softscore_stil(placements, by_id, style_profile)
+    report["softScore"]["relation"] = softscore_relation(placements, by_id, rel_map, floor)
+
     # Farbwahl je Objekt (Kurator-Pipeline v3, Welle 3) durchreichen: der Kurator
     # (oder die manuelle UI-Wahl) liefert `farben` als itemId→Slug; hier landet
     # sie als `placement.farbe`. Rein visuell (Slug ist auf `farbVarianten`
@@ -708,3 +717,301 @@ def solve(
             "createdAt": created_at,
         },
     }
+
+
+# --- Ehrliche softScores (stil/relation) --------------------------------------
+# Muster aus dem Küchen-Ergonomie-Patch: Soft-Qualität, die DOMÄNENWISSEN
+# braucht (Stilprofil, Relations-Wünsche), berechnet der Solver NACH dem
+# Interpreter-Lauf und schreibt sie in die schon vorhandenen softScore-Felder.
+# Der generische Regel-Interpreter (TS + Python) liefert weiter 0.0 – die
+# goldenen Paritäts-Fixtures (reine Interpreter-Ausgaben) ändern sich nicht.
+
+
+def softscore_stil(
+    placements: list[dict[str, Any]],
+    by_id: dict[str, dict[str, Any]],
+    style_profile: dict[str, Any] | None,
+) -> float:
+    """Mittlerer Stil-Score der platzierten Items (Wiederverwendung kurator.stil_score).
+
+    EXAKT die Vorfilter-Bewertung des Kurators (kein Drift): cos(styleVector,
+    achsenTags) + 0.25-Boost bei Anforderungs-Treffer, Wertebereich ≈ [−1, 1.25].
+    Ohne Stilprofil ist jede Einzelbewertung 0.0 (ehrlich neutral – wie das
+    bisher leere Feld). Deterministische reine Funktion der Platzierungen.
+    """
+    if not placements:
+        return 0.0
+    profil = style_profile or {}
+    werte = [stil_score(profil, by_id[p["catalogItemId"]]) for p in placements]
+    return round(sum(werte) / len(werte), 3)
+
+
+# v0-Erfüllungsschwellen der relation-Bewertung (dokumentiert, kalibrierbar):
+# die Distanz-/Winkelwerte decken sich mit den etablierten Testerwartungen
+# (test_solver.py: group ≤ 2.0 m, facing-Skalarprodukt > 0.5, Wand-Toleranz =
+# halbe Tiefe + Snap-Reserve 6 cm). Binäre Urteile ⇒ der Anteil bleibt in [0,1].
+_REL_GROUP_MAX = 2.0
+_REL_PAIR_MAX = 2.0
+_REL_CORNER_MAX = 1.0
+_REL_FACING_MIN_COS = 0.5
+_REL_WAND_TOL = 0.06
+
+
+def _ohne_eigene(punkte: list[Vec2], eigene: Vec2) -> list[Vec2]:
+    """Liste ohne EIN Vorkommen der eigenen Pose (die Instanz ist kein eigener Anker)."""
+    out = list(punkte)
+    if eigene in out:
+        out.remove(eigene)
+    return out
+
+
+def _relation_erfuellt(
+    rel: Relation,
+    pos: Vec2,
+    yaw_deg: float,
+    item: dict[str, Any],
+    typ_pos: dict[str, list[Vec2]],
+    id_pos: dict[str, list[Vec2]],
+    gruppen: dict[str, list[Vec2]],
+    floor: list[Vec2],
+) -> bool:
+    """Binäres Urteil, ob EIN relationaler Wunsch am fertigen Plan erfüllt ist.
+
+    Bewertet auf ALLEN Endposen je funktionsTyp/itemId (nächste Instanz zählt) –
+    anders als der greedy Platzierungs-Score, der nur schon Platziertes kennt.
+    Fehlt der Anker (Typ/Item nicht platziert), gilt der Wunsch als NICHT erfüllt;
+    einzige Ausnahme: ein Gruppen-Wunsch ohne weitere Mitglieder ist gegenstandslos.
+    """
+    if isinstance(rel, Near):
+        anker = _ohne_eigene(typ_pos.get(rel.funktions_typ, []), pos)
+        if not anker:
+            return False
+        if rel.max_dist == math.inf:
+            return True  # «nah, ohne Mass»: Anker vorhanden genügt (kein Schwellen-Erfinden)
+        return min(_dist(pos, a) for a in anker) <= rel.max_dist + 1e-6
+    if isinstance(rel, AgainstWall):
+        max_abstand = float(item["masse"]["d"]) / 2 + _REL_WAND_TOL
+        return dist_point_to_polygon_boundary(pos, floor) <= max_abstand
+    if isinstance(rel, Corner):
+        return _min_ecken_dist(pos, floor) <= _REL_CORNER_MAX
+    if isinstance(rel, Facing):
+        anker = _ohne_eigene(typ_pos.get(rel.funktions_typ, []), pos)
+        if not anker:
+            return False
+        ziel = min(anker, key=lambda a: _dist(pos, a))
+        if _dist(pos, ziel) == 0:
+            return True  # deckungsgleich – Blickrichtung unbestimmbar, nicht bestrafen
+        f = front_dir(yaw_deg)
+        v = _norm((ziel[0] - pos[0], ziel[1] - pos[1]))
+        return f[0] * v[0] + f[1] * v[1] >= _REL_FACING_MIN_COS
+    if isinstance(rel, Opposite):
+        anker = _ohne_eigene(typ_pos.get(rel.funktions_typ, []), pos)
+        if not anker:
+            return False
+        ziel = min(anker, key=lambda a: _dist(pos, a))
+        c = _centroid(floor)
+        # Gegenüber = andere Raumhälfte: Pose und Anker liegen auf verschiedenen
+        # Seiten des Zentroids (Skalarprodukt < 0) – schwellenfrei/deterministisch.
+        return (pos[0] - c[0]) * (ziel[0] - c[0]) + (pos[1] - c[1]) * (ziel[1] - c[1]) < 0
+    if isinstance(rel, Group):
+        andere = _ohne_eigene(gruppen.get(rel.group_id, []), pos)
+        if not andere:
+            return True  # einziges Mitglied – nichts zu gruppieren (gegenstandslos)
+        return _dist(pos, _centroid(andere)) <= _REL_GROUP_MAX
+    if isinstance(rel, PairWith):
+        partner = _ohne_eigene(id_pos.get(rel.item_id, []), pos)
+        if not partner:
+            return False
+        return min(_dist(pos, a) for a in partner) <= _REL_PAIR_MAX
+    return False
+
+
+def softscore_relation(
+    placements: list[dict[str, Any]],
+    by_id: dict[str, dict[str, Any]],
+    rel_map: dict[str, list[Relation]],
+    floor: list[Vec2],
+) -> float:
+    """Anteil erfüllter relationaler/Anordnungs-Wünsche am fertigen Plan (∈ [0,1]).
+
+    Dieselbe Relations-Quelle wie Platzierung und K-Varianten-Scoring
+    (`baue_rel_map` – kein Drift), bewertet auf den ENDposen: je platzierter
+    Instanz und Relation ein binäres Urteil (`_relation_erfuellt`, v0-Schwellen
+    oben), relation = erfüllt/gesamt. Ohne Wünsche 1.0 (vakuum-wahr: nichts
+    offen – dokumentierte Konvention, gilt für alle Raumtypen inkl. Küche).
+    Deterministische reine Funktion der Platzierungen.
+    """
+    typ_pos: dict[str, list[Vec2]] = {}
+    id_pos: dict[str, list[Vec2]] = {}
+    gruppen: dict[str, list[Vec2]] = {}
+    posen: list[tuple[dict[str, Any], Vec2, float]] = []
+    for p in placements:
+        it = by_id[p["catalogItemId"]]
+        pos: Vec2 = (p["pose"]["pos"][0], p["pose"]["pos"][1])
+        posen.append((it, pos, float(p["pose"]["yawDeg"])))
+        typ_pos.setdefault(it["funktionsTyp"], []).append(pos)
+        id_pos.setdefault(it["id"], []).append(pos)
+        for r in rel_map.get(it["id"], []):
+            if isinstance(r, Group):
+                gruppen.setdefault(r.group_id, []).append(pos)
+    gesamt = 0
+    erfuellt = 0
+    for it, pos, yaw in posen:
+        for r in rel_map.get(it["id"], []):
+            gesamt += 1
+            if _relation_erfuellt(r, pos, yaw, it, typ_pos, id_pos, gruppen, floor):
+                erfuellt += 1
+    if gesamt == 0:
+        return 1.0
+    return round(erfuellt / gesamt, 3)
+
+
+# --- Begehbarkeit hart am Planende («hart am Ende», Weg 1) ---------------------
+# WARUM die circulation-Regel NICHT hart im Regel-JSON/Feasibility-Filter wird:
+# die Grid/BFS/Union-Find-Auswertung kostet gemessen das 10–13-fache ALLER
+# harten Regeln zusammen (~15 ms Bad / ~33 ms Wohnen vs. ~1.4–2.6 ms), und ein
+# solve() ruft den Feasibility-Filter 22–47× ⇒ hart im Filter würde jedes Solve
+# ~7–10× verlangsamen (0.08 s → 0.3–0.7 s, ×3 bei K-Varianten). Zudem ist
+# circulation eine GLOBALE Grid-Eigenschaft (Anker-Konnektivität), nicht
+# inkrementell am einzeln platzierten Objekt prüfbar. Deshalb bleibt die Regel
+# im Regel-JSON **soft** (Parität + goldene Fixtures unberührt); die HÄRTE lebt
+# hier in der Liefer-Schleife: EINMAL am fertigen Plan geprüft, verletzt ⇒
+# deterministische Eskalation (K-Variante bzw. reduzierte Auswahl), am Ende
+# sichtbarer Hinweis statt stiller Verletzung.
+
+MAX_REDUKTIONEN = 3
+BEGEHBARKEIT_HINWEIS = (
+    "BEGEHBARKEIT NICHT ERREICHT: Der Verkehrsweg bleibt auch nach Reduktion "
+    "optionaler Objekte verletzt – Grundriss/Türlage prüfen."
+)
+
+
+def _circulation_ids(rules: list[dict[str, Any]]) -> set[str]:
+    return {r["id"] for r in rules if r.get("type") == "circulation"}
+
+
+def circulation_verletzt(report: dict[str, Any], rules: list[dict[str, Any]]) -> bool:
+    """True, wenn der Report eine circulation-Regel als «verletzt» meldet.
+
+    Liest den fertigen constraintReport (die Regel wird dort ohnehin einmal je
+    Plan ausgewertet) – KEINE zusätzliche Grid-Auswertung. Regelsets ohne
+    circulation-Regel sind trivial begehbar (keine Anforderung).
+    """
+    ids = _circulation_ids(rules)
+    return any(res["ruleId"] in ids and res["status"] == "verletzt" for res in report["results"])
+
+
+def markiere_begehbarkeit(report: dict[str, Any], rules: list[dict[str, Any]]) -> None:
+    """Sichtbarer Hinweis am verletzten circulation-Ergebnis (ruleResult.hinweis).
+
+    Bewusst im bestehenden `hinweis`-Feld: `constraintReport` ist im Plan-Schema
+    additionalProperties:false – ein neues Feld wäre genau die Schema-Änderung,
+    die Weg «hart am Ende» vermeidet. Der Marker «BEGEHBARKEIT NICHT ERREICHT»
+    ist stabil prüfbar (Tests/UI).
+    """
+    ids = _circulation_ids(rules)
+    for res in report["results"]:
+        if res["ruleId"] in ids and res["status"] == "verletzt":
+            alt = res.get("hinweis")
+            res["hinweis"] = f"{alt} ⚠️ {BEGEHBARKEIT_HINWEIS}" if alt else BEGEHBARKEIT_HINWEIS
+
+
+def reduzierte_auswahl(
+    auswahl_ids: list[str],
+    mengen: dict[str, int] | None,
+    by_id: dict[str, dict[str, Any]],
+    schritt: int,
+) -> tuple[list[str], dict[str, int] | None] | None:
+    """Auswahl ohne die LETZTEN `schritt` reduzierbaren Items; None wenn erschöpft.
+
+    Reduzierbar = P3- bzw. Ergänzungs-Item OHNE Anker-Pflicht (`ankerTyp`) – der
+    Kern (P1/P2-Haupt) und verankerte Ergänzungen (Stühle am Esstisch) bleiben
+    unangetastet. Entfernt wird vom Ende der Auswahl (deterministisch);
+    `mengen`-Einträge entfernter IDs fallen mit weg.
+    """
+    reduzierbar = [
+        i
+        for i in auswahl_ids
+        if (by_id[i]["priorityClass"] == "P3" or by_id[i].get("objektEbene") == "ergaenzung")
+        and not by_id[i].get("ankerTyp")
+    ]
+    if len(reduzierbar) < schritt:
+        return None
+    raus = set(reduzierbar[-schritt:])
+    neue = [i for i in auswahl_ids if i not in raus]
+    neue_mengen = {k: v for k, v in (mengen or {}).items() if k not in raus}
+    return neue, (neue_mengen or None)
+
+
+def solve_begehbar(
+    room: dict[str, Any],
+    auswahl_ids: list[str],
+    relationale_absichten: list[dict[str, Any]],
+    catalog: list[dict[str, Any]],
+    rules: list[dict[str, Any]],
+    *,
+    seed: int,
+    norm_profile: str = "ch",
+    stilprofil_ref: str | None = None,
+    style_profile: dict[str, Any] | None = None,
+    anordnung: list[dict[str, Any]] | None = None,
+    farben: dict[str, str] | None = None,
+    mengen: dict[str, int] | None = None,
+    created_at: str = "1970-01-01T00:00:00Z",
+) -> dict[str, Any]:
+    """`solve()` mit harter Begehbarkeits-Garantie am Planende (Weg «hart am Ende»).
+
+    Liefer-Schleife (Begründung im Abschnittskommentar oben):
+    1. Normales `solve()` – meldet der fertige Report keine circulation-Verletzung,
+       ist nichts zu tun (der häufige Fall kostet NICHTS extra).
+    2. Sonst deterministischer Re-Solve mit reduzierter Auswahl (gleicher seed;
+       je Schritt fällt das letzte P3-/Ergänzungs-Item ohne Anker-Pflicht weg),
+       max. `MAX_REDUKTIONEN` Schritte.
+    3. Bringen alle Reduktionen nichts, wird der VOLLE Plan geliefert – mit
+       sichtbarem Hinweis im Report (`markiere_begehbarkeit`): Möbel behalten,
+       Problem ehrlich ausweisen, statt stillschweigend Objekte zu opfern.
+
+    0-❌-Invariante und Determinismus bleiben: jeder Kandidat kommt aus `solve()`
+    (per Konstruktion 0 ❌); gleiche Inputs + seed ⇒ gleiche Leiter ⇒ gleicher Plan.
+    """
+    by_id = {c["id"]: c for c in catalog}
+    plan = solve(
+        room,
+        auswahl_ids,
+        relationale_absichten,
+        catalog,
+        rules,
+        seed=seed,
+        norm_profile=norm_profile,
+        stilprofil_ref=stilprofil_ref,
+        style_profile=style_profile,
+        anordnung=anordnung,
+        farben=farben,
+        mengen=mengen,
+        created_at=created_at,
+    )
+    if not circulation_verletzt(plan["constraintReport"], rules):
+        return plan
+    for schritt in range(1, MAX_REDUKTIONEN + 1):
+        red = reduzierte_auswahl(auswahl_ids, mengen, by_id, schritt)
+        if red is None:
+            break
+        kandidat = solve(
+            room,
+            red[0],
+            relationale_absichten,
+            catalog,
+            rules,
+            seed=seed,
+            norm_profile=norm_profile,
+            stilprofil_ref=stilprofil_ref,
+            style_profile=style_profile,
+            anordnung=anordnung,
+            farben=farben,
+            mengen=red[1],
+            created_at=created_at,
+        )
+        if not circulation_verletzt(kandidat["constraintReport"], rules):
+            return kandidat
+    markiere_begehbarkeit(plan["constraintReport"], rules)
+    return plan

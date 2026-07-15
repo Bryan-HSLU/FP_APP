@@ -185,13 +185,19 @@ def test_solve_varianten_liefert_beste_und_info() -> None:
     assert info["anzahl"] == 3
     assert len(info["varianten"]) == 3
     assert 0 <= info["gewaehlt"] < 3
-    # best ≥ Variante 0: gewählte (platziert, −knapp, relationScore) ist nie schlechter.
+    # best ≥ Variante 0: gewählte (platziert, −knapp, relationScore) ist nie
+    # schlechter – AUSSER die dokumentierte Begehbarkeits-Leiter (Welle D) hat
+    # eingegriffen: dann ist die gelieferte Variante die beste BEGEHBARE
+    # (Massnahme steht in varianteInfo.begehbarkeit).
     g, v0 = info["varianten"][info["gewaehlt"]], info["varianten"][0]
-    assert (g["platziert"], -g["knapp"], g["relationScore"]) >= (
-        v0["platziert"],
-        -v0["knapp"],
-        v0["relationScore"],
-    )
+    if "begehbarkeit" not in info:
+        assert (g["platziert"], -g["knapp"], g["relationScore"]) >= (
+            v0["platziert"],
+            -v0["knapp"],
+            v0["relationScore"],
+        )
+    else:
+        assert info["begehbarkeit"]["massnahme"] in {"andere-variante", "reduktion", "hinweis"}
 
 
 def test_solve_varianten_determinismus() -> None:
