@@ -1543,12 +1543,18 @@ class LlmKurator:
         }
         if seed is not None:
             payload["seed"] = seed
-        # Thinking-Modus (nur bei gesetztem FP_KURATOR_REASONING): reasoning_effort
-        # steuert den Denk-Aufwand; reasoning_format="hidden" hält den Qwen3-Denk-
-        # text aus dem JSON-Feld (sonst verschmutzt er die Antwort). Best effort –
-        # Server, die die Felder nicht kennen, ignorieren sie.
-        if self.reasoning:
-            payload["reasoning_effort"] = self.reasoning
+        # Thinking-Steuerung: Qwen3 denkt DEFAULT laut (<think>-Text) – unter
+        # response_format=json_object quittiert Groq das mit 400
+        # json_validate_failed, und der gescheiterte Call verbrennt trotzdem
+        # das Tokens/Minute-Budget (429/413-Kaskade danach). Darum bei Qwen3
+        # ohne FP_KURATOR_REASONING das Denken explizit AUS (effort "none") und
+        # der Denktext via reasoning_format="hidden" aus dem Content. Gesetztes
+        # FP_KURATOR_REASONING (z.B. "default") schaltet Thinking bewusst ein.
+        # Nicht-Qwen3-Provider bleiben ohne Env-Flag unberührt (best effort).
+        ist_qwen3 = "qwen3" in self.model.lower()
+        effort = self.reasoning or ("none" if ist_qwen3 else None)
+        if effort:
+            payload["reasoning_effort"] = effort
             payload["reasoning_format"] = "hidden"
         res = self._post_mit_backoff(headers, payload)
         res.raise_for_status()
