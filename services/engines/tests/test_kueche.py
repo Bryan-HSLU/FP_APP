@@ -217,8 +217,10 @@ def test_arbeitsdreieck_befuellt_softscore_ergonomie(
     plan = solve_kueche(raum_fn(), CATALOG, RULES, form="i", norm_profile=norm, seed=2)
     ergo = plan["constraintReport"]["softScore"]["ergonomie"]
     assert 0.0 < ergo <= 1.0
-    # stil/relation bleiben unberührt (vom Interpreter) – kein Seiteneffekt.
-    assert plan["constraintReport"]["softScore"]["relation"] == 0.0
+    # stil/relation befüllt der Solver seit Welle D ehrlich: ohne Stilprofil ist
+    # stil 0.0 (neutraler cos), ohne Relations-Wünsche relation vakuum-wahr 1.0.
+    assert plan["constraintReport"]["softScore"]["stil"] == 0.0
+    assert plan["constraintReport"]["softScore"]["relation"] == 1.0
 
 
 def test_arbeitsdreieck_detail_und_amk_bereich() -> None:

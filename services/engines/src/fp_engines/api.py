@@ -33,7 +33,7 @@ from fp_engines.scan import (
     parse_layout,
     parse_posen,
 )
-from fp_engines.solver import NoFeasiblePlacement, solve
+from fp_engines.solver import NoFeasiblePlacement, solve_begehbar
 from fp_engines.zonen import zone_room
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -410,7 +410,10 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
                     created_at=created,
                 )
             else:
-                plan = solve(
+                # solve_begehbar = solve() + Begehbarkeits-Garantie am Planende
+                # (Weg «hart am Ende», Begründung in fp_engines.solver). Der
+                # Varianten-Pfad oben und solve_kueche erzwingen sie intern.
+                plan = solve_begehbar(
                     raum,
                     auswahl,
                     absichten,

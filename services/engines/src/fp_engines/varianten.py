@@ -19,11 +19,15 @@ from typing import Any
 from fp_engines.relationen import Relation
 from fp_engines.rules.geometry import Vec2
 from fp_engines.solver import (
+    MAX_REDUKTIONEN,
     _Kandidat,
     _kandidat_score,
     _merke_platzierung,
     _PlatzKontext,
     baue_rel_map,
+    circulation_verletzt,
+    markiere_begehbarkeit,
+    reduzierte_auswahl,
     solve,
 )
 
@@ -55,10 +59,12 @@ _SUBSEED_XOR: tuple[int, ...] = (
 #      vollständigerer, wertvollerer Raum. Primärsignal.
 #   2. komfort = −knapp (desc) – alle Varianten haben 0 ❌ (Invariante), aber
 #      weniger «knappe» harte Regeln im constraintReport = mehr Luft zur Norm =
-#      robusteres Layout. Das ist das EINZIGE echte Soft-Signal, das der
-#      generische Solver in den Report schreibt: die `softScore`-Felder bleiben
-#      0.0 (nur die Küche füllt `ergonomie` extern), deshalb NICHT als Kriterium
-#      verwendet.
+#      robusteres Layout. Die softScore-Felder (stil/relation, seit Welle D vom
+#      Solver echt befüllt) fliessen bewusst NICHT ins Ranking: `relation` in
+#      Stufe 3 misst dieselben Wünsche kontinuierlich (feiner als der binäre
+#      Anteil in softScore.relation), und ein zusätzlicher Term würde die hier
+#      dokumentierte Rangfolge stillschweigend ändern. Wer sie aufnehmen will:
+#      dokumentieren + Tests (Arbeitsanweisung Welle D).
 #   3. relation (desc) – weiche Relations-/Stil-Zufriedenheit des fertigen Plans,
 #      bewertet mit dem SOLVER-EIGENEN Soft-Objektiv (`_kandidat_score` über den
 #      voll besetzten Kontext). Die Variante, die near/facing/opposite/group/
@@ -155,6 +161,15 @@ def loese_mit_varianten(
     API-Response-Hülle – bewusst NICHT im Plan-Artefakt (keine Schema-Änderung).
     Parameter spiegeln `solve()`; der Aufrufer entscheidet per Flag, ob er
     `solve()` (eine Variante) oder diese Funktion (K Varianten) nutzt.
+
+    Begehbarkeit (Weg «hart am Ende», Begründung in `solver.solve_begehbar`):
+    verletzt die Score-beste Variante die circulation-Regel, greift die
+    dokumentierte Leiter – (1) nächstbeste BEGEHBARE Variante in Score-
+    Reihenfolge, (2) sind alle K verletzt: deterministischer Re-Solve mit
+    reduzierter Auswahl auf dem Basis-seed (max. `MAX_REDUKTIONEN`), (3)
+    sichtbarer Hinweis im Report des Score-Siegers. Die Massnahme steht additiv
+    in `variante_info["begehbarkeit"]`; der häufige Fall (beste Variante
+    begehbar) bleibt byte-identisch zum bisherigen Verhalten.
     """
     by_id = {c["id"]: c for c in catalog}
     rel_map = baue_rel_map(relationale_absichten, anordnung)
@@ -185,9 +200,58 @@ def loese_mit_varianten(
         infos.append(info)
 
     gewaehlt = max(range(len(scores)), key=lambda i: scores[i])
-    variante_info = {
+    variante_info: dict[str, Any] = {
         "gewaehlt": gewaehlt,
         "anzahl": len(plaene),
         "varianten": infos,
     }
+
+    # Begehbarkeits-Leiter (siehe Docstring): greift NUR bei verletzter
+    # circulation der Score-besten Variante – sonst bleibt Auswahl UND Rangfolge
+    # exakt wie dokumentiert (kein stiller Semantik-Wechsel).
+    if circulation_verletzt(plaene[gewaehlt]["constraintReport"], rules):
+        rangfolge = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
+        alternative = next(
+            (
+                i
+                for i in rangfolge
+                if not circulation_verletzt(plaene[i]["constraintReport"], rules)
+            ),
+            None,
+        )
+        if alternative is not None:
+            gewaehlt = alternative
+            variante_info["gewaehlt"] = alternative
+            variante_info["begehbarkeit"] = {"massnahme": "andere-variante", "index": alternative}
+        else:
+            # Alle K verletzt → deterministischer Re-Solve mit reduzierter
+            # Auswahl auf dem Basis-seed (gleiche Mechanik wie solve_begehbar).
+            for schritt in range(1, MAX_REDUKTIONEN + 1):
+                red = reduzierte_auswahl(auswahl_ids, mengen, by_id, schritt)
+                if red is None:
+                    break
+                kandidat = solve(
+                    room,
+                    red[0],
+                    relationale_absichten,
+                    catalog,
+                    rules,
+                    seed=seed,
+                    norm_profile=norm_profile,
+                    stilprofil_ref=stilprofil_ref,
+                    style_profile=style_profile,
+                    anordnung=anordnung,
+                    farben=farben,
+                    mengen=red[1],
+                    created_at=created_at,
+                )
+                if not circulation_verletzt(kandidat["constraintReport"], rules):
+                    variante_info["begehbarkeit"] = {
+                        "massnahme": "reduktion",
+                        "entfernteItems": schritt,
+                    }
+                    return kandidat, variante_info
+            markiere_begehbarkeit(plaene[gewaehlt]["constraintReport"], rules)
+            variante_info["begehbarkeit"] = {"massnahme": "hinweis"}
+
     return plaene[gewaehlt], variante_info
