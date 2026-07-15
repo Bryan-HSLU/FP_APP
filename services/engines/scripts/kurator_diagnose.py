@@ -47,7 +47,9 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import re
+import time
 from pathlib import Path
 from statistics import mean
 from typing import Any
@@ -529,6 +531,9 @@ def main(argv: list[str] | None = None) -> int:
         for profil_name in profile:
             profil = PROFILE[profil_name]
             for seed in seeds:
+                if port.name != "baseline":
+                    # Free-Tier-TPM: Pause zwischen LLM-Läufen (Serien-Drosselung).
+                    time.sleep(float(os.environ.get("FP_EVAL_PAUSE_S", "0")))
                 antwort = port.kuratiere(profil, room, catalog, None, seed)
                 haupt, erg = _extrahiere_ebenen(antwort)
                 auswahl = antwort.get("auswahl") or []

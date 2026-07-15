@@ -38,7 +38,9 @@ jobs:
       FP_KURATOR_API_KEY: ${{ secrets.FP_KURATOR_API_KEY || inputs.api_key }}
       # Free-Tier: enges Tokens/Minute-Budget -> Prompt straff kuerzen und
       # Eval-Matrix fuer den LLM-Port drosseln (Diagnose bleibt volle Matrix).
-      FP_KURATOR_MAX_PROMPT_TOKENS: "3000"
+      FP_KURATOR_MAX_PROMPT_TOKENS: "2200"
+      FP_KURATOR_MAX_ANTWORT_TOKENS: "900"
+      FP_EVAL_PAUSE_S: "20"
       FP_EVAL_LLM_SEEDS: "1"
     steps:
       - uses: actions/checkout@v4

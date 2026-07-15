@@ -38,6 +38,7 @@ Aufruf: uv run python scripts/kurator_eval.py   (aus services/engines/)
 import json
 import math
 import os
+import time
 from pathlib import Path
 from statistics import mean
 from typing import Any
@@ -208,6 +209,9 @@ def _miss(port: KuratorPort) -> dict[str, Any]:
 
         for profil in PROFILE.values():
             for seed in seeds:
+                if port.name != "baseline":
+                    # Free-Tier-TPM: Pause zwischen LLM-Läufen (Serien-Drosselung).
+                    time.sleep(float(os.environ.get("FP_EVAL_PAUSE_S", "0")))
                 antwort = port.kuratiere(profil, room, catalog, None, seed)
                 laeufe += 1
                 auswahl = antwort.get("auswahl") or []

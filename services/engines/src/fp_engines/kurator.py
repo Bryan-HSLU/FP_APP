@@ -1272,24 +1272,24 @@ class LlmKurator:
         self._letzte_ursache: str | None = None
 
     def _post_mit_backoff(self, headers: dict[str, str], payload: dict[str, Any]) -> httpx.Response:
-        """POST mit kleinem 429-Backoff (max. 2 Wiederholungen, Retry-After
-        respektiert, Deckel 15 s). Free-Tier-Limits (Tokens/Minute) drosseln
+        """POST mit kleinem 429-Backoff (max. 3 Wiederholungen, Retry-After
+        respektiert, Deckel 30 s). Free-Tier-Limits (Tokens/Minute) drosseln
         Serien-Läufe wie Eval/Diagnose – ohne Backoff kippt jeder gedrosselte
         Call in den Baseline-Fallback statt kurz zu warten."""
-        for versuch in range(3):
+        for versuch in range(4):
             res = httpx.post(
                 f"{self.url}/chat/completions",
                 headers=headers,
                 json=payload,
                 timeout=self.timeout_s,
             )
-            if res.status_code != 429 or versuch == 2:
+            if res.status_code != 429 or versuch == 3:
                 return res
             retry_after = res.headers.get("retry-after")
             try:
-                warte = min(float(retry_after), 15.0) if retry_after else 5.0 * (versuch + 1)
+                warte = min(float(retry_after), 30.0) if retry_after else 8.0 * (versuch + 1)
             except ValueError:
-                warte = 5.0 * (versuch + 1)
+                warte = 8.0 * (versuch + 1)
             log.info("kurator: 429 rate-limit, warte %.1fs (versuch %d)", warte, versuch + 1)
             time.sleep(warte)
         return res  # unerreichbar, beruhigt den Typchecker
