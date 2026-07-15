@@ -58,6 +58,7 @@ import logging
 import math
 import os
 import random
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Protocol, TypeGuard
@@ -1261,9 +1262,37 @@ class LlmKurator:
         self.reasoning: str | None = os.environ.get("FP_KURATOR_REASONING")
         temp_env = os.environ.get("FP_KURATOR_TEMP")
         self.temperature: float = float(temp_env) if temp_env else 0.3
+        # Explizites Antwort-Budget: Rate-Limiter (Groq) zählen sonst das
+        # maximale Completion-Fenster zur Request-Grösse → 413. Override via
+        # FP_KURATOR_MAX_ANTWORT_TOKENS (z.B. höher für Thinking-Modus).
+        antwort_env = os.environ.get("FP_KURATOR_MAX_ANTWORT_TOKENS")
+        self.max_antwort_tokens: int = int(antwort_env) if antwort_env else 1200
         # Ursache des letzten gescheiterten _call_json (für den Fallback-Marker,
         # z.B. «HTTP 413»); None = kein Fehler bzw. noch kein Call.
         self._letzte_ursache: str | None = None
+
+    def _post_mit_backoff(self, headers: dict[str, str], payload: dict[str, Any]) -> httpx.Response:
+        """POST mit kleinem 429-Backoff (max. 2 Wiederholungen, Retry-After
+        respektiert, Deckel 15 s). Free-Tier-Limits (Tokens/Minute) drosseln
+        Serien-Läufe wie Eval/Diagnose – ohne Backoff kippt jeder gedrosselte
+        Call in den Baseline-Fallback statt kurz zu warten."""
+        for versuch in range(3):
+            res = httpx.post(
+                f"{self.url}/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=self.timeout_s,
+            )
+            if res.status_code != 429 or versuch == 2:
+                return res
+            retry_after = res.headers.get("retry-after")
+            try:
+                warte = min(float(retry_after), 15.0) if retry_after else 5.0 * (versuch + 1)
+            except ValueError:
+                warte = 5.0 * (versuch + 1)
+            log.info("kurator: 429 rate-limit, warte %.1fs (versuch %d)", warte, versuch + 1)
+            time.sleep(warte)
+        return res  # unerreichbar, beruhigt den Typchecker
 
     # --- Prompt-Bau ---------------------------------------------------------
 
@@ -1506,6 +1535,11 @@ class LlmKurator:
             "messages": messages,
             "temperature": self.temperature,
             "response_format": {"type": "json_object"},
+            # Ohne explizites max_tokens rechnen Rate-Limiter (z.B. Groq) das
+            # MAXIMALE Antwort-Budget in die Request-Grösse ein → 413 trotz
+            # kleinem Prompt. Unsere JSON-Antworten sind kompakt; 1200 deckt
+            # Auswahl inkl. Konzept/Begründung locker.
+            "max_tokens": self.max_antwort_tokens,
         }
         if seed is not None:
             payload["seed"] = seed
@@ -1516,12 +1550,7 @@ class LlmKurator:
         if self.reasoning:
             payload["reasoning_effort"] = self.reasoning
             payload["reasoning_format"] = "hidden"
-        res = httpx.post(
-            f"{self.url}/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=self.timeout_s,
-        )
+        res = self._post_mit_backoff(headers, payload)
         res.raise_for_status()
         inhalt = res.json()["choices"][0]["message"]["content"]
         log.info(

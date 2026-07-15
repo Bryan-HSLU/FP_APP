@@ -51,9 +51,9 @@ def _id(name: str, art: str, idx: int | str) -> str:
     return str(uuid.uuid5(_NS, f"{name}|{art}|{idx}"))
 
 
-def _kette(punkte: list[tuple[tuple[float, float], tuple[float, float]]]) -> list[
-    tuple[float, float]
-]:
+def _kette(
+    punkte: list[tuple[tuple[float, float], tuple[float, float]]],
+) -> list[tuple[float, float]]:
     """Kettet Wandsegmente zum geschlossenen Boden-Polygon.
 
     Segmente dürfen ungeordnet und beliebig orientiert sein; verbunden wird der

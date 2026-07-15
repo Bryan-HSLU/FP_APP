@@ -110,9 +110,7 @@ def _yaw_aus_normale(n: tuple[float, float]) -> float:
     return yaw
 
 
-def _tuer_bereiche(
-    room: dict[str, Any], wall: dict[str, Any]
-) -> list[tuple[float, float]]:
+def _tuer_bereiche(room: dict[str, Any], wall: dict[str, Any]) -> list[tuple[float, float]]:
     """Tür-Intervalle (von, bis) entlang der Wand – hier darf keine Zeile stehen."""
     bereiche: list[tuple[float, float]] = []
     for op in room["openings"]:
@@ -121,9 +119,7 @@ def _tuer_bereiche(
     return bereiche
 
 
-def _fenster_bereiche(
-    room: dict[str, Any], wall: dict[str, Any]
-) -> list[tuple[float, float]]:
+def _fenster_bereiche(room: dict[str, Any], wall: dict[str, Any]) -> list[tuple[float, float]]:
     return [
         (op["offset"], op["offset"] + op["width"])
         for op in room["openings"]
@@ -198,9 +194,7 @@ def _zonenbreite_quer(room: dict[str, Any], zug: _Wandzug) -> float:
     floor = room["shell"]["floor"]["polygon"]
     # maximale Projektion der Bodenecken auf die Innen-Normale ab Wandmitte.
     mid = ((zug.start[0] + zug.end[0]) / 2, (zug.start[1] + zug.end[1]) / 2)
-    return max(
-        float((p[0] - mid[0]) * zug.n[0] + (p[1] - mid[1]) * zug.n[1]) for p in floor
-    )
+    return max(float((p[0] - mid[0]) * zug.n[0] + (p[1] - mid[1]) * zug.n[1]) for p in floor)
 
 
 def _anschlusswand(room: dict[str, Any], zuege: list[_Wandzug]) -> _Wandzug | None:
@@ -258,8 +252,15 @@ def formwahl(
         if z.nutzlaenge >= 2.4 and _zonenbreite_quer(room, z) >= 1.6:
             ergo = 1.0 - min(z.nutzlaenge / 6.0, 0.5)  # kompakter = besser (Proxy)
             _add(
-                kandidaten, "i", [z], anker, z.nutzlaenge, style_profile,
-                ergo, ap_norm(z.nutzlaenge), stau_norm(z.nutzlaenge),
+                kandidaten,
+                "i",
+                [z],
+                anker,
+                z.nutzlaenge,
+                style_profile,
+                ergo,
+                ap_norm(z.nutzlaenge),
+                stau_norm(z.nutzlaenge),
                 f"Eine Zeile an einer Wand ({z.nutzlaenge:.1f} m nutzbar).",
             )
 
@@ -272,8 +273,15 @@ def formwahl(
                 if breite >= 2.4 and a.nutzlaenge >= 2.4 and b.nutzlaenge >= 2.4:
                     nutz = a.nutzlaenge + b.nutzlaenge
                     _add(
-                        kandidaten, "galley", [a, b], anker, nutz, style_profile,
-                        0.8, ap_norm(nutz), stau_norm(nutz),
+                        kandidaten,
+                        "galley",
+                        [a, b],
+                        anker,
+                        nutz,
+                        style_profile,
+                        0.8,
+                        ap_norm(nutz),
+                        stau_norm(nutz),
                         "Zwei parallele Zeilen (Galley) mit Gang dazwischen.",
                     )
 
@@ -286,8 +294,15 @@ def formwahl(
                 if lang.nutzlaenge >= 1.8 and kurz.nutzlaenge >= 1.2:
                     nutz = lang.nutzlaenge + kurz.nutzlaenge
                     _add(
-                        kandidaten, "l", [lang, kurz], anker, nutz, style_profile,
-                        0.9, ap_norm(nutz), stau_norm(nutz),
+                        kandidaten,
+                        "l",
+                        [lang, kurz],
+                        anker,
+                        nutz,
+                        style_profile,
+                        0.9,
+                        ap_norm(nutz),
+                        stau_norm(nutz),
                         "L-Form über zwei angrenzende Wände (mehr Arbeitsfläche).",
                     )
 
@@ -300,8 +315,15 @@ def formwahl(
         if breite >= 3.4 and anker.nutzlaenge >= 2.4:
             nutz = anker.nutzlaenge
             _add(
-                kandidaten, "insel", [anker], anker, nutz, style_profile,
-                0.7, ap_norm(nutz + 1.5), stau_norm(nutz + 1.0),
+                kandidaten,
+                "insel",
+                [anker],
+                anker,
+                nutz,
+                style_profile,
+                0.7,
+                ap_norm(nutz + 1.5),
+                stau_norm(nutz + 1.0),
                 "Zeile plus freistehende Insel (Boden-Anschluss vorhanden).",
             )
 
@@ -334,8 +356,15 @@ def _u_kandidat(
             beteiligt = [basis, *schenkel]
             nutz = sum(z.nutzlaenge for z in beteiligt)
             _add(
-                kandidaten, "u", beteiligt, anker, nutz, style_profile,
-                0.85, ap_norm(nutz), stau_norm(nutz),
+                kandidaten,
+                "u",
+                beteiligt,
+                anker,
+                nutz,
+                style_profile,
+                0.85,
+                ap_norm(nutz),
+                stau_norm(nutz),
                 "U-Form über drei Wände (maximaler Stauraum, geborgen).",
             )
             return
@@ -441,9 +470,7 @@ def _vor_fenster(slot: _Slot) -> bool:
     return any(von - 1e-6 < slot.t_mitte < bis + 1e-6 for von, bis in slot.zug.fenster)
 
 
-def _naechster_fixpunkt_dist(
-    room: dict[str, Any], pos: tuple[float, float], typ: str
-) -> float:
+def _naechster_fixpunkt_dist(room: dict[str, Any], pos: tuple[float, float], typ: str) -> float:
     best = math.inf
     for f in room["fixpoints"]:
         if f["type"] != typ:
@@ -590,11 +617,7 @@ def solve_kueche(
     tiefe = 0.6  # Arbeitstiefe (Korpus), Detailkonzept Teil 0.
 
     # Katalog auf passende Normvariante (+ profilneutrale Items wie Deko) filtern.
-    passend = [
-        c
-        for c in catalog
-        if c.get("normProfileVariante") in (variante, None)
-    ]
+    passend = [c for c in catalog if c.get("normProfileVariante") in (variante, None)]
     by_typ: dict[str, list[dict[str, Any]]] = {}
     for c in passend:
         by_typ.setdefault(c["funktionsTyp"], []).append(c)
@@ -667,31 +690,73 @@ def solve_kueche(
     if _platziere_kuehlschrank(slots, belegt, by_typ, style_profile, rnd, setze) is None:
         raise NoFeasiblePlacement("kuehlschrank")
     _platziere_dunstabzug(
-        room, slots, belegt, by_typ, by_id, style_profile, placements,
-        assembly_id, kochfeld_idx, norm_profile, catalog, rules, rnd,
+        room,
+        slots,
+        belegt,
+        by_typ,
+        by_id,
+        style_profile,
+        placements,
+        assembly_id,
+        kochfeld_idx,
+        norm_profile,
+        catalog,
+        rules,
+        rnd,
     )
 
     # ---- P2: Restslots mit Korpussen + Hängeschränken ------------------------
-    _fuelle_unterschraenke(
-        slots, belegt, by_typ, style_profile, rnd, setze, kochfeld_idx
-    )
+    _fuelle_unterschraenke(slots, belegt, by_typ, style_profile, rnd, setze, kochfeld_idx)
     _fuelle_haengeschraenke(
-        room, slots, belegt, by_typ, by_id, style_profile, placements,
-        assembly_id, kochfeld_idx, norm_profile, catalog, rules, tiefe, rnd,
+        room,
+        slots,
+        belegt,
+        by_typ,
+        by_id,
+        style_profile,
+        placements,
+        assembly_id,
+        kochfeld_idx,
+        norm_profile,
+        catalog,
+        rules,
+        tiefe,
+        rnd,
     )
     # Eckschrank (L/U) zuerst in die reservierte Ecke – VOR den Füllstücken,
     # damit diese ihm ausweichen statt die Ecke zuzustellen.
     _platziere_eckschraenke(
-        eck_zonen, by_typ, by_id, placements, assembly_id,
-        style_profile, room, catalog, rules, norm_profile, rnd,
+        eck_zonen,
+        by_typ,
+        by_id,
+        placements,
+        assembly_id,
+        style_profile,
+        room,
+        catalog,
+        rules,
+        norm_profile,
+        rnd,
     )
-    _fuelle_fuellstuecke(room, form_zuege, slots, belegt, by_typ, placements, by_id,
-                         assembly_id, grid, tiefe, norm_profile, catalog, rules, rnd)
+    _fuelle_fuellstuecke(
+        room,
+        form_zuege,
+        slots,
+        belegt,
+        by_typ,
+        placements,
+        by_id,
+        assembly_id,
+        grid,
+        tiefe,
+        norm_profile,
+        catalog,
+        rules,
+        rnd,
+    )
 
     # ---- P3: Deko auf Restfläche (Boden-Kandidaten aus solver.py) ------------
-    _platziere_deko(
-        room, by_typ, by_id, placements, catalog, rules, norm_profile, rnd
-    )
+    _platziere_deko(room, by_typ, by_id, placements, catalog, rules, norm_profile, rnd)
 
     report = _befuellter_report(
         room, placements, catalog, rules, norm_profile, by_id, style_profile
@@ -991,8 +1056,11 @@ def _platziere_dunstabzug(
     # An die Wand (Tiefe d/2 von der Wand), über dem Kochfeld-Slot.
     pos = _slot_center(slot.zug, slot.t_mitte, item["masse"]["d"])
     placement = _slot_placement(
-        item, _Slot(slot.zug, slot.t_mitte, slot.breite, pos, slot.yaw),
-        rnd, assembly_id, mh,
+        item,
+        _Slot(slot.zug, slot.t_mitte, slot.breite, pos, slot.yaw),
+        rnd,
+        assembly_id,
+        mh,
     )
     placements.append(placement)
     if _schnell_unzulaessig(room, placements, by_id, placement) or (
@@ -1059,8 +1127,11 @@ def _fuelle_haengeschraenke(
             continue
         pos = _slot_center(slot.zug, slot.t_mitte, item["masse"]["d"])
         placement = _slot_placement(
-            item, _Slot(slot.zug, slot.t_mitte, slot.breite, pos, slot.yaw),
-            rnd, assembly_id, mh,
+            item,
+            _Slot(slot.zug, slot.t_mitte, slot.breite, pos, slot.yaw),
+            rnd,
+            assembly_id,
+            mh,
         )
         placements.append(placement)
         if _schnell_unzulaessig(room, placements, by_id, placement) or (
@@ -1086,9 +1157,7 @@ def _fuelle_fuellstuecke(
     rnd: random.Random,
 ) -> None:
     """P2: Restmass je Wandzug am Zeilenende mit Füllstücken (0.05/0.15) schliessen."""
-    fuell = sorted(
-        by_typ.get("fuellstueck", []), key=lambda c: c["masse"]["w"], reverse=True
-    )
+    fuell = sorted(by_typ.get("fuellstueck", []), key=lambda c: c["masse"]["w"], reverse=True)
     if not fuell:
         return
     for zug in form_zuege:
@@ -1101,8 +1170,11 @@ def _fuelle_fuellstuecke(
             while rest >= w - 1e-6 and rest >= _REST_MIN:
                 pos = _slot_center(zug, t + w / 2, tiefe)
                 placement = _slot_placement(
-                    stueck, _Slot(zug, t + w / 2, w, pos, zug.yaw),
-                    rnd, assembly_id, None,
+                    stueck,
+                    _Slot(zug, t + w / 2, w, pos, zug.yaw),
+                    rnd,
+                    assembly_id,
+                    None,
                 )
                 placements.append(placement)
                 if _schnell_unzulaessig(room, placements, by_id, placement) or (
@@ -1128,11 +1200,7 @@ def _platziere_deko(
     """P3: 1–2 Deko-Items auf Restfläche (freie Boden-Kandidaten aus solver.py)."""
     from fp_engines.solver import _floor_candidates
 
-    deko = [
-        c
-        for typ in ("deko", "pflanze")
-        for c in by_typ.get(typ, [])
-    ]
+    deko = [c for typ in ("deko", "pflanze") for c in by_typ.get(typ, [])]
     rnd.shuffle(deko)
     gesetzt = 0
     for item in deko:

@@ -69,8 +69,9 @@ def _wall_on_edge(wall: dict[str, Any], edge: tuple[Vec2, Vec2]) -> bool:
     """
     a, b = edge
     edge_mid: Vec2 = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
-    return _point_on_segment(edge_mid, (wall["start"][0], wall["start"][1]),
-                             (wall["end"][0], wall["end"][1]))
+    return _point_on_segment(
+        edge_mid, (wall["start"][0], wall["start"][1]), (wall["end"][0], wall["end"][1])
+    )
 
 
 def _clip_openings(

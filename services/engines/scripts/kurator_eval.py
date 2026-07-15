@@ -176,7 +176,20 @@ def _palette_treffer(
     return mean(treffer) if treffer else None
 
 
+def _port_seeds(port: KuratorPort) -> range:
+    """Seeds je Port: FP_EVAL_LLM_SEEDS drosselt NUR den LLM-Port (Free-Tier-
+    Rate-Limits, Tokens/Minute); die Baseline misst immer die volle Matrix.
+    Vergleich dann entsprechend gröber – bewusster Trade-off, im Report sichtbar
+    über die Läufe-Zeile."""
+    if port.name != "baseline":
+        n = os.environ.get("FP_EVAL_LLM_SEEDS")
+        if n:
+            return range(1, max(1, int(n)) + 1)
+    return SEEDS
+
+
 def _miss(port: KuratorPort) -> dict[str, Any]:
+    seeds = _port_seeds(port)
     laeufe = 0
     gueltig = 0
     treue: list[float] = []
@@ -194,7 +207,7 @@ def _miss(port: KuratorPort) -> dict[str, Any]:
         bodenflaeche = room["shell"]["floor"].get("area") or 0.0
 
         for profil in PROFILE.values():
-            for seed in SEEDS:
+            for seed in seeds:
                 antwort = port.kuratiere(profil, room, catalog, None, seed)
                 laeufe += 1
                 auswahl = antwort.get("auswahl") or []
