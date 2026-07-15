@@ -18,7 +18,8 @@ export type LayerId =
   | "platzbedarf"
   | "beschriftung"
   | "masse"
-  | "ampel";
+  | "ampel"
+  | "flaechen";
 
 export interface LayerDef {
   id: LayerId;
@@ -37,10 +38,11 @@ export const DARSTELLUNGS_LAYER: LayerDef[] = [
   { id: "beschriftung", label: "Beschriftung", icon: "🏷️" },
   { id: "masse", label: "Masse", icon: "📏" },
   { id: "ampel", label: "Ampel", icon: "🚦" },
+  { id: "flaechen", label: "Flächen", icon: "🎨" },
 ];
 
-/** Sinnvolle Standard-Sichtbarkeit: Wände/Öffnungen/Objekte/Beschriftung/Ampel
- *  an; Bounding-Boxen, Platzbedarf und Masse aus. */
+/** Sinnvolle Standard-Sichtbarkeit: Wände/Öffnungen/Objekte/Beschriftung/Ampel/
+ *  Flächen an; Bounding-Boxen, Platzbedarf und Masse aus. */
 export function defaultLayers(): Record<LayerId, boolean> {
   return {
     waende: true,
@@ -51,6 +53,7 @@ export function defaultLayers(): Record<LayerId, boolean> {
     beschriftung: true,
     masse: false,
     ampel: true,
+    flaechen: true,
   };
 }
 

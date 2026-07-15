@@ -18,6 +18,7 @@ import {
   type KV,
   type Plan,
   type Room,
+  type VariantenPlan,
 } from "./api";
 import { AppRahmen } from "./AppRahmen";
 import { Splash, StartMenue } from "./StartMenue";
@@ -41,6 +42,13 @@ import {
   type OberflaechenWahl,
 } from "./oberflaechen";
 import { loeseFarbSlug } from "./farben";
+import { loeseFlaechen2D } from "./flaechen2d";
+import {
+  beschreibeWaende,
+  setzeAlleWaende,
+  setzeWandMaterial,
+  type WandBereich,
+} from "./wandauswahl";
 import type { Begehungsmodus } from "./viewer3d-logik";
 
 // UI-Redesign Etappe B: Die fünf Schritt-Inhalte leben jetzt in eigenen
@@ -93,6 +101,11 @@ export function App() {
   // manuell überschriebene, normgeprüfte Flächen. Beide leben nur im Frontend.
   const [farbWahl, setFarbWahl] = useState<Record<string, string>>({});
   const [manuelleFlaechen, setManuelleFlaechen] = useState<FlaechenKonzept | null>(null);
+  // Welle C: «3 Vorschläge» – alle K Pläne best-first + Index der aktiven Karte.
+  const [variantenPlaene, setVariantenPlaene] = useState<VariantenPlan[] | null>(null);
+  const [aktiveVariante, setAktiveVariante] = useState(0);
+  // Welle C: Einzelwand-Auswahl im Flächen-Panel (null = «Alle Wände»).
+  const [gewaehlteWand, setGewaehlteWand] = useState<number | null>(null);
   // Scan-Upload (M7 Schritt 4): Raumtyp des hochgeladenen Scan-Bundles.
   const [scanRoomType, setScanRoomType] = useState("bad");
   // Scan-Korrektur-Modus (M7 Schritt 6): geladener Scan wartet auf Korrektur.
@@ -142,6 +155,9 @@ export function App() {
       setFlaechen(null);
       setFarbWahl({});
       setManuelleFlaechen(null);
+      setVariantenPlaene(null);
+      setAktiveVariante(0);
+      setGewaehlteWand(null);
       setOberflaechenWahl({ boden: null, wand: null });
       // Für Küchen den Katalog/Regeln des effektiven Raumtyps laden.
       const istKueche =
@@ -207,6 +223,7 @@ export function App() {
           hinweis?: string;
           arbeitsdreieck?: Arbeitsdreieck;
           flaechen?: FlaechenKonzept | null;
+          variantenPlaene?: VariantenPlan[];
         };
         if (kuecheInfo.istKueche) {
           // Küche: lineare Baugruppe – Form + Normprofil (+ Zone) an den Solver.
@@ -242,10 +259,15 @@ export function App() {
             farben: kurator?.farben,
             // Welle 5: K-Varianten – die App bekommt die beste von 3 Varianten.
             varianten: true,
+            // Welle C: alle 3 Pläne für die «3 Vorschläge»-Karten mitliefern.
+            variantenDetails: true,
           });
         }
         setPlan(res.plan);
         setFlaechen(res.flaechen ?? null);
+        // «3 Vorschläge» (Welle C): best-first – der gelieferte Plan ist Karte 0.
+        setVariantenPlaene(res.variantenPlaene ?? null);
+        setAktiveVariante(0);
         // Neuer Plan → neue placementIds: manuelle Overrides zurücksetzen.
         setFarbWahl({});
         setManuelleFlaechen(null);
@@ -405,11 +427,28 @@ export function App() {
   const waehleFlaeche = useCallback((f: FlaechenWahl | null) => {
     setFlaeche(f);
     if (f !== null) setGewaehltId(null);
+    if (f !== "wand") setGewaehlteWand(null);
   }, []);
   // Oberflächen-Variante wählen (rein visuell, kein Schema-/API-Eingriff).
   const flaecheVariante = useCallback((art: FlaechenWahl, id: string) => {
     setOberflaechenWahl((prev) => ({ ...prev, [art]: id }));
   }, []);
+
+  // «3 Vorschläge» (Welle C): Karte k übernimmt diesen Plan in Viewer/Auswertung.
+  // Farb-Overrides hängen an placementIds (je Variante neu) → zurücksetzen;
+  // Flächen-Overrides sind wandIndex-basiert und bleiben gültig.
+  const uebernehmeVariante = useCallback(
+    (idx: number) => {
+      const vp = variantenPlaene?.[idx];
+      if (!vp) return;
+      setAktiveVariante(idx);
+      setPlan(vp.plan);
+      setKv(null);
+      setGewaehltId(null);
+      setFarbWahl({});
+    },
+    [variantenPlaene],
+  );
 
   // Welle 3 – Farb-Override je gewähltem Objekt (MANUELL gewinnt). Rein
   // client-seitig; kein Re-Solve (Farben sind keine Norm).
@@ -420,22 +459,24 @@ export function App() {
   // Manuelle Flächen wechseln KI/Stil-Optik → NORMKONTROLLE über Python
   // (/flaechen/pruefen): kein TS-Nachbau der Regeln (Drift). Übernimmt die
   // korrigierte Fassung und weist einen Norm-Eingriff deutsch aus.
+  // Einzelwand (Welle C): `wandIndex` gesetzt → nur diese Wand wird überschrieben
+  // (Kurator-Einträge anderer Wände bleiben erhalten); null = «Alle Wände».
   const waehleFlaechenMaterial = useCallback(
-    async (art: FlaechenWahl, slug: MaterialSlug) => {
+    async (
+      art: FlaechenWahl,
+      slug: MaterialSlug,
+      wandIndex?: number | null,
+      bereich: WandBereich = "voll",
+    ) => {
       const raum = planRoom ?? room;
       if (!raum) return;
       const basis: FlaechenKonzept = manuelleFlaechen ?? flaechen ?? {};
       const neu: FlaechenKonzept =
         art === "boden"
           ? { ...basis, boden: { material: slug } }
-          : {
-              ...basis,
-              waende: raum.shell.walls.map((_, i) => ({
-                wandIndex: i,
-                material: slug,
-                bereich: "voll" as const,
-              })),
-            };
+          : wandIndex != null
+            ? setzeWandMaterial(basis, wandIndex, slug, bereich)
+            : setzeAlleWaende(basis, raum.shell.walls.length, slug, bereich);
       try {
         const { verstoesse, korrigiert } = await api.pruefeFlaechen(raum, neu);
         setManuelleFlaechen(korrigiert);
@@ -547,6 +588,25 @@ export function App() {
 
   // Manuelle Flächen schlagen die Kurator-/Stil-Optik (Welle 3, «Manuell gewinnt»).
   const effektiveFlaechen = manuelleFlaechen ?? flaechen;
+  // Wand-Zeilen fürs Flächen-Panel (Welle C) + aufgelöste 2D-Flächen-Darstellung –
+  // dieselbe Quelle wie 3D (Stil → Varianten → Kurator/manuelle Overrides).
+  const wandInfos = useMemo(
+    () => (aktuellerRaum ? beschreibeWaende(aktuellerRaum) : []),
+    [aktuellerRaum],
+  );
+  const flaechenAnzeige = useMemo(
+    () =>
+      aktuellerRaum
+        ? loeseFlaechen2D(
+            aktuellerRaum.roomType,
+            stilprofil ?? null,
+            oberflaechenWahl,
+            effektiveFlaechen,
+            aktuellerRaum.shell.walls.length,
+          )
+        : null,
+    [aktuellerRaum, stilprofil, oberflaechenWahl, effektiveFlaechen],
+  );
   // Aktive Farbvariante des gewählten Objekts (MANUELL > KI > Default) – für die
   // Markierung im Farb-Picker.
   const gewaehltesPlacement =
@@ -649,6 +709,8 @@ export function App() {
               onMove={verschiebeNach}
               onRotate={rotiereNach}
               interaktiv
+              flaechen2d={flaechenAnzeige}
+              hervorgehobeneWand={flaeche === "wand" ? gewaehlteWand : null}
             />
           ) : (
             <Viewer3D
@@ -758,6 +820,9 @@ export function App() {
               onVorschlagen={() => void loesen(seed)}
               onNeueVariante={() => void loesen(seed + 1)}
               onAnpassen={() => setSchritt(4)}
+              variantenPlaene={variantenPlaene}
+              aktiveVariante={aktiveVariante}
+              onVariante={uebernehmeVariante}
             />
           </div>
         )}
@@ -785,7 +850,13 @@ export function App() {
               farbAktiv={farbAktiv}
               onFarbe={(slug) => gewaehltId && setzeFarbe(gewaehltId, slug)}
               flaechenKonzept={effektiveFlaechen}
-              onFlaechenMaterial={(art, slug) => void waehleFlaechenMaterial(art, slug)}
+              onFlaechenMaterial={(art, slug, wandIndex, bereich) =>
+                void waehleFlaechenMaterial(art, slug, wandIndex, bereich)
+              }
+              wandInfos={wandInfos}
+              gewaehlteWand={gewaehlteWand}
+              onWandWahl={setGewaehlteWand}
+              onFlaecheWaehlen={waehleFlaeche}
             />
           </div>
         )}

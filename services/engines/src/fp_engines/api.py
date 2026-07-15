@@ -327,6 +327,10 @@ class SolveRequest(BaseModel):
     # trägt zusätzlich `varianteInfo`. DEFAULT false → Verhalten exakt wie bisher
     # (bestehende Golden-/Determinismus-Tests unberührt). Nur Nicht-Küche.
     varianten: bool = False
+    # «3 Vorschläge»-UI (Welle C): variantenDetails=true → Response trägt zusätzlich
+    # ALLE K Pläne best-first (`variantenPlaene`). Nur mit varianten=true wirksam;
+    # ohne das Flag bleibt das Verhalten exakt wie bisher (bestehende Tests unberührt).
+    variantenDetails: bool = False
     flaechen: dict[str, Any] | None = None
     # Kurator-Farbwahl je Item (Welle 3): itemId→Farb-Slug → placement.farbe.
     farben: dict[str, str] | None = None
@@ -351,6 +355,7 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
         )
     created = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     variante_info: dict[str, Any] | None = None
+    varianten_plaene: list[dict[str, Any]] | None = None
     try:
         if raum["roomType"] == "kueche":
             # Küche = lineare Baugruppe (Formwahl + Slot-Füllung).
@@ -389,7 +394,28 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
                 auswahl, absichten = req.auswahl, req.relationaleAbsichten
                 anordnung = req.anordnung
                 mengen = req.mengen
-            if req.varianten:
+            if req.varianten and req.variantenDetails:
+                # Welle C: K=3 Varianten inkl. ALLER Pläne in Score-Reihenfolge
+                # (variantenPlaene) für die «3 Vorschläge»-Karten. Gewählter Plan
+                # + varianteInfo identisch zum reinen varianten-Pfad.
+                from fp_engines.varianten import loese_varianten_details
+
+                plan, variante_info, varianten_plaene = loese_varianten_details(
+                    raum,
+                    auswahl,
+                    absichten,
+                    katalog,
+                    rules,
+                    seed=req.seed,
+                    norm_profile=req.normProfile,
+                    stilprofil_ref=req.stilprofilRef,
+                    style_profile=req.stilprofil,
+                    anordnung=anordnung,
+                    farben=req.farben,
+                    mengen=mengen,
+                    created_at=created,
+                )
+            elif req.varianten:
                 # Welle 5: K=3 Varianten, beste deterministisch gewählt; die
                 # Auswahl-Spur (varianteInfo) geht in die Response-Hülle.
                 from fp_engines.varianten import loese_mit_varianten
@@ -447,6 +473,9 @@ def solve_endpoint(req: SolveRequest) -> JSONResponse:
     # Artefakt → keine Schema-Änderung). Nur gesetzt, wenn varianten=true lief.
     if variante_info is not None:
         extra["varianteInfo"] = variante_info
+    # «3 Vorschläge»-UI (Welle C): alle K Pläne best-first, nur bei variantenDetails.
+    if varianten_plaene is not None:
+        extra["variantenPlaene"] = varianten_plaene
     # Flächen-Wünsche (Kurator Call C) additiv durchreichen; Frontend-Konsum ist
     # eine spätere Welle. None = Client leitet die Optik deterministisch ab.
     return JSONResponse(

@@ -203,6 +203,48 @@ def test_solve_varianten_determinismus() -> None:
     assert a["varianteInfo"] == b["varianteInfo"]
 
 
+def test_solve_varianten_details_liefert_k_plaene() -> None:
+    """Welle C: variantenDetails=true ⇒ additiv `variantenPlaene` = ALLE K Pläne
+    best-first; jeder Plan hat 0 ❌; Kopf-Plan == gewählter Plan; Scores fallend."""
+    client = TestClient(app)
+    room = _room("raummodell.wohnen-sample")
+    res = client.post(
+        "/solve",
+        json={"room": room, "seed": 1, "varianten": True, "variantenDetails": True},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    plaene = body["variantenPlaene"]
+    assert len(plaene) == 3
+    # Jeder Vorschlag ist normkonform (Solver-Invariante je Variante).
+    for vp in plaene:
+        assert vp["plan"]["constraintReport"]["hard"]["summary"]["verletzt"] == 0
+    # Kopf = die gewählte beste Variante (== body["plan"]).
+    assert plaene[0]["plan"] == body["plan"]
+    assert plaene[0]["info"]["index"] == body["varianteInfo"]["gewaehlt"]
+    # Best-first: (platziert, −knapp, relationScore) monoton fallend.
+    tupel = [(v["info"]["platziert"], -v["info"]["knapp"], v["info"]["relationScore"]) for v in plaene]
+    assert tupel == sorted(tupel, reverse=True)
+
+
+def test_solve_varianten_ohne_details_unveraendert() -> None:
+    """Welle C: varianten=true OHNE variantenDetails ⇒ kein variantenPlaene, aber
+    varianteInfo wie bisher (bestehender Pfad byte-gleich)."""
+    client = TestClient(app)
+    room = _room("raummodell.wohnen-sample")
+    ohne = client.post("/solve", json={"room": room, "seed": 1, "varianten": True}).json()
+    mit = client.post(
+        "/solve", json={"room": room, "seed": 1, "varianten": True, "variantenDetails": True}
+    ).json()
+    assert "variantenPlaene" not in ohne
+    assert "variantenPlaene" in mit
+    # Gewählter Plan + varianteInfo identisch – Details ändern die Wahl nicht.
+    # (createdAt ist Wall-Clock der beiden Requests → vor dem Vergleich angleichen.)
+    mit["plan"]["meta"]["createdAt"] = ohne["plan"]["meta"]["createdAt"]
+    assert ohne["plan"] == mit["plan"]
+    assert ohne["varianteInfo"] == mit["varianteInfo"]
+
+
 def test_flaechen_pruefen_konform() -> None:
     """Welle 3: /flaechen/pruefen meldet keine Verstösse bei konformer Wahl."""
     client = TestClient(app)
