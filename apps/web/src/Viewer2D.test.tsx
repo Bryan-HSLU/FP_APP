@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { KatalogItem, Placement, Room } from "./api";
+import { loeseFlaechen2D } from "./flaechen2d";
 import { Viewer2D } from "./Viewer2D.tsx";
 
 // Minimaler 3.0×2.4-Raum mit einer Tür – nur die von Viewer2D gelesenen Felder.
@@ -77,5 +78,48 @@ describe("Viewer2D (Render-Smoke)", () => {
     );
     expect(html).toContain("<polygon"); // Bodenfläche
     expect(html).not.toContain("wc");
+  });
+});
+
+describe("Viewer2D – Flächen-Layer + Einzelwand-Highlight (Welle C)", () => {
+  const basis = {
+    room,
+    placements: [] as Placement[],
+    catalog,
+    gewaehltId: null,
+    statusById: new Map<string, "verletzt" | "knapp">(),
+    onSelect: () => {},
+  };
+  const flaechen2d = loeseFlaechen2D(
+    "bad",
+    null,
+    null,
+    {
+      boden: { material: "fliesen-anthrazit" },
+      waende: [{ wandIndex: 1, material: "fliesen-gruen", bereich: "voll", akzent: true }],
+    },
+    room.shell.walls.length,
+  );
+
+  it("ohne Flächen-Daten = exakt heutige Darstellung (null ≙ Prop weggelassen)", () => {
+    const ohneProp = renderToStaticMarkup(<Viewer2D {...basis} />);
+    const mitNull = renderToStaticMarkup(<Viewer2D {...basis} flaechen2d={null} />);
+    expect(mitNull).toBe(ohneProp);
+    expect(ohneProp).not.toContain("Boden:"); // keine Flächen-Legende
+    expect(ohneProp).not.toContain("fp-boden-struktur");
+  });
+
+  it("Flächen-Layer (Default AN): Boden-Tönung/Struktur + Material-Legende", () => {
+    const html = renderToStaticMarkup(<Viewer2D {...basis} flaechen2d={flaechen2d} />);
+    expect(html).toContain("Boden: Fliesen anthrazit");
+    expect(html).toContain("Wand: Fliesen grün (Akzent)");
+    expect(html).toContain("fp-boden-struktur"); // Fugen-Struktur des Bodens
+  });
+
+  it("hervorgehobeneWand markiert die Wandbänder dezent CI-orange", () => {
+    const ohne = renderToStaticMarkup(<Viewer2D {...basis} />);
+    const mit = renderToStaticMarkup(<Viewer2D {...basis} hervorgehobeneWand={1} />);
+    expect(ohne).not.toContain("#D6914F");
+    expect(mit).toContain("#D6914F"); // THEME.orange als Highlight-Kante
   });
 });

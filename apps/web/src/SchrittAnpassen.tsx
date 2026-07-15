@@ -448,15 +448,18 @@ function OberflaecheKarte({
           aktiv={bereichAktiv}
           deaktiviert={!einzelEintrag?.material}
           onWahl={(b) =>
-            einzelEintrag?.material &&
-            onFlaechenMaterial("wand", einzelEintrag.material, einzel, b)
+            einzelEintrag?.material && onFlaechenMaterial("wand", einzelEintrag.material, einzel, b)
           }
         />
       )}
 
       <p style={{ fontSize: 11.5, color: THEME.salbei, marginTop: 12, marginBottom: 0 }}>
         Material{" "}
-        {istBoden ? "" : einzel !== null ? `gilt nur für Wand ${einzel + 1}, ` : "gilt für alle Wände, "}
+        {istBoden
+          ? ""
+          : einzel !== null
+            ? `gilt nur für Wand ${einzel + 1}, `
+            : "gilt für alle Wände, "}
         überschreibt den Vorschlag und wird hart gegen die Norm geprüft – Korrekturen werden als
         «normkonform angepasst» ausgewiesen · Varianten oben sind rein visuell.
       </p>

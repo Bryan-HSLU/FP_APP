@@ -223,7 +223,9 @@ def test_solve_varianten_details_liefert_k_plaene() -> None:
     assert plaene[0]["plan"] == body["plan"]
     assert plaene[0]["info"]["index"] == body["varianteInfo"]["gewaehlt"]
     # Best-first: (platziert, −knapp, relationScore) monoton fallend.
-    tupel = [(v["info"]["platziert"], -v["info"]["knapp"], v["info"]["relationScore"]) for v in plaene]
+    tupel = [
+        (v["info"]["platziert"], -v["info"]["knapp"], v["info"]["relationScore"]) for v in plaene
+    ]
     assert tupel == sorted(tupel, reverse=True)
 
 
