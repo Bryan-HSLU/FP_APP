@@ -51,10 +51,7 @@ geprüft** – halte sie strikt ein, sonst wird deine Antwort korrigiert.
 
 Die konkrete Liste steht im Kontext unten. Wähle nur daraus.
 
-## Beispiel
-
-Input (skizziert): Raumtyp bad · Wand 0–3, Nasswände 0/1/2/3 (Kontext) ·
-Konzept «warmes Bad, helle Keramik + Eiche». Beispiel-Antwort:
+## Beispiel (Bad, Nasswände 0–2, eine Akzentwand)
 
 ```json
 {
@@ -62,9 +59,7 @@ Konzept «warmes Bad, helle Keramik + Eiche». Beispiel-Antwort:
     "boden": { "material": "fliesen-hell" },
     "waende": [
       { "wandIndex": 0, "material": "fliesen-hell", "bereich": "voll" },
-      { "wandIndex": 1, "material": "fliesen-hell", "bereich": "voll" },
-      { "wandIndex": 2, "material": "fliesen-gruen", "bereich": "voll", "akzent": true },
-      { "wandIndex": 3, "material": "fliesen-hell", "bereich": "voll" }
+      { "wandIndex": 2, "material": "fliesen-gruen", "bereich": "voll", "akzent": true }
     ]
   }
 }

@@ -40,7 +40,7 @@ Schritten.
 8. Ziel-Anzahl der Objekt-Instanzen (weich): halte dich an den im Kontext
    genannten Korridor (Haupt + Ergänzungen×anzahl).
 9. `farben` ist **optional** (Objekt itemId→Farb-Slug). Färbst du ein Objekt,
-   dann NUR mit einem Slug aus dessen `Farben:`-Liste in der Kandidatenzeile und
+   dann NUR mit einem Slug aus dessen `F:`-Liste in der Kandidatenzeile und
    passend zu Stilprofil-Palette + Konzept. Schlüssel = nur gewählte itemIds
    (Haupt oder Ergänzung). Unsichere Objekte lässt du weg (Client nutzt die
    Default-Optik = erste Variante). Wird hart geprüft.
@@ -62,32 +62,20 @@ Das Stilprofil sind Achsenwerte von −1 bis +1 (Gegensatzpaare). Interpretiere
 den Vektor als individuellen Geschmack – KEINE Stil-Schubladen. Nutze
 `derivedRequirements` und die Farbpalette als konkrete Hinweise. Das `konzept`
 ist dein roter Faden (1–3 Sätze: Leitidee, 1–2 Leitmaterialien, Farbwelt),
-abgestimmt auf Stilprofil UND Raum – die Folge-Schritte (Anordnung, Flächen)
-bekommen es wortgleich. Wähle Haupt-Objekte und Ergänzungen so, dass das Set
-zusammen mit dem Konzept stimmig wirkt; begründe jede Wahl in einem Satz.
+abgestimmt auf Stilprofil UND Raum. Begründe jede Wahl in einem Satz.
 
-## Beispiel
-
-Input (skizziert): Raumtyp wohnen · 18 m² · Stilvektor {temperatur:0.6,
-materialitaet:0.7} · Ziel-Anzahl 6–12 · Haupt-Kandidaten u.a. sofa/esstisch/
-tvmoebel · Ergänzungs-Kandidaten u.a. stuhl (Anker esstisch · max 6), couchtisch
-(Anker sofa · max 1). Beispiel-Antwort (IDs = Platzhalter, «(Beispiel-IDs)»):
+## Beispiel (IDs = Platzhalter)
 
 ```json
 {
-  "konzept": "Warmer, wohnlicher Ess-/Wohnbereich: Eichenholz und Leinen, ruhige erdige Farbwelt (Sand/Salbei), klare Linien.",
-  "hauptObjekte": ["bbbb-0001 (Beispiel-IDs)", "bbbb-0004", "bbbb-0007"],
-  "ergaenzungen": [
-    { "itemId": "bbbb-stuhl-eiche", "anzahl": 4 },
-    { "itemId": "bbbb-0009", "anzahl": 1 }
-  ],
+  "konzept": "Warmer Wohn-/Essbereich: Eiche und Leinen, erdige Farbwelt, klare Linien.",
+  "hauptObjekte": ["bbbb-esstisch", "bbbb-sofa"],
+  "ergaenzungen": [{ "itemId": "bbbb-stuhl-eiche", "anzahl": 4 }],
   "farben": { "bbbb-stuhl-eiche": "eiche-hell" },
-  "begruendung": "Sofa 3-Sitzer Leinen · Esstisch Eiche als Raum-Kern · TV-Lowboard gegenüber Sofa · 4 Eichenstühle zum Esstisch · Couchtisch zum Sofa"
+  "begruendung": "Esstisch Eiche als Raum-Kern · Sofa Leinen · 4 Eichenstühle zum Esstisch"
 }
 ```
 
-Hier stehen die raumprägenden Möbel in `hauptObjekte`; die Stühle sind eine
-Ergänzung mit Anker `esstisch` (nur erlaubt, weil ein Esstisch gewählt ist) und
-`anzahl` 4. Nur die Stühle bekommen eine Farbe (Eiche-Akzent) – die übrigen
-Objekte bleiben ohne Eintrag (Default-Optik). Slugs stammen aus der jeweiligen
-`Farben:`-Liste der Kandidaten.
+Die Stühle sind eine Ergänzung mit Anker `esstisch` (nur erlaubt, weil ein
+Esstisch als Haupt-Objekt gewählt ist), `anzahl` 4; nur sie bekommen eine Farbe
+(Slug aus ihrer `F:`-Liste), der Rest bleibt ohne Eintrag (Default-Optik).

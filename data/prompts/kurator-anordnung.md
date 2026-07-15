@@ -59,18 +59,13 @@ itemId – sonst wirst du zur Korrektur aufgefordert.
 - `prioritaet` steuert, welches Objekt den knappen Platz zuerst bekommt (z.B.
   das Sofa vor der Zierpflanze).
 
-## Beispiel
-
-Input (skizziert): Auswahl WC/Lavabo/Dusche/Spiegel · Wände 0–3 (Wand 1 mit
-Wasser/Abwasser). Beispiel-Antwort (IDs = Platzhalter, «(Beispiel-IDs)»):
+## Beispiel (IDs = Platzhalter)
 
 ```json
 {
   "anordnung": [
-    { "itemId": "aaaa-0009 (Beispiel-IDs)", "wandIndex": 1, "relationen": ["corner"], "prioritaet": 1 },
-    { "itemId": "aaaa-0005", "wandIndex": 2, "relationen": ["against-wall"], "prioritaet": 2 },
-    { "itemId": "aaaa-0012", "relationen": ["near:lavabo:0.3"], "prioritaet": 3 },
-    { "itemId": "aaaa-0001", "wandIndex": 3, "prioritaet": 2 }
+    { "itemId": "aaaa-dusche", "wandIndex": 1, "relationen": ["corner"], "prioritaet": 1 },
+    { "itemId": "aaaa-spiegel", "relationen": ["near:lavabo:0.3"], "prioritaet": 3 }
   ]
 }
 ```

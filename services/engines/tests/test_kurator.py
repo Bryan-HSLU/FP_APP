@@ -14,6 +14,8 @@ import pytest
 
 from fp_engines.kurator import (
     FLAECHEN_REGELN,
+    KANDIDATEN_DECKEL,
+    KANDIDATEN_MIN,
     MATERIAL_SLUGS,
     BaselineKurator,
     LlmKurator,
@@ -21,6 +23,7 @@ from fp_engines.kurator import (
     _extrahiere_ebenen,
     _footprint,
     _instanz_anzahl,
+    _kandidaten_stufen,
     _platz_budget,
     _validiere,
     _validiere_anordnung,
@@ -34,6 +37,8 @@ from fp_engines.kurator import (
     nasswaende,
     norm_kontext_flaechen,
     pruefe_flaechen,
+    schaetze_tokens,
+    stil_kurz,
     vorfilter,
 )
 
@@ -896,3 +901,144 @@ def test_reasoning_payload_absent_ohne_env(monkeypatch: pytest.MonkeyPatch) -> N
     payload = _erster_payload(monkeypatch)
     assert "reasoning_effort" not in payload and "reasoning_format" not in payload
     assert payload["temperature"] == 0.3  # unveränderter Standard
+
+
+# --- v3.2: Prompt-Diät + adaptive Grössen-Kontrolle (Groq-413-Fix) -----------
+
+KUECHE_ROOM_SAMPLE = _load("raummodell.kueche-sample.json")
+KUECHE_CATALOG = json.loads((REPO_ROOT / "data" / "catalog" / "kueche.json").read_text())
+
+
+def _kandidaten_zeilen(user_content: str) -> dict[str, int]:
+    """Zeigt-Anzahl je Slot aus einem gebauten Call-A-User-Prompt (Slot-Header
+    «Slot <typ>…», gefolgt von eingerückten «  <id> …»-Kandidatenzeilen)."""
+    counts: dict[str, int] = {}
+    aktueller: str | None = None
+    for zeile in user_content.splitlines():
+        if zeile.startswith("Slot "):
+            aktueller = zeile.split()[1].rstrip(":")
+            counts[aktueller] = 0
+        elif zeile.startswith("  ") and aktueller is not None:
+            counts[aktueller] += 1
+    return counts
+
+
+def _call_a_user(slots: dict[str, Any], room: dict[str, Any]) -> str:
+    port = LlmKurator(url="http://test/v1", model="test", api_key=None)
+    return port._prompt_auswahl(PROFIL, room, slots, None)[-1]["content"]
+
+
+def test_stil_kurz_deterministisch_bekanntes_item() -> None:
+    """Bekanntes Küchen-Item (Spülenschrank -0001) → erwartete Kompakt-Notation:
+    die 2–3 betragsstärksten Achsen als «Pol±» (farbigkeit −0.5, temperatur −0.4,
+    epoche +0.4 → monochrom−/kühl−/modern+)."""
+    item = next(c for c in KUECHE_CATALOG if c["id"].endswith("0001"))
+    assert stil_kurz(item) == "monochrom− kühl− modern+"
+
+
+def test_stil_kurz_leer_ohne_tags() -> None:
+    assert stil_kurz({"achsenTags": {}}) == ""
+    assert stil_kurz({}) == ""
+
+
+def test_kandidatenzeile_kompakt_kein_json() -> None:
+    """Die Kandidatenzeile trägt das Stil-Kürzel statt achsenTags-JSON und ist
+    kompakt (Masse ohne Einheit, Preis ganzzahlig, Farben als F:slug)."""
+    item = next(c for c in KUECHE_CATALOG if c["id"].endswith("0001"))
+    slots = {item["funktionsTyp"]: [item]}
+    user = _call_a_user(slots, KUECHE_ROOM_SAMPLE)
+    zeile = next(z for z in user.splitlines() if z.strip().startswith(item["id"]))
+    assert "achsenTags" not in zeile and "Tags {" not in zeile
+    assert "monochrom− kühl− modern+" in zeile
+    assert "0.55×0.6×0.9" in zeile and "CHF 680" in zeile
+    assert "F:hellgrau" in zeile
+
+
+def test_kandidaten_deckel_und_p1_geschuetzt() -> None:
+    """Kueche-Katalog (47 Items): angezeigte Kandidatenzeilen ≤ Deckel, und die
+    P1-Pflicht-nahe Auswahl bleibt sichtbar (jeder Slot ≥ Minimum, sofern genug
+    Kandidaten). Validierung bleibt davon unberührt (volle Slots)."""
+    slots = vorfilter(PROFIL, KUECHE_ROOM_SAMPLE, KUECHE_CATALOG, None)
+    user = _call_a_user(slots, KUECHE_ROOM_SAMPLE)
+    counts = _kandidaten_zeilen(user)
+    assert sum(counts.values()) <= KANDIDATEN_DECKEL
+    # Jeder gezeigte Slot hat mindestens min(Minimum, verfügbare) Kandidaten.
+    for typ, n in counts.items():
+        assert n >= min(KANDIDATEN_MIN, len(slots[typ]))
+
+
+def _call_a_full(slots: dict[str, Any], room: dict[str, Any]) -> tuple[str, dict[str, int]]:
+    """Voller Call-A-Prompt (system+user – so misst auch der adaptive Loop) plus
+    Zeigt-Anzahl je Slot."""
+    port = LlmKurator(url="http://test/v1", model="test", api_key=None)
+    msgs = port._prompt_auswahl(PROFIL, room, slots, None)
+    full = "\n".join(m["content"] for m in msgs)
+    return full, _kandidaten_zeilen(msgs[-1]["content"])
+
+
+def test_adaptive_reduktion_unter_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Erreichbares kleines Token-Limit → weniger Kandidaten als bei Default UND
+    der volle Prompt kommt tatsächlich unter das Limit; nie unter das Slot-Minimum."""
+    slots = vorfilter(PROFIL, KUECHE_ROOM_SAMPLE, KUECHE_CATALOG, None)
+    monkeypatch.delenv("FP_KURATOR_MAX_PROMPT_TOKENS", raising=False)
+    _, voll = _call_a_full(slots, KUECHE_ROOM_SAMPLE)
+
+    # 3500 liegt zwischen Default-Grösse (~3670) und der Minimal-Stufe (~3007),
+    # ist also durch Kürzung erreichbar (echter «unter Limit»-Beweis).
+    monkeypatch.setenv("FP_KURATOR_MAX_PROMPT_TOKENS", "3500")
+    full, knapp = _call_a_full(slots, KUECHE_ROOM_SAMPLE)
+
+    assert sum(knapp.values()) < sum(voll.values())  # tatsächlich gekürzt
+    assert schaetze_tokens(full) <= 3500  # voller Prompt unter dem Limit
+    # Untergrenze respektiert: nie weniger als min(Minimum, verfügbare Kandidaten).
+    for typ, n in knapp.items():
+        assert n >= min(KANDIDATEN_MIN, len(slots[typ]))
+
+
+def test_adaptive_minimum_bei_zu_kleinem_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Unerreichbar kleines Limit → Minimal-Stufe (nie unter das Slot-Minimum),
+    Prompt bleibt best effort so klein wie möglich."""
+    slots = vorfilter(PROFIL, KUECHE_ROOM_SAMPLE, KUECHE_CATALOG, None)
+    monkeypatch.setenv("FP_KURATOR_MAX_PROMPT_TOKENS", "500")
+    _, knapp = _call_a_full(slots, KUECHE_ROOM_SAMPLE)
+    for typ, n in knapp.items():
+        assert n == min(KANDIDATEN_MIN, len(slots[typ]))
+
+
+def test_kandidaten_stufen_reihenfolge_und_minima() -> None:
+    """Kürzungs-Leiter: erst Ergänzungen, dann Haupt, ZULETZT P1 – monoton
+    fallend, nie unter das Minimum."""
+    stufen = _kandidaten_stufen()
+    assert stufen[0][0] >= stufen[-1][0]  # erg fällt
+    for erg, haupt, p1 in stufen:
+        assert erg >= KANDIDATEN_MIN and haupt >= KANDIDATEN_MIN and p1 >= KANDIDATEN_MIN
+    # p1 sinkt erst, wenn haupt schon am Minimum ist (P1 zuletzt).
+    for _erg, haupt, p1 in stufen:
+        if p1 < 5:  # Startwert
+            assert haupt == KANDIDATEN_MIN
+
+
+def test_fallback_marker_nennt_http_ursache(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Call A scheitert mit HTTP 413 → Baseline-Fallback, Marker nennt die
+    Ursache «(HTTP 413)». Präfix «CURATOR_FALLBACK_USED» bleibt stabil."""
+
+    def fake_post(url: str, **kwargs: Any) -> httpx.Response:
+        return httpx.Response(
+            413, json={"error": "payload too large"}, request=httpx.Request("POST", url)
+        )
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    port = LlmKurator(url="http://test/v1", model="test", api_key=None)
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert "CURATOR_FALLBACK_USED" in ergebnis["begruendung"]
+    assert "HTTP 413" in ergebnis["begruendung"]
+
+
+def test_fallback_marker_ungueltig_ohne_http(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Zweimal strukturell ungültig (kein HTTP-Fehler) → Marker mit Ursache
+    «ungültig nach Repair», Präfix stabil."""
+    schlecht = {"auswahl": ["99999999-0000-4000-8000-000000000000"]}
+    port = _llm_mit_antworten(monkeypatch, [schlecht, schlecht])
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert "CURATOR_FALLBACK_USED" in ergebnis["begruendung"]
+    assert "ungültig nach Repair" in ergebnis["begruendung"]

@@ -73,7 +73,19 @@ SCHEMA_DATEI = REPO_ROOT / "packages" / "shared" / "schemas" / "kurator-vertrag.
 RULES_DIR = REPO_ROOT / "data" / "rules"
 FLAECHEN_REGELN_DATEI = RULES_DIR / "flaechen.json"
 ANZAHL_LEITPLANKEN_DATEI = REPO_ROOT / "data" / "kurator" / "anzahl-leitplanken.json"
-KANDIDATEN_JE_SLOT = 6  # Top 5–8 laut Konzept; kein RAG nötig im POC
+STILACHSEN_DATEI = REPO_ROOT / "data" / "taxonomy" / "stilachsen.json"
+KANDIDATEN_JE_SLOT = 6  # Vorfilter-Tiefe (Ranking-QUELLE) – wovon die Prompt-
+# Anzeige unabhängig und schärfer gedeckelt wird (Prompt-Diät v3.2, s.u.).
+# --- Prompt-Diät / Grössen-Kontrolle (v3.2, Groq-413-Fix) -------------------
+# Die ANGEZEIGTEN Kandidaten je Slot werden gegenüber KANDIDATEN_JE_SLOT
+# geschärft; die harte Validierung (Erdung) bleibt auf den vollen Vorfilter-
+# Slots und ist davon UNBERÜHRT (eiserne Regel).
+KANDIDATEN_HAUPT = 5  # max. angezeigte Kandidaten je Haupt-Slot
+KANDIDATEN_ERGAENZUNG = 3  # max. angezeigte Kandidaten je Ergänzungs-Slot
+KANDIDATEN_MIN = 2  # Untergrenze je Slot bei adaptiver Kürzung (nie darunter)
+KANDIDATEN_DECKEL = 55  # Gesamt-Deckel angezeigter Kandidatenzeilen im Prompt
+_ZEICHEN_PRO_TOKEN = 3.5  # grobe DE-Token-Schätzung: ~Zeichen/3.5
+_MAX_PROMPT_TOKENS_DEFAULT = 5000  # Default für FP_KURATOR_MAX_PROMPT_TOKENS
 # Footprint-Daumenregel (identisch Baseline & Platz-Budget-Validierung, s.u.):
 # belegte Bodenfläche eines boden-montierten Items = Breite × Tiefe × 2.5
 # (2.5 = Möbelfläche + Bewegungsfläche). Wand-montierte Items belegen 0.
@@ -97,6 +109,144 @@ def _material_slugs() -> list[str]:
 
 
 MATERIAL_SLUGS: list[str] = _material_slugs()
+
+
+# --- Token-Schätzung + adaptives Prompt-Limit (v3.2) ------------------------
+
+
+def schaetze_tokens(text: str) -> int:
+    """Grobe, modell-/tier-agnostische Token-Schätzung für DE-Prompts.
+
+    Faustregel ~Zeichen/3.5 (deutscher Fliess-/Datentext), aufgerundet. Bewusst
+    KEIN Tokenizer-Import: die Schätzung dient nur der Grössen-Kontrolle, nicht
+    der Abrechnung – sie muss robust und dependency-frei sein.
+    """
+    return math.ceil(len(text) / _ZEICHEN_PRO_TOKEN)
+
+
+def _max_prompt_tokens() -> int:
+    """Prompt-Token-Limit aus `FP_KURATOR_MAX_PROMPT_TOKENS` (Default 5000).
+
+    Zur Laufzeit gelesen (nicht beim Import), damit Env-Overrides – etwa in Tests
+    oder je Deployment/Tier – ohne Reload greifen. Ungültige Werte → Default.
+    """
+    roh = os.environ.get("FP_KURATOR_MAX_PROMPT_TOKENS")
+    if not roh:
+        return _MAX_PROMPT_TOKENS_DEFAULT
+    try:
+        wert = int(roh)
+    except ValueError:
+        return _MAX_PROMPT_TOKENS_DEFAULT
+    return wert if wert > 0 else _MAX_PROMPT_TOKENS_DEFAULT
+
+
+# --- Kompakt-Notation der Stil-Achsen (Prompt-Diät v3.2) --------------------
+
+
+def _lade_achsen_pole() -> dict[str, tuple[str, str]]:
+    """Achsen-Pol-Wörter (negativ, positiv) je Achsen-ID aus der Taxonomie.
+
+    EINZIGE Quelle für die Kompakt-Notation der Kandidatenzeilen – so bleibt die
+    Kurz-Schreibweise deterministisch an `data/taxonomy/stilachsen.json` gekoppelt
+    (kein Drift, gleiche Reihenfolge wie im Stilvektor).
+    """
+    daten = json.loads(STILACHSEN_DATEI.read_text(encoding="utf-8"))
+    return {a["id"]: (a["negativPol"], a["positivPol"]) for a in daten["achsen"]}
+
+
+_ACHSEN_POLE: dict[str, tuple[str, str]] = _lade_achsen_pole()
+_ACHSEN_INDEX: dict[str, int] = {aid: i for i, aid in enumerate(_ACHSEN_POLE)}
+_STIL_SCHWELLE = 0.2  # Achsen mit |Wert| darunter gelten als Rauschen (weglassen)
+_POS_ZEICHEN = "+"
+_NEG_ZEICHEN = "−"  # echtes «−» (Minuszeichen) wie in der Legende
+
+
+def stil_kurz(item: dict[str, Any], max_achsen: int = 3) -> str:
+    """Kompakt-Notation der 2–3 betragsstärksten Stil-Achsen eines Items.
+
+    Ersetzt das volle `achsenTags`-JSON in der Kandidatenzeile (Prompt-Diät):
+    je Achse «Pol±» (positiver/negativer Pol + Vorzeichen, Betrag ~ Stärke),
+    z.B. `warm+ natürlich+ hell+` oder `kühl− schlicht−`. Deterministisch:
+    Sortierung nach Betrag absteigend, bei Gleichstand Achsen-Reihenfolge der
+    Taxonomie. Achsen unter `_STIL_SCHWELLE` fallen weg; ist gar keine stark
+    genug, wird wenigstens die stärkste gezeigt. Legende erklärt die Notation
+    einmal im Prompt-Kopf (`_stil_legende`)."""
+    tags = item.get("achsenTags") or {}
+    if not tags:
+        return ""
+    geordnet = sorted(tags.items(), key=lambda kv: (-abs(kv[1]), _ACHSEN_INDEX.get(kv[0], 99)))
+    stark = [(k, v) for k, v in geordnet if abs(v) >= _STIL_SCHWELLE][:max_achsen]
+    if not stark:
+        stark = geordnet[:1]
+    teile: list[str] = []
+    for aid, val in stark:
+        pole = _ACHSEN_POLE.get(aid)
+        if pole is None:
+            continue
+        wort = pole[1] if val >= 0 else pole[0]
+        teile.append(f"{wort}{_POS_ZEICHEN if val >= 0 else _NEG_ZEICHEN}")
+    return " ".join(teile)
+
+
+def _stil_legende() -> list[str]:
+    """Einmalige Legende für die Kompakt-Notation der Kandidatenzeilen (Prompt-
+    Kopf). Erklärt Zeilenaufbau, Stil-Kürzel und die Pol-Paare je Achse – die
+    Zeilen selbst bleiben dadurch schlank."""
+    pole = " · ".join(f"{neg}−/{pos}+" for neg, pos in _ACHSEN_POLE.values())
+    return [
+        "## Notation der Kandidatenzeilen",
+        "Aufbau je Zeile: itemId · Name · Stil-Kürzel · B×T×H (m) · CHF-Preis · F:Farb-Slugs.",
+        "Stil-Kürzel = die 2–3 stärksten Stil-Achsen als «Pol±» (+ positiver, − "
+        "negativer Pol; Betrag ~ Stärke). Pol-Paare je Achse: " + pole + ".",
+        "F: = wählbare Farb-Slugs (nur diese sind für das optionale Feld «farben» erlaubt).",
+    ]
+
+
+def _kandidaten_stufen() -> list[tuple[int, int, int]]:
+    """Deterministische Kürzungs-Leiter als (erg_cap, haupt_cap, p1_cap)-Stufen.
+
+    Reduziert in fester Reihenfolge – erst Ergänzungen, dann Haupt-Slots, ZULETZT
+    P1-Pflicht-Slots – nie unter `KANDIDATEN_MIN` (eiserne Regel: Pflicht-Slots
+    behalten am längsten Auswahl). Grundlage für Gesamt-Deckel UND adaptive
+    Token-Kürzung (beide laufen dieselbe Leiter ab)."""
+    erg, haupt, p1 = KANDIDATEN_ERGAENZUNG, KANDIDATEN_HAUPT, KANDIDATEN_HAUPT
+    stufen: list[tuple[int, int, int]] = [(erg, haupt, p1)]
+    while erg > KANDIDATEN_MIN:
+        erg -= 1
+        stufen.append((erg, haupt, p1))
+    while haupt > KANDIDATEN_MIN:
+        haupt -= 1
+        stufen.append((erg, haupt, p1))
+    while p1 > KANDIDATEN_MIN:
+        p1 -= 1
+        stufen.append((erg, haupt, p1))
+    return stufen
+
+
+def _logge_prompt_groesse(messages: list[dict[str, str]], name: str) -> None:
+    """Schätzt die Prompt-Grösse und loggt sie (Call B/C: nur Sichtbarkeit, KEINE
+    Kürzung). Über dem Limit → WARN, sonst INFO. Gleiches Limit-Prinzip wie
+    Call A, aber ohne Reduktions-Loop (B/C sind heute klein)."""
+    tokens = schaetze_tokens("\n".join(m["content"] for m in messages))
+    limit = _max_prompt_tokens()
+    if tokens > limit:
+        log.warning(
+            "kurator[%s]: prompt ~%d tokens ÜBER limit %d (keine Kürzung)", name, tokens, limit
+        )
+    else:
+        log.info("kurator[%s]: prompt ~%d tokens (limit %d)", name, tokens, limit)
+
+
+def _fehler_ursache(e: Exception) -> str:
+    """Kurze, stabile Ursache-Kennung für den Fallback-Marker (best effort).
+
+    HTTP-Statusfehler → «HTTP 413» (Statuscode); andere httpx-Fehler → «HTTP
+    <Klasse>» (z.B. ConnectError); sonstige → Exception-Klassenname."""
+    if isinstance(e, httpx.HTTPStatusError):
+        return f"HTTP {e.response.status_code}"
+    if isinstance(e, httpx.HTTPError):
+        return f"HTTP {type(e).__name__}"
+    return type(e).__name__
 
 
 def _lade_flaechen_regeln() -> list[dict[str, Any]]:
@@ -1111,6 +1261,9 @@ class LlmKurator:
         self.reasoning: str | None = os.environ.get("FP_KURATOR_REASONING")
         temp_env = os.environ.get("FP_KURATOR_TEMP")
         self.temperature: float = float(temp_env) if temp_env else 0.3
+        # Ursache des letzten gescheiterten _call_json (für den Fallback-Marker,
+        # z.B. «HTTP 413»); None = kein Fehler bzw. noch kein Call.
+        self._letzte_ursache: str | None = None
 
     # --- Prompt-Bau ---------------------------------------------------------
 
@@ -1129,72 +1282,113 @@ class LlmKurator:
         ]
         profil = _profil_zeilen(stilprofil)
         p1 = set(P1_PFLICHT.get(room["roomType"], []))
-
-        def _item_zeile(i: dict[str, Any]) -> str:
-            m = i["masse"]
-            varianten = _farb_varianten(i)
-            farb_zeile = f" · Farben: {'|'.join(varianten)}" if varianten else ""
-            return (
-                f"  {i['id']} · {i['name']} · {m['w']}×{m['d']}×{m['h']} m · "
-                f"Tags {json.dumps(i.get('achsenTags', {}), ensure_ascii=False)} · "
-                f"CHF {i['preis']['value']}{farb_zeile}"
-            )
-
-        # Zwei Gruppen (Objekt-Ebenen-Modell): Haupt-Objekte zuerst, dann
-        # Ergänzungen (mit Anker + maxAnzahl je Slot). Items ohne objektEbene
-        # gelten als Haupt (Alt-Katalog: eine Gruppe, keine Anker-Pflicht).
-        haupt_block: list[str] = []
-        erg_block: list[str] = []
-        for typ, items in sorted(slots.items()):
-            if _item_ebene(items[0]) == "ergaenzung":
-                anker = items[0].get("ankerTyp")
-                maxn = int(items[0].get("maxAnzahl", 1) or 1)
-                merkmale = ([f"Anker {anker}"] if anker else ["frei"]) + [f"max {maxn}"]
-                erg_block.append(f"Slot {typ} ({', '.join(merkmale)}):")
-                erg_block.extend(_item_zeile(i) for i in items)
-            else:
-                pflicht = " (P1-PFLICHT)" if typ in p1 else ""
-                haupt_block.append(f"Slot {typ}{pflicht}:")
-                haupt_block.extend(_item_zeile(i) for i in items)
-
-        kandidaten: list[str] = ["## Haupt-Objekte (raumprägend – ZUERST wählen)", *haupt_block]
-        if erg_block:
-            kandidaten += [
-                "",
-                "## Ergänzungen (nur mit passendem Haupt-Objekt; anzahl 1..max)",
-                *erg_block,
-            ]
-
-        budget_zeile = f"Budget: CHF {budget}" if budget is not None else "Budget: keines"
         area = room["shell"]["floor"].get("area") or 0.0
+        budget_zeile = f"Budget: CHF {budget}" if budget is not None else "Budget: keines"
         platz_zeile = (
             f"Platz-Budget (hart geprüft): Summe anzahl×Breite×Tiefe×2.5 aller "
             f"boden-montierten Instanzen ≤ {area:.1f} m² (wandmontierte Items zählen nicht)."
         )
-        return [
-            {"role": "system", "content": rolle},
-            {
-                "role": "user",
-                "content": "\n".join(
-                    [
-                        "## Raumfakten",
-                        *fakten,
-                        "",
-                        "## Stilprofil",
-                        *profil,
-                        "",
-                        "## Raumgeometrie – Wände (0-basierter wandIndex)",
-                        *_wandliste(room),
-                        "",
-                        *kandidaten,
-                        "",
-                        budget_zeile,
-                        platz_zeile,
-                        *_leitplanke_zeile(room["roomType"], area),
-                    ]
-                ),
-            },
-        ]
+
+        def _item_zeile(i: dict[str, Any]) -> str:
+            """Kompakte Kandidatenzeile (Prompt-Diät v3.2): Stil-Kürzel statt
+            achsenTags-JSON, Masse ohne Einheit, Preis ganzzahlig, Farben als
+            slug|slug. Der Item-NAME trägt zusätzlich Stil-Information."""
+            m = i["masse"]
+            teile = [f"  {i['id']}", i["name"]]
+            stil = stil_kurz(i)
+            if stil:
+                teile.append(stil)
+            teile.append(f"{m['w']}×{m['d']}×{m['h']}")
+            teile.append(f"CHF {int(round(float(i['preis']['value'])))}")
+            varianten = _farb_varianten(i)
+            if varianten:
+                teile.append("F:" + "|".join(varianten))
+            return " · ".join(teile)
+
+        # Zwei Gruppen (Objekt-Ebenen-Modell): Haupt-Objekte zuerst, dann
+        # Ergänzungen (mit Anker + maxAnzahl je Slot). Items ohne objektEbene
+        # gelten als Haupt (Alt-Katalog: eine Gruppe, keine Anker-Pflicht). Die
+        # angezeigten Kandidaten je Slot werden über die caps gedeckelt – die
+        # Validierung (kuratiere) bleibt auf den vollen `slots` (Erdung intakt).
+        def _kandidaten(erg_cap: int, haupt_cap: int, p1_cap: int) -> tuple[list[str], int]:
+            haupt_block: list[str] = []
+            erg_block: list[str] = []
+            gezeigt = 0
+            for typ, items in sorted(slots.items()):
+                if _item_ebene(items[0]) == "ergaenzung":
+                    auswahl_items = items[:erg_cap]
+                    anker = items[0].get("ankerTyp")
+                    maxn = int(items[0].get("maxAnzahl", 1) or 1)
+                    merkmale = ([f"Anker {anker}"] if anker else ["frei"]) + [f"max {maxn}"]
+                    erg_block.append(f"Slot {typ} ({', '.join(merkmale)}):")
+                    erg_block.extend(_item_zeile(i) for i in auswahl_items)
+                else:
+                    cap = p1_cap if typ in p1 else haupt_cap
+                    auswahl_items = items[:cap]
+                    pflicht = " (P1-PFLICHT)" if typ in p1 else ""
+                    haupt_block.append(f"Slot {typ}{pflicht}:")
+                    haupt_block.extend(_item_zeile(i) for i in auswahl_items)
+                gezeigt += len(auswahl_items)
+            bloecke: list[str] = ["## Haupt-Objekte (raumprägend – ZUERST wählen)", *haupt_block]
+            if erg_block:
+                bloecke += [
+                    "",
+                    "## Ergänzungen (nur mit passendem Haupt-Objekt; anzahl 1..max)",
+                    *erg_block,
+                ]
+            return bloecke, gezeigt
+
+        def _baue(erg_cap: int, haupt_cap: int, p1_cap: int) -> tuple[list[dict[str, str]], int]:
+            kandidaten, gezeigt = _kandidaten(erg_cap, haupt_cap, p1_cap)
+            user = "\n".join(
+                [
+                    "## Raumfakten",
+                    *fakten,
+                    "",
+                    *_stil_legende(),
+                    "",
+                    "## Stilprofil",
+                    *profil,
+                    "",
+                    "## Raumgeometrie – Wände (0-basierter wandIndex)",
+                    *_wandliste(room),
+                    "",
+                    *kandidaten,
+                    "",
+                    budget_zeile,
+                    platz_zeile,
+                    *_leitplanke_zeile(room["roomType"], area),
+                ]
+            )
+            return [
+                {"role": "system", "content": rolle},
+                {"role": "user", "content": user},
+            ], gezeigt
+
+        # Adaptive Grössen-Kontrolle: Kürzungs-Leiter ablaufen, bis Gesamt-Deckel
+        # UND Token-Limit eingehalten sind; sonst die Minimal-Stufe nehmen (nie
+        # unter KANDIDATEN_MIN je Slot) und warnen. Deterministisch + geloggt.
+        stufen = _kandidaten_stufen()
+        limit = _max_prompt_tokens()
+        letzte: list[dict[str, str]] = []
+        for idx, caps in enumerate(stufen):
+            messages, gezeigt = _baue(*caps)
+            tokens = schaetze_tokens("\n".join(m["content"] for m in messages))
+            letzte = messages
+            passt = gezeigt <= KANDIDATEN_DECKEL and tokens <= limit
+            if passt or idx == len(stufen) - 1:
+                stufe = "" if passt else " (Minimum erreicht, weiterhin > Limit)"
+                log.info(
+                    "kurator[auswahl]: prompt ~%d tokens, %d kandidaten, stufe %d/%d, limit %d%s",
+                    tokens,
+                    gezeigt,
+                    idx,
+                    len(stufen) - 1,
+                    limit,
+                    stufe,
+                )
+                return messages
+        return letzte
 
     def _prompt_anordnung(
         self,
@@ -1224,7 +1418,7 @@ class LlmKurator:
             if hinweise
             else []
         )
-        return [
+        messages = [
             {"role": "system", "content": rolle},
             {
                 "role": "user",
@@ -1244,6 +1438,8 @@ class LlmKurator:
                 ),
             },
         ]
+        _logge_prompt_groesse(messages, "anordnung")
+        return messages
 
     def _prompt_flaechen(
         self,
@@ -1267,7 +1463,7 @@ class LlmKurator:
             if norm
             else []
         )
-        return [
+        messages = [
             {"role": "system", "content": rolle},
             {
                 "role": "user",
@@ -1292,6 +1488,8 @@ class LlmKurator:
                 ),
             },
         ]
+        _logge_prompt_groesse(messages, "flaechen")
+        return messages
 
     # --- LLM-Aufruf + generischer Repair-Runner -----------------------------
 
@@ -1342,8 +1540,12 @@ class LlmKurator:
         """Ein LLM-Call mit Validierung + max. 1 Repair-Retry. None = gescheitert.
 
         Jeder Call ist einzeln geloggt; scheitert er, entscheidet der Aufrufer über
-        den (Teil-)Fallback – nie ein harter Fehler nach oben.
+        den (Teil-)Fallback – nie ein harter Fehler nach oben. Die Fehlerursache
+        (HTTP-Status/Klasse bzw. «ungültig nach Repair») wird in
+        `self._letzte_ursache` hinterlegt, damit der Aufrufer sie im Fallback-
+        Marker sichtbar machen kann (Groq-413-Diagnose).
         """
+        self._letzte_ursache = None
         try:
             antwort = self._rufe_llm(messages, seed)
             fehler = validiere(antwort)
@@ -1363,8 +1565,10 @@ class LlmKurator:
             if fehler is None:
                 return antwort
             log.warning("kurator[%s]: nach repair weiterhin ungültig (%s)", name, fehler)
+            self._letzte_ursache = "ungültig nach Repair"
         except (httpx.HTTPError, json.JSONDecodeError, KeyError) as e:
             log.warning("kurator[%s]: llm-aufruf fehlgeschlagen (%s)", name, e)
+            self._letzte_ursache = _fehler_ursache(e)
         return None
 
     def _flaechen_norm_repair(
@@ -1504,7 +1708,11 @@ class LlmKurator:
         )
         if antwort_a is None:
             ergebnis = BaselineKurator().kuratiere(stilprofil, room, catalog, budget, seed)
-            ergebnis["begruendung"] += " (Fallback: CURATOR_FALLBACK_USED)"
+            # Marker-Präfix «CURATOR_FALLBACK_USED» bleibt stabil (Tests/Konsumenten
+            # matchen per Substring); die Ursache (z.B. «HTTP 413») wird angehängt.
+            ursache = self._letzte_ursache
+            marker = "CURATOR_FALLBACK_USED" + (f" ({ursache})" if ursache else "")
+            ergebnis["begruendung"] += f" (Fallback: {marker})"
             return ergebnis
         finale_a = antwort_a
         haupt_objekte, ergaenzungen = _extrahiere_ebenen(antwort_a)
