@@ -1877,12 +1877,17 @@ class LlmKurator:
 
 
 def waehle_port() -> KuratorPort:
-    """llm-api, wenn konfiguriert (FP_KURATOR_URL [+MODEL,+API_KEY]); sonst Baseline."""
-    url = os.environ.get("FP_KURATOR_URL")
+    """llm-api, wenn konfiguriert (FP_KURATOR_URL [+MODEL,+API_KEY]); sonst Baseline.
+
+    Alle Werte werden ge-`strip()`t: In Secret-UIs (HF Space) rutscht beim
+    Kopieren leicht ein Leerzeichen/Zeilenumbruch ans Ende – ein unsichtbares
+    «modell \\n» ergibt beim Provider ein 404, das niemand versteht.
+    """
+    url = (os.environ.get("FP_KURATOR_URL") or "").strip()
     if url:
         return LlmKurator(
             url=url,
-            model=os.environ.get("FP_KURATOR_MODEL", "qwen2.5-32b-instruct"),
-            api_key=os.environ.get("FP_KURATOR_API_KEY"),
+            model=(os.environ.get("FP_KURATOR_MODEL") or "qwen2.5-32b-instruct").strip(),
+            api_key=(os.environ.get("FP_KURATOR_API_KEY") or "").strip() or None,
         )
     return BaselineKurator()

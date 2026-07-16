@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any
 
+import httpx
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -50,6 +51,44 @@ app.mount("/bilder", StaticFiles(directory=REPO_ROOT / "data" / "images"), name=
 def health() -> dict[str, Any]:
     """Lebenszeichen für Setup-Script und Frontend-Proxy."""
     return {"status": "ok", "version": __version__}
+
+
+@app.get("/kurator/status")
+def kurator_status() -> dict[str, Any]:
+    """Diagnose: welche Kurator-Konfiguration sieht der Server WIRKLICH, und
+    was antwortet der LLM-Provider auf einen Mini-Testcall?
+
+    Zeigt nie den Key selbst (nur gesetzt/Länge/Präfix-Check). Gebaut, weil
+    Secret-Tippfehler (URL ohne Pfad, Modellname, unsichtbare Leerzeichen)
+    sonst nur als kryptischer Fallback-Marker in der App sichtbar sind.
+    """
+    from fp_engines.kurator import LlmKurator, waehle_port
+
+    port = waehle_port()
+    if not isinstance(port, LlmKurator):
+        return {"port": "baseline", "hinweis": "FP_KURATOR_URL ist nicht gesetzt (oder leer)."}
+    key = port.api_key or ""
+    info: dict[str, Any] = {
+        "port": "llm-api",
+        "url": port.url,
+        "model": port.model,
+        "keyGesetzt": bool(key),
+        "keyLaenge": len(key),
+        "keySiehtAusWieGroq": key.startswith("gsk_"),
+    }
+    try:
+        antwort = port._rufe_llm(
+            [{"role": "user", "content": 'Antworte nur mit JSON: {"ok": true}'}]
+        )
+        info["testcall"] = "ok"
+        info["testAntwort"] = antwort
+    except httpx.HTTPStatusError as e:
+        info["testcall"] = f"HTTP {e.response.status_code}"
+        info["providerAntwort"] = e.response.text[:400]
+    except Exception as e:  # noqa: BLE001 - Diagnose soll JEDEN Fehler zeigen
+        info["testcall"] = type(e).__name__
+        info["fehler"] = str(e)[:400]
+    return info
 
 
 class ValidateRequest(BaseModel):
