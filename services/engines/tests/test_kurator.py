@@ -20,11 +20,14 @@ from fp_engines.kurator import (
     BaselineKurator,
     LlmKurator,
     _bereinige_farben,
+    _erzeuge_handle_karte,
     _extrahiere_ebenen,
     _footprint,
     _instanz_anzahl,
     _kandidaten_stufen,
     _platz_budget,
+    _uebersetze_anordnung_antwort,
+    _uebersetze_auswahl_antwort,
     _validiere,
     _validiere_anordnung,
     _validiere_ebenen,
@@ -925,7 +928,8 @@ def _kandidaten_zeilen(user_content: str) -> dict[str, int]:
 
 def _call_a_user(slots: dict[str, Any], room: dict[str, Any]) -> str:
     port = LlmKurator(url="http://test/v1", model="test", api_key=None)
-    return port._prompt_auswahl(PROFIL, room, slots, None)[-1]["content"]
+    messages, _karte = port._prompt_auswahl(PROFIL, room, slots, None)
+    return messages[-1]["content"]
 
 
 def test_stil_kurz_deterministisch_bekanntes_item() -> None:
@@ -942,12 +946,19 @@ def test_stil_kurz_leer_ohne_tags() -> None:
 
 
 def test_kandidatenzeile_kompakt_kein_json() -> None:
-    """Die Kandidatenzeile trägt das Stil-Kürzel statt achsenTags-JSON und ist
-    kompakt (Masse ohne Einheit, Preis ganzzahlig, Farben als F:slug)."""
+    """Die Kandidatenzeile trägt eine Kurznummer (#N, Handle-Mapping) statt der
+    UUID sowie das Stil-Kürzel statt achsenTags-JSON und ist kompakt (Masse ohne
+    Einheit, Preis ganzzahlig, Farben als F:slug). Die rohe UUID taucht im
+    Prompt nirgends mehr auf (Groq-Robustheit: LLMs tippen lange, sich
+    ähnelnde UUIDs unzuverlässig ab)."""
     item = next(c for c in KUECHE_CATALOG if c["id"].endswith("0001"))
     slots = {item["funktionsTyp"]: [item]}
-    user = _call_a_user(slots, KUECHE_ROOM_SAMPLE)
-    zeile = next(z for z in user.splitlines() if z.strip().startswith(item["id"]))
+    port = LlmKurator(url="http://test/v1", model="test", api_key=None)
+    messages, karte = port._prompt_auswahl(PROFIL, KUECHE_ROOM_SAMPLE, slots, None)
+    user = messages[-1]["content"]
+    handle = karte.handle_fuer(item["id"])
+    assert item["id"] not in user  # die rohe UUID erscheint nirgends im Prompt
+    zeile = next(z for z in user.splitlines() if z.strip().startswith(handle))
     assert "achsenTags" not in zeile and "Tags {" not in zeile
     assert "monochrom− kühl− modern+" in zeile
     assert "0.55×0.6×0.9" in zeile and "CHF 680" in zeile
@@ -971,7 +982,7 @@ def _call_a_full(slots: dict[str, Any], room: dict[str, Any]) -> tuple[str, dict
     """Voller Call-A-Prompt (system+user – so misst auch der adaptive Loop) plus
     Zeigt-Anzahl je Slot."""
     port = LlmKurator(url="http://test/v1", model="test", api_key=None)
-    msgs = port._prompt_auswahl(PROFIL, room, slots, None)
+    msgs, _karte = port._prompt_auswahl(PROFIL, room, slots, None)
     full = "\n".join(m["content"] for m in msgs)
     return full, _kandidaten_zeilen(msgs[-1]["content"])
 
@@ -983,9 +994,10 @@ def test_adaptive_reduktion_unter_limit(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.delenv("FP_KURATOR_MAX_PROMPT_TOKENS", raising=False)
     _, voll = _call_a_full(slots, KUECHE_ROOM_SAMPLE)
 
-    # 3500 liegt zwischen Default-Grösse (~3670) und der Minimal-Stufe (~3007),
-    # ist also durch Kürzung erreichbar (echter «unter Limit»-Beweis).
-    monkeypatch.setenv("FP_KURATOR_MAX_PROMPT_TOKENS", "3500")
+    # 3300 liegt zwischen Default-Grösse (~3330, Kurznummern statt UUIDs – seit
+    # dem Handle-Mapping kürzer als zuvor) und der nächsten Kürzungs-Stufe
+    # (~3070), ist also durch Kürzung erreichbar (echter «unter Limit»-Beweis).
+    monkeypatch.setenv("FP_KURATOR_MAX_PROMPT_TOKENS", "3300")
     full, knapp = _call_a_full(slots, KUECHE_ROOM_SAMPLE)
 
     assert sum(knapp.values()) < sum(voll.values())  # tatsächlich gekürzt
@@ -1042,3 +1054,205 @@ def test_fallback_marker_ungueltig_ohne_http(monkeypatch: pytest.MonkeyPatch) ->
     ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
     assert "CURATOR_FALLBACK_USED" in ergebnis["begruendung"]
     assert "ungültig nach Repair" in ergebnis["begruendung"]
+
+
+# --- Handle-Mapping (Groq-Robustheit): Kurznummern (#N) statt Roh-UUIDs ------
+#
+# Echte Ursache aus der Produktion: die Katalog-IDs sind lange Wiederholungs-
+# Platzhalter-UUIDs (`bbbbbbbb-0004-4000-8000-000000000004`), die ein LLM beim
+# Zurücktippen zuverlässig verhaut (real beobachtet: ein Buchstabe zu viel →
+# `bbbbbbbbb-0004-…`). Die harte Erdung (nur Kandidaten-IDs) war nie das
+# Problem – das Modell sollte solche IDs nie mehr abtippen müssen. Diese Tests
+# belegen: (1) kurze Handles kommen sauber zu echten itemIds zurück, (2) die
+# Erdung bleibt für alles andere (unbekanntes Handle, vertippte Roh-UUID)
+# genauso hart wie zuvor, (3) `pair-with:` in Call B wird mitübersetzt.
+
+
+def test_handle_karte_deterministisch_bei_wiederholtem_aufbau() -> None:
+    """Dieselbe Item-Reihenfolge → immer dieselben Handles (reine Funktion der
+    Anzeige-Reihenfolge, kein Zufall/State)."""
+    ids = [AUSWAHL_IDS[0], AUSWAHL_IDS[1], AUSWAHL_IDS[2]]
+    karte1 = _erzeuge_handle_karte(ids)
+    karte2 = _erzeuge_handle_karte(ids)
+    assert karte1.handle_zu_id == karte2.handle_zu_id == {"#1": ids[0], "#2": ids[1], "#3": ids[2]}
+    assert karte1.id_zu_handle == {ids[0]: "#1", ids[1]: "#2", ids[2]: "#3"}
+
+
+def test_handles_deterministisch_ueber_wiederholten_prompt_bau() -> None:
+    """`_prompt_auswahl` ist eine reine Funktion ihrer Argumente: erneuter
+    Aufbau mit identischen Argumenten (wie es ein Repair-Schritt tut) liefert
+    dieselbe Handle-Karte."""
+    slots = vorfilter(PROFIL, ROOM, CATALOG, None)
+    port = LlmKurator(url="http://test/v1", model="test", api_key=None)
+    _m1, karte1 = port._prompt_auswahl(PROFIL, ROOM, slots, None)
+    _m2, karte2 = port._prompt_auswahl(PROFIL, ROOM, slots, None)
+    assert karte1.handle_zu_id == karte2.handle_zu_id
+
+
+def test_handle_unbekannt_bleibt_erdungsfehler() -> None:
+    """Ein nicht existentes Handle (`#999`) hat keinen Treffer in der Karte →
+    bleibt nach der Übersetzung unverändert stehen und wird von der harten
+    Validierung als «ausserhalb der Kandidatenliste» abgelehnt – die Erdung
+    bleibt vollständig intakt, das Handle-Mapping macht sie NICHT weicher."""
+    slots = vorfilter(PROFIL, ROOM, CATALOG, None)
+    by_id = {c["id"]: c for c in CATALOG}
+    port = LlmKurator(url="http://test/v1", model="test", api_key=None)
+    _messages, karte = port._prompt_auswahl(PROFIL, ROOM, slots, None)
+
+    antwort = _uebersetze_auswahl_antwort({"auswahl": ["#999"]}, karte)
+    assert antwort["auswahl"] == ["#999"]  # kein Treffer -> unverändert
+
+    fehler = _validiere_ebenen(antwort, slots, "bad", None, None, by_id)
+    assert fehler is not None and "ausserhalb der Kandidatenliste" in fehler
+
+
+def test_vertippte_roh_uuid_wird_nicht_zum_handle_geheilt() -> None:
+    """Kernfall (reale Groq-Ursache): eine – vertippte – Roh-UUID statt eines
+    Handles («bbbbbbbbb-0004-…» mit einem Buchstaben zu viel, oder hier
+    analog ein zusätzliches «a») darf NICHT versehentlich als Treffer
+    durchgehen. Das Handle-Mapping übersetzt nur exakte `#N`-Treffer – alles
+    andere bleibt unverändert und fällt weiterhin durch die Erdung."""
+    vertippt = AUSWAHL_IDS[0].replace("aaaaaaaa", "aaaaaaaaa")  # ein «a» zu viel
+    assert vertippt != AUSWAHL_IDS[0]
+
+    slots = vorfilter(PROFIL, ROOM, CATALOG, None)
+    by_id = {c["id"]: c for c in CATALOG}
+    port = LlmKurator(url="http://test/v1", model="test", api_key=None)
+    _messages, karte = port._prompt_auswahl(PROFIL, ROOM, slots, None)
+
+    antwort = _uebersetze_auswahl_antwort({"auswahl": [vertippt]}, karte)
+    assert antwort["auswahl"] == [vertippt]  # unverändert, kein Handle-Treffer
+
+    fehler = _validiere_ebenen(antwort, slots, "bad", None, None, by_id)
+    assert fehler is not None and "ausserhalb der Kandidatenliste" in fehler
+
+
+def test_llm_auswahl_akzeptiert_handles_statt_uuids(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Mit Handle-Mapping tippt das LLM nie mehr eine UUID ab: der Mock
+    antwortet mit Kurznummern (`#N`) statt Roh-UUIDs – kuratiere() übersetzt
+    sie VOR der Validierung zu den echten itemIds zurück; Ergebnis ist
+    identisch zu einer direkten-UUID-Antwort, kein Fallback."""
+    slots = vorfilter(PROFIL, ROOM, CATALOG, None)
+    sonde = LlmKurator(url="http://test/v1", model="test", api_key=None)
+    _messages, karte = sonde._prompt_auswahl(PROFIL, ROOM, slots, None)
+    handles = [karte.handle_fuer(i) for i in AUSWAHL_IDS]
+    assert all(h.startswith("#") for h in handles)  # tatsächlich übersetzt, keine No-ops
+
+    mock_a = {"auswahl": handles, "begruendung": "Handle-Test"}
+    port = _llm_mit_antworten(monkeypatch, [mock_a, _anordnung_ok(), _flaechen_ok()])
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+
+    assert ergebnis["auswahl"] == AUSWAHL_IDS  # echte UUIDs, nicht die Handles
+    assert "CURATOR_FALLBACK_USED" not in ergebnis["begruendung"]
+
+
+def test_llm_auswahl_handle_repair_nach_ungueltiger_antwort(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Repair-Fall mit Handles: erste Antwort nutzt ein unbekanntes Handle
+    (#999), die Reparatur-Antwort nutzt gültige Handles → Übersetzung + Erdung
+    greifen in BEIDEN Versuchen, kein Baseline-Fallback."""
+    slots = vorfilter(PROFIL, ROOM, CATALOG, None)
+    sonde = LlmKurator(url="http://test/v1", model="test", api_key=None)
+    _messages, karte = sonde._prompt_auswahl(PROFIL, ROOM, slots, None)
+    handles = [karte.handle_fuer(i) for i in AUSWAHL_IDS]
+
+    schlecht = {"auswahl": ["#999"], "begruendung": "x"}
+    gut = {"auswahl": handles, "begruendung": "korrigiert"}
+    port = _llm_mit_antworten(monkeypatch, [schlecht, gut, _anordnung_ok(), _flaechen_ok()])
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+
+    assert ergebnis["auswahl"] == AUSWAHL_IDS
+    assert ergebnis["begruendung"].startswith("korrigiert")
+    assert "CURATOR_FALLBACK_USED" not in ergebnis["begruendung"]
+
+
+def test_uebersetze_anordnung_pair_with_handle() -> None:
+    """`pair-with:<Handle>` wird zur echten itemId übersetzt; `near:`/`facing:`/
+    `opposite:<funktionsTyp>` referenzieren einen funktionsTyp und bleiben
+    unangetastet (Unit-Test der reinen Übersetzungsfunktion)."""
+    karte = _erzeuge_handle_karte(AUSWAHL_IDS)
+    ziel_handle = karte.handle_fuer(AUSWAHL_IDS[1])
+    antwort = {
+        "anordnung": [
+            {
+                "itemId": karte.handle_fuer(AUSWAHL_IDS[0]),
+                "relationen": [f"pair-with:{ziel_handle}", "near:lavabo:0.4", "corner"],
+            }
+        ]
+    }
+    uebersetzt = _uebersetze_anordnung_antwort(antwort, karte)
+    eintrag = uebersetzt["anordnung"][0]
+    assert eintrag["itemId"] == AUSWAHL_IDS[0]
+    assert f"pair-with:{AUSWAHL_IDS[1]}" in eintrag["relationen"]
+    assert "near:lavabo:0.4" in eintrag["relationen"]  # funktionsTyp-Ziel unangetastet
+    assert "corner" in eintrag["relationen"]  # relationslose Form unangetastet
+
+
+def test_uebersetze_anordnung_unbekanntes_pair_with_handle_bleibt_fehler() -> None:
+    """Unbekanntes Handle in `pair-with:` bleibt unverändert → fällt weiterhin
+    durch die Ziel-Validierung (Erdung intakt)."""
+    karte = _erzeuge_handle_karte(AUSWAHL_IDS)
+    antwort = {
+        "anordnung": [
+            {"itemId": karte.handle_fuer(AUSWAHL_IDS[0]), "relationen": ["pair-with:#999"]}
+        ]
+    }
+    uebersetzt = _uebersetze_anordnung_antwort(antwort, karte)
+    assert uebersetzt["anordnung"][0]["relationen"] == ["pair-with:#999"]
+
+
+def test_llm_anordnung_pair_with_handle_end_to_end(monkeypatch: pytest.MonkeyPatch) -> None:
+    """End-to-End über kuratiere(): Call B antwortet mit `pair-with:<Handle>` –
+    wird vor der Validierung zur echten itemId zurückübersetzt, die Anordnung
+    wird übernommen (kein Teil-Fallback)."""
+    sonde = LlmKurator(url="http://test/v1", model="test", api_key=None)
+    _messages, karte_b = sonde._prompt_anordnung(AUSWAHL_IDS, BY_ID, ROOM, PROFIL, None)
+    ziel_handle = karte_b.handle_fuer(AUSWAHL_IDS[1])  # Lavabo (in AUSWAHL_IDS enthalten)
+
+    mock_b = {
+        "anordnung": [
+            {
+                "itemId": AUSWAHL_IDS[0],
+                "relationen": [f"pair-with:{ziel_handle}", "near:lavabo:0.4"],
+            }
+        ]
+    }
+    port = _llm_mit_antworten(monkeypatch, [_auswahl_ok(), mock_b, _flaechen_ok()])
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+
+    assert "CURATOR_ANORDNUNG_FALLBACK" not in ergebnis["begruendung"]
+    rel = ergebnis["anordnung"][0]["relationen"]
+    assert f"pair-with:{AUSWAHL_IDS[1]}" in rel
+    assert "near:lavabo:0.4" in rel
+
+
+def test_call_a_prompt_enthaelt_handle_legende_und_keine_uuids() -> None:
+    """Der Call-A-Prompt trägt die Referenzier-Anweisung («Kurznummer #N») und
+    keine einzige rohe Katalog-UUID mehr (die harte Vorgabe aus der Aufgabe:
+    das LLM soll UUIDs nie mehr sehen/abtippen müssen)."""
+    slots = vorfilter(PROFIL, ROOM, CATALOG, None)
+    port = LlmKurator(url="http://test/v1", model="test", api_key=None)
+    messages, karte = port._prompt_auswahl(PROFIL, ROOM, slots, None)
+    user = messages[-1]["content"]
+    assert "Kurznummer #N" in user
+    for iid in karte.handle_zu_id.values():
+        assert iid not in user
+
+
+def test_prompt_anordnung_handles_statt_uuids() -> None:
+    """Der Call-B-Prompt zeigt Handles statt UUIDs für die Auswahl-Items."""
+    port = LlmKurator(url="http://test/v1", model="test", api_key=None)
+    messages, karte = port._prompt_anordnung(AUSWAHL_IDS, BY_ID, ROOM, PROFIL, None)
+    user = messages[-1]["content"]
+    for iid in AUSWAHL_IDS:
+        assert iid not in user
+        assert karte.handle_fuer(iid) in user
+
+
+def test_baseline_kurator_arbeitet_ohne_handles() -> None:
+    """Die Baseline bleibt unberührt: sie liefert direkt echte UUIDs, kein
+    Handle-Mapping beteiligt (Aufgaben-Vorgabe: Baseline bleibt unberührt)."""
+    a = BaselineKurator().kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    for iid in a["auswahl"]:
+        assert iid in BY_ID  # echte Katalog-UUIDs, keine Handles

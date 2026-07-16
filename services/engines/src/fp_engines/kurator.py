@@ -21,6 +21,21 @@ konstruktiv ausgeschlossen. Die Möbel-Norm-Garantie hängt weiterhin einzig am
 Feasibility-Filter des Solvers; die **Flächen-Norm** (Material je Zone) wird
 zusätzlich hart über `pruefe_flaechen`/`korrigiere_flaechen` erzwungen.
 
+Handle-Mapping (Groq-Robustheit, Call A/B): Katalog-IDs sind lange, sich
+ähnelnde Wiederholungs-UUIDs (`bbbbbbbb-0004-4000-8000-000000000004`) – LLMs
+tippen sie beim Zurückgeben unzuverlässig ab (real beobachtet: ein `b` zu viel
+→ `bbbbbbbbb-0004-…`, danach scheitert die Erdung an einer ID, die es nie
+gab). Statt der Roh-UUID zeigen die Kandidatenzeilen daher eine kurze,
+laufende Kurznummer (`#1`, `#2`, …), aus der Anzeige-Reihenfolge gebaut
+(`_erzeuge_handle_karte`/`HandleKarte`, s.u.). Die LLM-Antwort wird VOR jeder
+Validierung zurückübersetzt (`_uebersetze_auswahl_antwort`/
+`_uebersetze_anordnung_antwort`); ein nicht auflösbares Handle bleibt
+unverändert stehen und fällt weiterhin als «ID ausserhalb der Kandidatenliste»
+durch – die harte Erdung ist davon unberührt, sie prüft nur eine Repräsentation
+später. Call C (Flächen) referenziert nie itemIds und bleibt unangetastet.
+Repair-Echos zeigen dem Modell seine vorige Antwort im selben Vokabular
+(Handle-Form, nicht zurückübersetzt), damit der Repair konsistent weiterdenkt.
+
 Drei Port-Implementierungen (ADR-0007, austauschbar):
 - `baseline`  – deterministisches Scoring mit Seed-Rauschen, immer verfügbar.
 - `llm-api`   – gehostetes OpenAI-kompatibles API (POC-Empfehlung; nur
@@ -60,6 +75,7 @@ import os
 import random
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol, TypeGuard
 
@@ -196,7 +212,10 @@ def _stil_legende() -> list[str]:
     pole = " · ".join(f"{neg}−/{pos}+" for neg, pos in _ACHSEN_POLE.values())
     return [
         "## Notation der Kandidatenzeilen",
-        "Aufbau je Zeile: itemId · Name · Stil-Kürzel · B×T×H (m) · CHF-Preis · F:Farb-Slugs.",
+        "Aufbau je Zeile: #N (Kurznummer) · Name · Stil-Kürzel · B×T×H (m) · "
+        "CHF-Preis · F:Farb-Slugs.",
+        "Referenziere Items IMMER über ihre Kurznummer #N (z.B. \"#3\"), niemals "
+        "über Name, Masse oder andere Bezeichner.",
         "Stil-Kürzel = die 2–3 stärksten Stil-Achsen als «Pol±» (+ positiver, − "
         "negativer Pol; Betrag ~ Stärke). Pol-Paare je Achse: " + pole + ".",
         "F: = wählbare Farb-Slugs (nur diese sind für das optionale Feld «farben» erlaubt).",
@@ -1074,6 +1093,123 @@ def _konzept_block(konzept: str | None) -> list[str]:
     return ["## Design-Konzept (roter Faden)", str(konzept).strip(), ""]
 
 
+@dataclass(frozen=True)
+class HandleKarte:
+    """Kurznummer(`#N`)-↔itemId-Zuordnung für EINEN LLM-Call (Handle-Mapping).
+
+    Deterministisch aus der Anzeige-Reihenfolge der jeweiligen Kandidaten-/
+    Auswahl-Liste gebaut (`_erzeuge_handle_karte`) – derselbe Aufbau mit
+    denselben Eingaben liefert immer dieselben Handles. Dadurch genügt es,
+    Prompt-Bau-Funktionen (`_prompt_auswahl`/`_prompt_anordnung`) erneut mit
+    identischen Argumenten aufzurufen, um dieselbe Karte für einen Repair-Schritt
+    zu erhalten – kein zusätzlicher State-Transport nötig.
+    """
+
+    handle_zu_id: dict[str, str]
+    id_zu_handle: dict[str, str]
+
+    def id_fuer(self, wert: str) -> str:
+        """Löst ein Handle-Token (`#3`, `3`, ggf. mit Whitespace) zur echten
+        itemId auf. Kein exakter Handle-Treffer (unbekanntes `#999`, Freitext,
+        oder eine – vertippte – Roh-UUID) → Wert **unverändert** zurück, damit
+        die harte Validierung ihn als «ID ausserhalb der Kandidatenliste»
+        erkennt (Erdung bleibt vollständig intakt – dieses Mapping macht sie
+        NICHT weicher). Aufrufer mit gemischt typisiertem JSON (Listen-/Dict-
+        Werten) prüfen `isinstance(x, str)` VOR dem Aufruf."""
+        return self.handle_zu_id.get(_normalisiere_handle(wert), wert)
+
+    def handle_fuer(self, item_id: str) -> str:
+        """Echte itemId → ihr Handle (Umkehrung), z.B. um ein Repair-Echo im
+        selben Vokabular zu zeigen wie die vorige LLM-Antwort. Fehlt die itemId
+        (kein angezeigtes Kandidaten-Item) → itemId unverändert (Fallback, bei
+        bereits hart validierten IDs praktisch nie der Fall)."""
+        return self.id_zu_handle.get(item_id, item_id)
+
+
+def _normalisiere_handle(text: str) -> str:
+    """`#12`, `12`, ggf. mit Whitespace → `#12`. Reine Normalform für den
+    Dict-Lookup in `HandleKarte.id_fuer`; erzeugt selbst KEINEN Treffer."""
+    kern = text.strip()
+    return kern if kern.startswith("#") else f"#{kern}"
+
+
+def _erzeuge_handle_karte(ids: list[str]) -> HandleKarte:
+    """Baut kollisionsfreie, deterministische Kurznummern (`#1`, `#2`, …) aus
+    der Reihenfolge einer Kandidaten-/Auswahl-Liste (Anzeige-Reihenfolge im
+    jeweiligen Prompt). Doppelte IDs (Katalog-IDs sind eindeutig, sollte also
+    nicht vorkommen) behalten ihr zuerst vergebenes Handle."""
+    handle_zu_id: dict[str, str] = {}
+    id_zu_handle: dict[str, str] = {}
+    n = 0
+    for iid in ids:
+        if iid in id_zu_handle:
+            continue
+        n += 1
+        handle = f"#{n}"
+        handle_zu_id[handle] = iid
+        id_zu_handle[iid] = handle
+    return HandleKarte(handle_zu_id=handle_zu_id, id_zu_handle=id_zu_handle)
+
+
+def _uebersetze_auswahl_antwort(antwort: dict[str, Any], karte: HandleKarte) -> dict[str, Any]:
+    """Call A: übersetzt Handles in `auswahl`/`hauptObjekte`/`ergaenzungen[].
+    itemId`/`farben`-Keys zu echten itemIds zurück – VOR jeder Validierung
+    (Handle-Mapping, s. Moduldoc). Unbekannte Tokens bleiben unverändert (die
+    Validierung fängt sie danach als Erdungsfehler). Reine, seiteneffektfreie
+    Funktion – arbeitet auf einer flachen Kopie, das Original bleibt unberührt.
+    """
+    if not isinstance(antwort, dict):
+        return antwort
+    out = dict(antwort)
+    for feld in ("auswahl", "hauptObjekte"):
+        if isinstance(out.get(feld), list):
+            out[feld] = [karte.id_fuer(x) if isinstance(x, str) else x for x in out[feld]]
+    if isinstance(out.get("ergaenzungen"), list):
+        neu: list[Any] = []
+        for e in out["ergaenzungen"]:
+            if isinstance(e, dict) and isinstance(e.get("itemId"), str):
+                e = {**e, "itemId": karte.id_fuer(e["itemId"])}
+            neu.append(e)
+        out["ergaenzungen"] = neu
+    if isinstance(out.get("farben"), dict):
+        out["farben"] = {karte.id_fuer(k): v for k, v in out["farben"].items()}
+    return out
+
+
+def _uebersetze_relation(rel: str, karte: HandleKarte) -> str:
+    """Löst NUR das Handle in `pair-with:<Handle>` zur echten itemId auf.
+    `near:`/`facing:`/`opposite:<funktionsTyp>` referenzieren einen funktionsTyp
+    (keine itemId) und bleiben unangetastet; unbekannte Präfixe bleiben
+    ebenfalls unverändert (Parser toleriert sie ohnehin)."""
+    praefix = "pair-with:"
+    if not rel.startswith(praefix):
+        return rel
+    return praefix + karte.id_fuer(rel[len(praefix) :])
+
+
+def _uebersetze_anordnung_antwort(antwort: dict[str, Any], karte: HandleKarte) -> dict[str, Any]:
+    """Call B: übersetzt `anordnung[].itemId` UND das Handle in
+    `pair-with:<Handle>`-Relationsstrings zurück zu echten itemIds – VOR jeder
+    Validierung (Handle-Mapping, s. Moduldoc)."""
+    if not isinstance(antwort, dict) or not isinstance(antwort.get("anordnung"), list):
+        return antwort
+    neu: list[Any] = []
+    for e in antwort["anordnung"]:
+        if not isinstance(e, dict):
+            neu.append(e)
+            continue
+        e2 = dict(e)
+        if isinstance(e2.get("itemId"), str):
+            e2["itemId"] = karte.id_fuer(e2["itemId"])
+        rel = e2.get("relationen")
+        if isinstance(rel, list):
+            e2["relationen"] = [
+                _uebersetze_relation(r, karte) if isinstance(r, str) else r for r in rel
+            ]
+        neu.append(e2)
+    return {**antwort, "anordnung": neu}
+
+
 class KuratorPort(Protocol):
     """Austauschbare Schnittstelle – Request/Response = Kurator-Vertrag (Vertrag 7)."""
 
@@ -1302,7 +1438,12 @@ class LlmKurator:
         room: dict[str, Any],
         slots: dict[str, list[dict[str, Any]]],
         budget: float | None,
-    ) -> list[dict[str, str]]:
+    ) -> tuple[list[dict[str, str]], HandleKarte]:
+        """Baut Call-A-Messages + die dazugehörige `HandleKarte` (Handle-Mapping,
+        s. Moduldoc). Reine Funktion ihrer Argumente: derselbe Aufruf liefert
+        immer dieselbe Karte – Repair-Schritte rufen diese Methode einfach
+        erneut mit denselben Argumenten auf, statt die Karte separat
+        durchzureichen."""
         rolle = PROMPT_AUSWAHL.read_text(encoding="utf-8")
         fakten = [
             f"Raumtyp: {room['roomType']} · Fläche: {room['shell']['floor'].get('area')} m²",
@@ -1318,12 +1459,13 @@ class LlmKurator:
             f"boden-montierten Instanzen ≤ {area:.1f} m² (wandmontierte Items zählen nicht)."
         )
 
-        def _item_zeile(i: dict[str, Any]) -> str:
-            """Kompakte Kandidatenzeile (Prompt-Diät v3.2): Stil-Kürzel statt
-            achsenTags-JSON, Masse ohne Einheit, Preis ganzzahlig, Farben als
-            slug|slug. Der Item-NAME trägt zusätzlich Stil-Information."""
+        def _item_zeile(i: dict[str, Any], karte: HandleKarte) -> str:
+            """Kompakte Kandidatenzeile (Prompt-Diät v3.2): Kurznummer (`#N`,
+            Handle-Mapping) statt UUID, Stil-Kürzel statt achsenTags-JSON, Masse
+            ohne Einheit, Preis ganzzahlig, Farben als slug|slug. Der Item-NAME
+            trägt zusätzlich Stil-Information."""
             m = i["masse"]
-            teile = [f"  {i['id']}", i["name"]]
+            teile = [f"  {karte.handle_fuer(i['id'])}", i["name"]]
             stil = stil_kurz(i)
             if stil:
                 teile.append(stil)
@@ -1339,7 +1481,24 @@ class LlmKurator:
         # gelten als Haupt (Alt-Katalog: eine Gruppe, keine Anker-Pflicht). Die
         # angezeigten Kandidaten je Slot werden über die caps gedeckelt – die
         # Validierung (kuratiere) bleibt auf den vollen `slots` (Erdung intakt).
-        def _kandidaten(erg_cap: int, haupt_cap: int, p1_cap: int) -> tuple[list[str], int]:
+        def _gezeigte_ids(erg_cap: int, haupt_cap: int, p1_cap: int) -> list[str]:
+            """IDs in der Anzeige-Reihenfolge von `_kandidaten` für exakt diese
+            Kürzungs-Stufe (Haupt-Slots zuerst, dann Ergänzungs-Slots) – Grundlage
+            der `HandleKarte`. Eigene, günstige Vorab-Passage OHNE Text-Rendering:
+            die Handle-Nummer muss vor dem eigentlichen Rendern feststehen."""
+            haupt_ids: list[str] = []
+            erg_ids: list[str] = []
+            for typ, items in sorted(slots.items()):
+                if _item_ebene(items[0]) == "ergaenzung":
+                    erg_ids.extend(i["id"] for i in items[:erg_cap])
+                else:
+                    cap = p1_cap if typ in p1 else haupt_cap
+                    haupt_ids.extend(i["id"] for i in items[:cap])
+            return haupt_ids + erg_ids
+
+        def _kandidaten(
+            karte: HandleKarte, erg_cap: int, haupt_cap: int, p1_cap: int
+        ) -> tuple[list[str], int]:
             haupt_block: list[str] = []
             erg_block: list[str] = []
             gezeigt = 0
@@ -1350,13 +1509,13 @@ class LlmKurator:
                     maxn = int(items[0].get("maxAnzahl", 1) or 1)
                     merkmale = ([f"Anker {anker}"] if anker else ["frei"]) + [f"max {maxn}"]
                     erg_block.append(f"Slot {typ} ({', '.join(merkmale)}):")
-                    erg_block.extend(_item_zeile(i) for i in auswahl_items)
+                    erg_block.extend(_item_zeile(i, karte) for i in auswahl_items)
                 else:
                     cap = p1_cap if typ in p1 else haupt_cap
                     auswahl_items = items[:cap]
                     pflicht = " (P1-PFLICHT)" if typ in p1 else ""
                     haupt_block.append(f"Slot {typ}{pflicht}:")
-                    haupt_block.extend(_item_zeile(i) for i in auswahl_items)
+                    haupt_block.extend(_item_zeile(i, karte) for i in auswahl_items)
                 gezeigt += len(auswahl_items)
             bloecke: list[str] = ["## Haupt-Objekte (raumprägend – ZUERST wählen)", *haupt_block]
             if erg_block:
@@ -1367,8 +1526,11 @@ class LlmKurator:
                 ]
             return bloecke, gezeigt
 
-        def _baue(erg_cap: int, haupt_cap: int, p1_cap: int) -> tuple[list[dict[str, str]], int]:
-            kandidaten, gezeigt = _kandidaten(erg_cap, haupt_cap, p1_cap)
+        def _baue(
+            erg_cap: int, haupt_cap: int, p1_cap: int
+        ) -> tuple[list[dict[str, str]], int, HandleKarte]:
+            karte = _erzeuge_handle_karte(_gezeigte_ids(erg_cap, haupt_cap, p1_cap))
+            kandidaten, gezeigt = _kandidaten(karte, erg_cap, haupt_cap, p1_cap)
             user = "\n".join(
                 [
                     "## Raumfakten",
@@ -1392,18 +1554,22 @@ class LlmKurator:
             return [
                 {"role": "system", "content": rolle},
                 {"role": "user", "content": user},
-            ], gezeigt
+            ], gezeigt, karte
 
         # Adaptive Grössen-Kontrolle: Kürzungs-Leiter ablaufen, bis Gesamt-Deckel
         # UND Token-Limit eingehalten sind; sonst die Minimal-Stufe nehmen (nie
         # unter KANDIDATEN_MIN je Slot) und warnen. Deterministisch + geloggt.
+        # Die Handle-Karte wird PRO STUFE frisch gebaut (andere Kürzung = andere
+        # angezeigte Menge = andere Nummerierung) und zusammen mit den Messages
+        # zurückgegeben, die letztlich gerendert wurden.
         stufen = _kandidaten_stufen()
         limit = _max_prompt_tokens()
         letzte: list[dict[str, str]] = []
+        letzte_karte = HandleKarte({}, {})
         for idx, caps in enumerate(stufen):
-            messages, gezeigt = _baue(*caps)
+            messages, gezeigt, karte = _baue(*caps)
             tokens = schaetze_tokens("\n".join(m["content"] for m in messages))
-            letzte = messages
+            letzte, letzte_karte = messages, karte
             passt = gezeigt <= KANDIDATEN_DECKEL and tokens <= limit
             if passt or idx == len(stufen) - 1:
                 stufe = "" if passt else " (Minimum erreicht, weiterhin > Limit)"
@@ -1416,8 +1582,8 @@ class LlmKurator:
                     limit,
                     stufe,
                 )
-                return messages
-        return letzte
+                return messages, karte
+        return letzte, letzte_karte
 
     def _prompt_anordnung(
         self,
@@ -1426,14 +1592,20 @@ class LlmKurator:
         room: dict[str, Any],
         stilprofil: dict[str, Any],
         konzept: str | None,
-    ) -> list[dict[str, str]]:
+    ) -> tuple[list[dict[str, str]], HandleKarte]:
+        """Baut Call-B-Messages + eine EIGENE `HandleKarte` (Handle-Mapping, s.
+        Moduldoc), frisch aus der Anzeige-Reihenfolge von `auswahl` – unabhängig
+        von der Call-A-Karte (Call B zeigt nur die bereits getroffene Auswahl,
+        eine kompakte 1..N-Nummerierung reicht). Reine Funktion ihrer Argumente
+        (Repair-Aufrufe bauen dieselbe Karte einfach erneut)."""
         rolle = PROMPT_ANORDNUNG.read_text(encoding="utf-8")
+        karte = _erzeuge_handle_karte(auswahl)
         items = []
         for iid in auswahl:
             it = by_id[iid]
             m = it["masse"]
             items.append(
-                f"  {iid} · {it['name']} · funktionsTyp {it['funktionsTyp']} · "
+                f"  {karte.handle_fuer(iid)} · {it['name']} · funktionsTyp {it['funktionsTyp']} · "
                 f"{m['w']}×{m['d']}×{m['h']} m · {it['priorityClass']}"
             )
         gewaehlte_typen = {by_id[i]["funktionsTyp"] for i in auswahl}
@@ -1457,7 +1629,8 @@ class LlmKurator:
                         "## Stilprofil",
                         *_profil_zeilen(stilprofil),
                         "",
-                        "## Auswahl (nur diese itemIds verwenden)",
+                        "## Auswahl (nur diese Kurznummern #N verwenden, niemals andere "
+                        "Bezeichner – auch in pair-with:#N)",
                         *items,
                         "",
                         *norm_block,
@@ -1468,7 +1641,7 @@ class LlmKurator:
             },
         ]
         _logge_prompt_groesse(messages, "anordnung")
-        return messages
+        return messages, karte
 
     def _prompt_flaechen(
         self,
@@ -1571,6 +1744,7 @@ class LlmKurator:
         validiere: Callable[[dict[str, Any]], str | None],
         name: str,
         seed: int | None = None,
+        uebersetze: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
     ) -> dict[str, Any] | None:
         """Ein LLM-Call mit Validierung + max. 1 Repair-Retry. None = gescheitert.
 
@@ -1579,23 +1753,33 @@ class LlmKurator:
         (HTTP-Status/Klasse bzw. «ungültig nach Repair») wird in
         `self._letzte_ursache` hinterlegt, damit der Aufrufer sie im Fallback-
         Marker sichtbar machen kann (Groq-413-Diagnose).
+
+        `uebersetze` (Handle-Mapping, s. Moduldoc): läuft auf der ROHEN LLM-
+        Antwort, VOR `validiere` – Handles werden also zu echten itemIds, bevor
+        die harte Erdung sie prüft. Das Repair-Echo (Assistant-Nachricht) zeigt
+        dabei bewusst die ROHE (nicht zurückübersetzte) Antwort: der Repair denkt
+        so im selben Vokabular weiter, in dem das Modell selbst geantwortet hat
+        (einfachste korrekte Variante – kein zusätzlicher Hin-und-Her-Übersetzungsschritt
+        nötig, da `validiere` ohnehin nur die übersetzte Fassung sieht).
         """
         self._letzte_ursache = None
         try:
-            antwort = self._rufe_llm(messages, seed)
+            roh = self._rufe_llm(messages, seed)
+            antwort = uebersetze(roh) if uebersetze else roh
             fehler = validiere(antwort)
             if fehler is not None:
                 # Repair-Retry (max. 1) mit konkretem Fehlerhinweis (Konzept §5).
                 messages = [
                     *messages,
-                    {"role": "assistant", "content": json.dumps(antwort)},
+                    {"role": "assistant", "content": json.dumps(roh)},
                     {
                         "role": "user",
                         "content": f"Deine Antwort ist ungültig: {fehler} "
                         "Korrigiere und antworte erneut nur mit JSON.",
                     },
                 ]
-                antwort = self._rufe_llm(messages, seed)
+                roh = self._rufe_llm(messages, seed)
+                antwort = uebersetze(roh) if uebersetze else roh
                 fehler = validiere(antwort)
             if fehler is None:
                 return antwort
@@ -1647,6 +1831,7 @@ class LlmKurator:
     def _farben_repair(
         self,
         basis_messages: list[dict[str, str]],
+        handles: HandleKarte,
         voriges: dict[str, Any],
         fehler: str,
         auswahl: list[str],
@@ -1656,15 +1841,27 @@ class LlmKurator:
         """Ein einziger Farb-Repair-Aufruf (analog `_flaechen_norm_repair`): gibt den
         konkreten Farb-Fehler zurück ans LLM und verlangt eine korrigierte
         `farben`-Abbildung. Rückgabe = geerdetes farben-Objekt, sonst None (dann
-        greift `_bereinige_farben`)."""
+        greift `_bereinige_farben`).
+
+        `handles` (Call-A-Karte, Handle-Mapping s. Moduldoc): das Echo der
+        vorigen Antwort zeigt die Farb-Keys im Handle-Vokabular (wie das Modell
+        selbst geantwortet hätte); die neue Antwort wird vor der Validierung
+        wieder zu echten itemIds übersetzt."""
         hinweis = (
             f"Deine Farb-Zuordnung ist ungültig: {fehler} "
             "Nutze je Item NUR einen Slug aus dessen farbVarianten und als Schlüssel "
-            "nur gewählte itemIds. Antworte erneut nur mit JSON (Feld «farben»)."
+            "nur die Kurznummer (#N) gewählter Items. Antworte erneut nur mit JSON "
+            "(Feld «farben»)."
+        )
+        roh_voriges = voriges.get("farben")
+        echo_farben = (
+            {handles.handle_fuer(k): v for k, v in roh_voriges.items()}
+            if isinstance(roh_voriges, dict)
+            else roh_voriges
         )
         messages = [
             *basis_messages,
-            {"role": "assistant", "content": json.dumps({"farben": voriges.get("farben")})},
+            {"role": "assistant", "content": json.dumps({"farben": echo_farben})},
             {"role": "user", "content": hinweis},
         ]
         try:
@@ -1672,7 +1869,12 @@ class LlmKurator:
         except (httpx.HTTPError, json.JSONDecodeError, KeyError) as e:
             log.warning("kurator[farben]: repair-aufruf fehlgeschlagen (%s)", e)
             return None
-        farben = antwort.get("farben")
+        roh_farben = antwort.get("farben")
+        farben = (
+            {handles.id_fuer(k): v for k, v in roh_farben.items()}
+            if isinstance(roh_farben, dict)
+            else roh_farben
+        )
         if _validiere_farben(farben, auswahl, by_id) is not None:
             return None
         return farben
@@ -1680,6 +1882,7 @@ class LlmKurator:
     def _anzahl_repair(
         self,
         basis_messages: list[dict[str, str]],
+        handles: HandleKarte,
         haupt: list[str],
         erg: list[dict[str, Any]],
         total: int,
@@ -1694,7 +1897,11 @@ class LlmKurator:
         """Ein WEICHER Anzahl-Repair-Aufruf (analog `_farben_repair`): meldet die
         Instanz-Gesamtzahl vs. Korridor zurück ans LLM und verlangt eine erneute
         (voll gültige) Call-A-Antwort. Rückgabe = hart valide Antwort (die
-        Korridor-Lage entscheidet der Aufrufer), sonst None."""
+        Korridor-Lage entscheidet der Aufrufer), sonst None.
+
+        `handles` (Call-A-Karte, Handle-Mapping s. Moduldoc): das Echo der
+        vorigen Antwort zeigt hauptObjekte/ergaenzungen im Handle-Vokabular; die
+        neue Antwort wird vor der Validierung wieder zu echten itemIds übersetzt."""
         lo, hi = korridor
         richtung = "zu wenige" if total < lo else "zu viele"
         hinweis = (
@@ -1702,19 +1909,22 @@ class LlmKurator:
             f"Raum ({richtung}). Passe hauptObjekte/ergaenzungen (inkl. anzahl) an und "
             "antworte erneut nur mit JSON im selben Schema."
         )
+        echo_haupt = [handles.handle_fuer(i) for i in haupt]
+        echo_erg = [{**e, "itemId": handles.handle_fuer(e["itemId"])} for e in erg]
         messages = [
             *basis_messages,
             {
                 "role": "assistant",
-                "content": json.dumps({"hauptObjekte": haupt, "ergaenzungen": erg}),
+                "content": json.dumps({"hauptObjekte": echo_haupt, "ergaenzungen": echo_erg}),
             },
             {"role": "user", "content": hinweis},
         ]
         try:
-            antwort = self._rufe_llm(messages, seed)
+            roh = self._rufe_llm(messages, seed)
         except (httpx.HTTPError, json.JSONDecodeError, KeyError) as e:
             log.warning("kurator[anzahl]: repair-aufruf fehlgeschlagen (%s)", e)
             return None
+        antwort = _uebersetze_auswahl_antwort(roh, handles)
         if _validiere_ebenen(antwort, slots, room_type, budget, platz_budget, by_id) is not None:
             return None
         return antwort
@@ -1738,11 +1948,16 @@ class LlmKurator:
         # Call A – Auswahl (Objekt-Ebenen: hauptObjekte + ergaenzungen). Harte
         # Kontrolle via _validiere_ebenen; scheitert A → alles Baseline (B/C
         # brauchen die Auswahl). Alt-Form (nur `auswahl`) läuft transparent mit.
+        # Handle-Mapping (s. Moduldoc): `messages_a`/`handles_a` bündeln Prompt +
+        # Kurznummer-Karte für diesen Call – Repair-Schritte (Anzahl/Farben)
+        # bauen dieselbe Karte einfach erneut über dieselben Argumente.
+        messages_a, handles_a = self._prompt_auswahl(stilprofil, room, slots, budget)
         antwort_a = self._call_json(
-            self._prompt_auswahl(stilprofil, room, slots, budget),
+            messages_a,
             lambda a: _validiere_ebenen(a, slots, room_type, budget, platz_budget, by_id),
             "auswahl",
             seed,
+            uebersetze=lambda a: _uebersetze_auswahl_antwort(a, handles_a),
         )
         if antwort_a is None:
             ergebnis = BaselineKurator().kuratiere(stilprofil, room, catalog, budget, seed)
@@ -1773,7 +1988,8 @@ class LlmKurator:
             total = _instanz_anzahl(haupt_objekte, ergaenzungen)
             if not (korridor[0] <= total <= korridor[1]):
                 repariert_a = self._anzahl_repair(
-                    self._prompt_auswahl(stilprofil, room, slots, budget),
+                    messages_a,
+                    handles_a,
                     haupt_objekte,
                     ergaenzungen,
                     total,
@@ -1805,7 +2021,8 @@ class LlmKurator:
             farben = roh_farben
         else:
             repariert_f = self._farben_repair(
-                self._prompt_auswahl(stilprofil, room, slots, budget),
+                messages_a,
+                handles_a,
                 finale_a,
                 farb_fehler,
                 auswahl,
@@ -1819,11 +2036,15 @@ class LlmKurator:
                 begruendung += " (Farben bereinigt: CURATOR_FARBEN_BEREINIGT)"
 
         # Call B – Anordnung. Scheitert B → Teil-Fallback aus relationalRules.
+        # Eigene Handle-Karte (Call-A-Handles gelten nicht 1:1 weiter – Call B
+        # zeigt nur die Auswahl, frisch 1..N nummeriert, s. `_prompt_anordnung`).
+        messages_b, handles_b = self._prompt_anordnung(auswahl, by_id, room, stilprofil, konzept)
         antwort_b = self._call_json(
-            self._prompt_anordnung(auswahl, by_id, room, stilprofil, konzept),
+            messages_b,
             lambda a: _validiere_anordnung(a, auswahl, n_walls, gewaehlte_typen),
             "anordnung",
             seed,
+            uebersetze=lambda a: _uebersetze_anordnung_antwort(a, handles_b),
         )
         if antwort_b is not None:
             anordnung: list[dict[str, Any]] = antwort_b["anordnung"]
