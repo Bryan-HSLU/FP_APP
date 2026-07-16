@@ -1600,7 +1600,10 @@ class LlmKurator:
             if fehler is None:
                 return antwort
             log.warning("kurator[%s]: nach repair weiterhin ungültig (%s)", name, fehler)
-            self._letzte_ursache = "ungültig nach Repair"
+            # Konkreten Validierungsgrund in den Marker heben: «ungültig nach
+            # Repair» allein ist beim Debuggen im Space wertlos – erst «Platz-
+            # Budget überschritten: 9.4 > 7.2» macht die Ursache sichtbar.
+            self._letzte_ursache = f"ungültig nach Repair: {fehler[:180]}"
         except (httpx.HTTPError, json.JSONDecodeError, KeyError) as e:
             log.warning("kurator[%s]: llm-aufruf fehlgeschlagen (%s)", name, e)
             self._letzte_ursache = _fehler_ursache(e)
