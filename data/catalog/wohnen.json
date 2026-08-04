@@ -52,7 +52,7 @@
   {
     "id": "bbbbbbbb-0002-4000-8000-000000000002",
     "schemaVersion": "0.1.0",
-    "name": "Sofa 3-Sitzer Samt Petrol",
+    "name": "Ecksofa L-Form Samt Petrol 260×165",
     "modell3d": "sofa-l",
     "kategorie": "moebel-sofa",
     "funktionsTyp": "sofa",
@@ -61,8 +61,8 @@
     ],
     "gewerk": "moebel",
     "masse": {
-      "w": 2.0,
-      "d": 0.9,
+      "w": 2.6,
+      "d": 1.65,
       "h": 0.82
     },
     "assetStatus": "placeholder",
@@ -86,18 +86,18 @@
       "facing:tvmoebel"
     ],
     "preis": {
-      "value": 2400,
+      "value": 3200,
       "currency": "CHF",
       "stand": "2026-06-12",
       "quelle": "Sample-Mittelpreis (Schätzung)",
       "bandbreitePct": 30
     },
     "farbVarianten": [
-      "blaugrau",
-      "dunkelblau",
-      "beige",
-      "salbei",
-      "warmgrau"
+      "petrol",
+      "graugruen",
+      "taupe",
+      "senf",
+      "bordeaux"
     ]
   },
   {
@@ -2383,6 +2383,587 @@
       "anthrazit",
       "chrom",
       "edelstahl"
+    ]
+  },
+  {
+    "id": "bbbbbbbb-0037-4000-8000-000000000037",
+    "schemaVersion": "0.1.0",
+    "name": "Stehleuchte Tripod Leinenschirm",
+    "kategorie": "elektro-stehleuchte",
+    "funktionsTyp": "stehleuchte",
+    "roomTypes": [
+      "wohnen"
+    ],
+    "gewerk": "elektro",
+    "masse": {
+      "w": 0.42,
+      "d": 0.42,
+      "h": 1.65
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "objektEbene": "ergaenzung",
+    "mount": "boden",
+    "achsenTags": {
+      "temperatur": 0.7,
+      "opulenz": 0.3,
+      "materialitaet": 0.7,
+      "helligkeit": 0.5,
+      "epoche": -0.3,
+      "kontur": -0.4,
+      "farbigkeit": -0.3,
+      "raumgefuehl": -0.1
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [
+      "near:sofa:1.4"
+    ],
+    "preis": {
+      "value": 340,
+      "currency": "CHF",
+      "stand": "2026-08-04",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "farbVarianten": [
+      "creme",
+      "beige",
+      "sand",
+      "warmgrau",
+      "salbei"
+    ]
+  },
+  {
+    "id": "bbbbbbbb-0038-4000-8000-000000000038",
+    "schemaVersion": "0.1.0",
+    "name": "Stehleuchte Kugel Opalglas",
+    "kategorie": "elektro-stehleuchte",
+    "funktionsTyp": "stehleuchte",
+    "roomTypes": [
+      "wohnen"
+    ],
+    "gewerk": "elektro",
+    "masse": {
+      "w": 0.36,
+      "d": 0.36,
+      "h": 1.55
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "objektEbene": "ergaenzung",
+    "mount": "boden",
+    "achsenTags": {
+      "temperatur": -0.3,
+      "opulenz": 0.4,
+      "materialitaet": -0.3,
+      "helligkeit": 0.8,
+      "epoche": 0.5,
+      "kontur": -0.8,
+      "farbigkeit": -0.5,
+      "raumgefuehl": 0.2
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [
+      "near:sofa:1.4"
+    ],
+    "preis": {
+      "value": 420,
+      "currency": "CHF",
+      "stand": "2026-08-04",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "farbVarianten": [
+      "weiss",
+      "chrom",
+      "marmor-weiss",
+      "hellgrau",
+      "schwarzstahl"
+    ]
+  },
+  {
+    "id": "bbbbbbbb-0039-4000-8000-000000000039",
+    "schemaVersion": "0.1.0",
+    "name": "Bogenleuchte Marmorfuss",
+    "kategorie": "elektro-stehleuchte",
+    "funktionsTyp": "stehleuchte",
+    "roomTypes": [
+      "wohnen"
+    ],
+    "gewerk": "elektro",
+    "masse": {
+      "w": 0.45,
+      "d": 0.45,
+      "h": 2.05
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
+    "mount": "boden",
+    "achsenTags": {
+      "temperatur": 0.0,
+      "opulenz": 0.8,
+      "materialitaet": 0.4,
+      "helligkeit": 0.4,
+      "epoche": 0.2,
+      "kontur": -0.5,
+      "farbigkeit": -0.4,
+      "raumgefuehl": -0.2
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [
+      "near:sofa:1.2"
+    ],
+    "preis": {
+      "value": 690,
+      "currency": "CHF",
+      "stand": "2026-08-04",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "farbVarianten": [
+      "marmor-weiss",
+      "messing",
+      "chrom",
+      "schwarzstahl",
+      "naturstein-hell"
+    ]
+  },
+  {
+    "id": "bbbbbbbb-0040-4000-8000-000000000040",
+    "schemaVersion": "0.1.0",
+    "name": "Wandbild Triptychon 3-teilig 150×60",
+    "kategorie": "dekor-wandbild",
+    "funktionsTyp": "wandbild",
+    "roomTypes": [
+      "wohnen"
+    ],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 1.5,
+      "d": 0.04,
+      "h": 0.6
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
+    "mount": "wand",
+    "achsenTags": {
+      "temperatur": 0.1,
+      "opulenz": 0.5,
+      "materialitaet": 0.2,
+      "helligkeit": 0.3,
+      "epoche": 0.3,
+      "kontur": 0.2,
+      "farbigkeit": 0.5,
+      "raumgefuehl": 0.1
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 380,
+      "currency": "CHF",
+      "stand": "2026-08-04",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "schwarz",
+      "weiss",
+      "nussbaum",
+      "messing"
+    ]
+  },
+  {
+    "id": "bbbbbbbb-0041-4000-8000-000000000041",
+    "schemaVersion": "0.1.0",
+    "name": "Wandbild Botanik Set 2×40×50",
+    "kategorie": "dekor-wandbild",
+    "funktionsTyp": "wandbild",
+    "roomTypes": [
+      "wohnen"
+    ],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.85,
+      "d": 0.03,
+      "h": 0.5
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
+    "mount": "wand",
+    "achsenTags": {
+      "temperatur": 0.6,
+      "opulenz": 0.2,
+      "materialitaet": 0.7,
+      "helligkeit": 0.5,
+      "epoche": -0.2,
+      "kontur": -0.2,
+      "farbigkeit": 0.3,
+      "raumgefuehl": 0.0
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 190,
+      "currency": "CHF",
+      "stand": "2026-08-04",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "esche-hell",
+      "creme",
+      "salbei",
+      "nussbaum"
+    ]
+  },
+  {
+    "id": "bbbbbbbb-0042-4000-8000-000000000042",
+    "schemaVersion": "0.1.0",
+    "name": "Spiegel Wand Rund 80 Messing",
+    "kategorie": "dekor-wandbild",
+    "funktionsTyp": "wandbild",
+    "roomTypes": [
+      "wohnen"
+    ],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.8,
+      "d": 0.05,
+      "h": 0.8
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
+    "mount": "wand",
+    "achsenTags": {
+      "temperatur": 0.4,
+      "opulenz": 0.7,
+      "materialitaet": 0.3,
+      "helligkeit": 0.7,
+      "epoche": -0.1,
+      "kontur": -0.9,
+      "farbigkeit": -0.2,
+      "raumgefuehl": 0.5
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 320,
+      "currency": "CHF",
+      "stand": "2026-08-04",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "farbVarianten": [
+      "messing",
+      "kupfer",
+      "schwarzstahl",
+      "eiche-hell",
+      "chrom"
+    ]
+  },
+  {
+    "id": "bbbbbbbb-0043-4000-8000-000000000043",
+    "schemaVersion": "0.1.0",
+    "name": "Wandtablar Massivholz 120",
+    "kategorie": "moebel-wandregal",
+    "funktionsTyp": "regal",
+    "roomTypes": [
+      "wohnen"
+    ],
+    "gewerk": "schreiner",
+    "masse": {
+      "w": 1.2,
+      "d": 0.22,
+      "h": 0.04
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "objektEbene": "ergaenzung",
+    "mount": "wand",
+    "achsenTags": {
+      "temperatur": 0.7,
+      "opulenz": 0.2,
+      "materialitaet": 0.9,
+      "helligkeit": 0.3,
+      "epoche": -0.2,
+      "kontur": 0.3,
+      "farbigkeit": -0.1,
+      "raumgefuehl": 0.3
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 260,
+      "currency": "CHF",
+      "stand": "2026-08-04",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "farbVarianten": [
+      "eiche-natur",
+      "nussbaum",
+      "eiche-hell",
+      "esche-hell",
+      "wenge"
+    ]
+  },
+  {
+    "id": "bbbbbbbb-0044-4000-8000-000000000044",
+    "schemaVersion": "0.1.0",
+    "name": "Wandtablar-Set 3-teilig Schwarzstahl",
+    "kategorie": "moebel-wandregal",
+    "funktionsTyp": "regal",
+    "roomTypes": [
+      "wohnen"
+    ],
+    "gewerk": "schreiner",
+    "masse": {
+      "w": 0.6,
+      "d": 0.2,
+      "h": 0.04
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
+    "mount": "wand",
+    "achsenTags": {
+      "temperatur": -0.6,
+      "opulenz": 0.2,
+      "materialitaet": -0.2,
+      "helligkeit": -0.5,
+      "epoche": 0.6,
+      "kontur": 0.7,
+      "farbigkeit": -0.7,
+      "raumgefuehl": 0.4
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 180,
+      "currency": "CHF",
+      "stand": "2026-08-04",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "farbVarianten": [
+      "schwarzstahl",
+      "anthrazit",
+      "schwarz",
+      "chrom",
+      "beton"
+    ],
+    "maxAnzahl": 3
+  },
+  {
+    "id": "bbbbbbbb-0045-4000-8000-000000000045",
+    "schemaVersion": "0.1.0",
+    "name": "Bücherregal Hoch Eiche 80×200",
+    "kategorie": "moebel-wandregal",
+    "funktionsTyp": "regal",
+    "roomTypes": [
+      "wohnen"
+    ],
+    "gewerk": "schreiner",
+    "masse": {
+      "w": 0.8,
+      "d": 0.32,
+      "h": 2.0
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P2",
+    "objektEbene": "ergaenzung",
+    "mount": "boden",
+    "achsenTags": {
+      "temperatur": 0.6,
+      "opulenz": 0.4,
+      "materialitaet": 0.8,
+      "helligkeit": 0.2,
+      "epoche": -0.2,
+      "kontur": 0.4,
+      "farbigkeit": -0.1,
+      "raumgefuehl": -0.3
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [
+      "against-wall"
+    ],
+    "preis": {
+      "value": 890,
+      "currency": "CHF",
+      "stand": "2026-08-04",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "farbVarianten": [
+      "eiche-hell",
+      "nussbaum",
+      "eiche-natur",
+      "weiss",
+      "anthrazit"
+    ]
+  },
+  {
+    "id": "bbbbbbbb-0046-4000-8000-000000000046",
+    "schemaVersion": "0.1.0",
+    "name": "Pflanze Olivenbaum im Korb",
+    "kategorie": "dekor-pflanze",
+    "funktionsTyp": "pflanze",
+    "roomTypes": [
+      "wohnen"
+    ],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.55,
+      "d": 0.55,
+      "h": 1.6
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
+    "mount": "boden",
+    "achsenTags": {
+      "temperatur": 0.8,
+      "opulenz": 0.3,
+      "materialitaet": 0.9,
+      "helligkeit": 0.4,
+      "epoche": -0.3,
+      "kontur": -0.5,
+      "farbigkeit": 0.2,
+      "raumgefuehl": -0.2
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [
+      "corner"
+    ],
+    "preis": {
+      "value": 240,
+      "currency": "CHF",
+      "stand": "2026-08-04",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "farbVarianten": [
+      "olive",
+      "salbei",
+      "graugruen",
+      "sand",
+      "terracotta"
+    ]
+  },
+  {
+    "id": "bbbbbbbb-0047-4000-8000-000000000047",
+    "schemaVersion": "0.1.0",
+    "name": "Pflanze Ficus im Betontopf",
+    "kategorie": "dekor-pflanze",
+    "funktionsTyp": "pflanze",
+    "roomTypes": [
+      "wohnen"
+    ],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.48,
+      "d": 0.48,
+      "h": 1.45
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
+    "mount": "boden",
+    "achsenTags": {
+      "temperatur": -0.2,
+      "opulenz": 0.2,
+      "materialitaet": 0.5,
+      "helligkeit": 0.1,
+      "epoche": 0.4,
+      "kontur": -0.3,
+      "farbigkeit": 0.1,
+      "raumgefuehl": 0.0
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [
+      "corner"
+    ],
+    "preis": {
+      "value": 210,
+      "currency": "CHF",
+      "stand": "2026-08-04",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "farbVarianten": [
+      "beton",
+      "anthrazit",
+      "graugruen",
+      "hellgrau",
+      "olive"
+    ]
+  },
+  {
+    "id": "bbbbbbbb-0048-4000-8000-000000000048",
+    "schemaVersion": "0.1.0",
+    "name": "Ecksofa L-Form Leinen Sand 280×170",
+    "kategorie": "moebel-sofa",
+    "funktionsTyp": "sofa",
+    "roomTypes": [
+      "wohnen"
+    ],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 2.8,
+      "d": 1.7,
+      "h": 0.8
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P1",
+    "objektEbene": "haupt",
+    "mount": "boden",
+    "modell3d": "sofa-l",
+    "achsenTags": {
+      "temperatur": 0.7,
+      "opulenz": 0.4,
+      "materialitaet": 0.8,
+      "helligkeit": 0.6,
+      "epoche": -0.1,
+      "kontur": -0.5,
+      "farbigkeit": -0.3,
+      "raumgefuehl": -0.4
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [
+      "group:sitzgruppe",
+      "facing:tvmoebel"
+    ],
+    "preis": {
+      "value": 3600,
+      "currency": "CHF",
+      "stand": "2026-08-04",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "farbVarianten": [
+      "sand",
+      "beige",
+      "creme",
+      "warmgrau",
+      "salbei"
     ]
   }
 ]

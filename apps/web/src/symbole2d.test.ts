@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Vec2 } from "@fp/shared/rules";
 import { computeTransform } from "./plan2d.ts";
-import { hatSymbol, symbolScreenPrims, type ScreenPrim } from "./symbole2d.ts";
+import { hatSymbol, symbolScreenPrims, type ScreenPrim, alleSymbolTypen } from "./symbole2d.ts";
 
 const RAUM: Vec2[] = [
   [0, 0],
@@ -183,5 +183,37 @@ describe("neue Möbeltypen (13 Ergänzungen)", () => {
         expect(Math.hypot(x - cx, y - cy)).toBeLessThanOrEqual(diag / 2 + 1);
       }
     }
+  });
+});
+
+describe("bbox-Invariante über alle Symbole", () => {
+  it("kein Symbol ragt aus seiner bbox – über alle Typen und Grössen", () => {
+    // Zentrale Invariante: das Symbol im Grundriss darf nie grösser wirken als
+    // der Platz, den der Solver normativ geprüft hat. Deckt auch künftige
+    // Symbole ab, weil über die komplette Registry iteriert wird.
+    const groessen: [number, number][] = [
+      [0.4, 0.4],
+      [0.8, 0.6],
+      [1.4, 0.5],
+      [2.6, 1.65],
+      [2.8, 1.7],
+    ];
+    const center: Vec2 = [1.5, 1.2];
+    for (const typ of alleSymbolTypen()) {
+      for (const [w, d] of groessen) {
+        const prims = symbolScreenPrims(typ, center, w, d, 0, T);
+        expect(prims, `${typ} liefert kein Symbol`).not.toBeNull();
+        erwartePunkteInBBox(prims!, center, w, d);
+      }
+    }
+  });
+
+  it("L-Sofa wird über modell3d aufgelöst und unterscheidet sich vom Sofa", () => {
+    // Vorher fehlte das Symbol: der Grundriss zeigte ein normales Sofa, während
+    // der 3D-Viewer ein L darstellte.
+    const normal = symbolScreenPrims("sofa", [1.5, 1.2], 2.6, 1.65, 0, T);
+    const lform = symbolScreenPrims("sofa", [1.5, 1.2], 2.6, 1.65, 0, T, "sofa-l");
+    expect(lform).not.toBeNull();
+    expect(JSON.stringify(lform)).not.toBe(JSON.stringify(normal));
   });
 });

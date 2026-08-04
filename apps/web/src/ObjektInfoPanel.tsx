@@ -53,7 +53,7 @@ function SymbolThumb({ item, px = 40 }: { item: KatalogItem; px?: number }) {
   const scale = (px - 2 * pad) / maxDim;
   // Symbol im lokalen System um [0,0] zentriert → Bildmitte; yaw 0.
   const t: PlanTransform = { scale, offsetX: px / 2, offsetY: px / 2 };
-  const prims = symbolScreenPrims(item.funktionsTyp, [0, 0], w, d, 0, t);
+  const prims = symbolScreenPrims(item.funktionsTyp, [0, 0], w, d, 0, t, item.modell3d);
   return (
     <svg
       width={px}

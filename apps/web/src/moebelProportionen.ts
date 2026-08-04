@@ -33,6 +33,25 @@ export const SOFA = {
   kissenVersatzTiefe: 0.06,
 } as const;
 
+/** Ecksofa/L-Sofa (`modell3d: "sofa-l"`): Hauptbank hinten + Longchair rechts.
+ *
+ * Anteile der bbox, abgeleitet aus dem bestehenden 3D-Bausatz `sofaL` – das
+ * 2D-Symbol fehlte bisher ganz, weshalb im Grundriss ein normales Sofa
+ * gezeichnet wurde, während der 3D-Viewer ein L zeigte. Der Longchair liegt
+ * rechts (lokal +x) und ragt nach vorne (+z); gespiegelte Aufstellungen
+ * ergeben sich über den Yaw des Solvers.
+ */
+export const ECKSOFA = {
+  /** Tiefe der Hauptzeile, gemessen ab der Rückkante. */
+  hauptTiefe: 0.62,
+  /** Breite des vorspringenden Schenkels. */
+  schenkelBreite: 0.46,
+  /** Breite EINER Armlehne (nur aussen, innen ist die Sitzlandschaft offen). */
+  armBreite: 0.1,
+  /** Höhe der Rückenlehne, Anteil der Gesamthöhe. */
+  lehneHoehe: 0.5,
+} as const;
+
 /** TV-Lowboard – der Fernseher darauf. */
 export const TV = {
   /** Oberkante des Korpus (inkl. Platte), Anteil der Gesamthöhe ab Unterkante. */

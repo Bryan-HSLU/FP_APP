@@ -2362,5 +2362,99 @@
       "sand",
       "anthrazit"
     ]
+  },
+  {
+    "id": "aaaaaaaa-0039-4000-8000-000000000039",
+    "schemaVersion": "0.1.0",
+    "name": "Wandtablar Bad Teak 60",
+    "kategorie": "moebel-wandregal",
+    "funktionsTyp": "regal",
+    "roomTypes": [
+      "bad"
+    ],
+    "gewerk": "schreiner",
+    "masse": {
+      "w": 0.6,
+      "d": 0.14,
+      "h": 0.04
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
+    "mount": "wand",
+    "achsenTags": {
+      "temperatur": 0.8,
+      "opulenz": 0.2,
+      "materialitaet": 0.9,
+      "helligkeit": 0.2,
+      "epoche": -0.2,
+      "kontur": 0.2,
+      "farbigkeit": 0.0,
+      "raumgefuehl": 0.3
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 140,
+      "currency": "CHF",
+      "stand": "2026-08-04",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "farbVarianten": [
+      "nussbaum",
+      "eiche-natur",
+      "eiche-hell",
+      "esche-hell",
+      "wenge"
+    ]
+  },
+  {
+    "id": "aaaaaaaa-0040-4000-8000-000000000040",
+    "schemaVersion": "0.1.0",
+    "name": "Wandleuchte Doppel Messing",
+    "kategorie": "elektro-wandleuchte",
+    "funktionsTyp": "wandleuchte",
+    "roomTypes": [
+      "bad"
+    ],
+    "gewerk": "elektro",
+    "masse": {
+      "w": 0.42,
+      "d": 0.12,
+      "h": 0.14
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
+    "mount": "wand",
+    "achsenTags": {
+      "temperatur": 0.7,
+      "opulenz": 0.6,
+      "materialitaet": 0.3,
+      "helligkeit": 0.6,
+      "epoche": -0.3,
+      "kontur": -0.4,
+      "farbigkeit": 0.0,
+      "raumgefuehl": 0.2
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 260,
+      "currency": "CHF",
+      "stand": "2026-08-04",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "farbVarianten": [
+      "messing",
+      "kupfer",
+      "chrom",
+      "schwarzstahl",
+      "weiss"
+    ]
   }
 ]

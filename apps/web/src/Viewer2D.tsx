@@ -667,6 +667,7 @@ export function Viewer2D({
                 item.masse.d,
                 p.pose.yawDeg,
                 t,
+                item.modell3d,
               );
               return (
                 <g

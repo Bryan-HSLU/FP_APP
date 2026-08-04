@@ -15,7 +15,7 @@
  */
 import { rotateY, type Vec2 } from "@fp/shared/rules";
 import { toScreen, type PlanTransform } from "./plan2d.ts";
-import { SOFA } from "./moebelProportionen.ts";
+import { ECKSOFA, SOFA } from "./moebelProportionen.ts";
 
 /** 2D-Punkt im lokalen Objekt-System (Meter, Ursprung = bbox-Mitte). */
 type LVec = [number, number];
@@ -170,6 +170,43 @@ const sofa: Bauer = (w, d) => {
     // Zwei Sitzkissen (Teilung macht die Sitzplätze im Plan ablesbar)
     roundRect(-kissX - kissB / 2, kissZ0, -kissX + kissB / 2, kissZ1, m * 0.06),
     roundRect(kissX - kissB / 2, kissZ0, kissX + kissB / 2, kissZ1, m * 0.06),
+  ];
+};
+
+// L-Sofa (`modell3d: "sofa-l"`): Hauptbank hinten + Longchair rechts nach
+// vorne. Gleiche Anteile wie der 3D-Bausatz (`moebelProportionen.ECKSOFA`) –
+// vorher fehlte dieses Symbol, weshalb der Grundriss ein normales Sofa zeigte.
+const ecksofa: Bauer = (w, d) => {
+  const m = Math.min(w, d);
+  const hauptZ = -d / 2 + ECKSOFA.hauptTiefe * d;
+  const schenkelX = w / 2 - ECKSOFA.schenkelBreite * w;
+  const arm = ECKSOFA.armBreite * w;
+  return [
+    // L-Umriss (ein Polygon: Hauptzeile + Schenkel)
+    poly([
+      [-w / 2, -d / 2],
+      [w / 2, -d / 2],
+      [w / 2, d / 2],
+      [schenkelX, d / 2],
+      [schenkelX, hauptZ],
+      [-w / 2, hauptZ],
+    ]),
+    // Rückenlehne der Hauptzeile
+    line([-w / 2, -d / 2 + 0.14 * d], [schenkelX, -d / 2 + 0.14 * d]),
+    // Rückenlehne des Schenkels (an der rechten Aussenkante)
+    line([w / 2 - 0.14 * w, -d / 2], [w / 2 - 0.14 * w, d / 2]),
+    // Aussen-Armlehne links
+    poly([
+      [-w / 2, -d / 2],
+      [-w / 2 + arm, -d / 2],
+      [-w / 2 + arm, hauptZ],
+      [-w / 2, hauptZ],
+    ]),
+    // Sitzflächen-Teilung: eine Fuge in der Hauptzeile, eine im Schenkel
+    line([0, -d / 2 + 0.16 * d], [0, hauptZ]),
+    line([schenkelX, 0], [w / 2 - 0.12 * w, 0]),
+    // Eckkissen im Knick
+    roundRect(schenkelX - m * 0.18, hauptZ - m * 0.18, schenkelX, hauptZ, m * 0.05),
   ];
 };
 
@@ -536,6 +573,7 @@ const BAUER: Record<string, Bauer> = {
   // Wohnen / Schlafen
   sofa,
   sessel: sofa,
+  "sofa-l": ecksofa,
   esstisch,
   couchtisch: tischPlatte,
   beistelltisch: tischPlatte,
@@ -597,6 +635,12 @@ function runde(n: number): number {
  * gedreht um `yawDeg`, verschoben ans Weltzentrum `center`, skaliert über `t`.
  * Deckungsgleich mit dem Footprint-Polygon. `null` → kein Symbol (Box-Fallback).
  */
+/** Alle registrierten Symbol-Schlüssel (funktionsTypen UND modell3d-Varianten).
+ *  Grundlage des bbox-Tests über den kompletten Bestand. */
+export function alleSymbolTypen(): string[] {
+  return Object.keys(BAUER);
+}
+
 export function symbolScreenPrims(
   funktionsTyp: string,
   center: Vec2,
@@ -604,8 +648,11 @@ export function symbolScreenPrims(
   d: number,
   yawDeg: number,
   t: PlanTransform,
+  modell3d?: string,
 ): ScreenPrim[] | null {
-  const bauer = BAUER[funktionsTyp];
+  // `modell3d` hat Vorrang (gleiche Auflösung wie im 3D-Viewer): so zeichnet
+  // ein Ecksofa im Grundriss auch ein L, obwohl sein funktionsTyp «sofa» ist.
+  const bauer = (modell3d ? BAUER[modell3d] : undefined) ?? BAUER[funktionsTyp];
   if (!bauer) return null;
 
   const zuScreen = (p: LVec): Vec2 => {

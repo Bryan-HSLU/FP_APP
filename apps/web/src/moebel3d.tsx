@@ -21,7 +21,7 @@
 import { RoundedBox } from "@react-three/drei";
 import { Vector2 } from "three";
 import { FARBSLUG_HEX, type FarbSlug } from "./farben";
-import { SOFA, TV } from "./moebelProportionen";
+import { ECKSOFA, SOFA, TV } from "./moebelProportionen";
 
 /** Material-/Basisfarbe je funktionsTyp für den 3D-Viewer (Bryans Möbel-
  *  Materialwunsch). WICHTIG: Nur wirksam, wenn die Norm-Ampel «ok» ist –
@@ -2099,9 +2099,19 @@ const sofaL: Bauer = (w, d, h) => {
     zyl(w * 0.016, w * 0.022, h * 0.1, [x, -h / 2 + h * 0.05, z], "chrom");
   return [
     // Haupt-Sitzkorpus (hintere Tiefe, volle Breite, gerundet)
-    rbox([w, h * 0.32, d * 0.62], [0, -h / 2 + h * 0.24, -d / 2 + d * 0.31], rr, "koerper"),
+    rbox(
+      [w, h * 0.32, d * ECKSOFA.hauptTiefe],
+      [0, -h / 2 + h * 0.24, -d / 2 + (d * ECKSOFA.hauptTiefe) / 2],
+      rr,
+      "koerper",
+    ),
     // Longchair-Ecke (zweite Sitzbox, gerundet)
-    rbox([w * 0.46, h * 0.32, d], [w / 2 - w * 0.23, -h / 2 + h * 0.24, 0], rr, "koerper"),
+    rbox(
+      [w * ECKSOFA.schenkelBreite, h * 0.32, d],
+      [w / 2 - (w * ECKSOFA.schenkelBreite) / 2, -h / 2 + h * 0.24, 0],
+      rr,
+      "koerper",
+    ),
     // Rückenlehne (hinten, gerundet)
     rbox([w, h * 0.5, d * 0.16], [0, -h / 2 + h * 0.62, -d / 2 + d * 0.08], rr, "koerper"),
     // Seitenlehne links (gerundet)
