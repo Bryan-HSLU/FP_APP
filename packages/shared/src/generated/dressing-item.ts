@@ -15,7 +15,7 @@ export interface DressingItem {
    */
   roomTypes: [
     "bad" | "kueche" | "wohnen" | "schlafen" | "essen" | "flur" | "sonstig",
-    ...("bad" | "kueche" | "wohnen" | "schlafen" | "essen" | "flur" | "sonstig")[]
+    ...("bad" | "kueche" | "wohnen" | "schlafen" | "essen" | "flur" | "sonstig")[],
   ];
   /**
    * Objektklasse (Scene-Dressing-Konzept): B leicht kollisionsrelevant (Bodenobjekt, einfache Kollisionsprüfung + Türkorridor) · C visuelle Mid-Objects (an Wand/Möbel gehängt) · D Deko-Cluster (Mikro-Objekte auf Oberflächen). Klasse A bleibt im Katalog/Solver.

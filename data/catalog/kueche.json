@@ -2368,5 +2368,53 @@
       "schwarzstahl",
       "anthrazit"
     ]
+  },
+  {
+    "id": "cccccccc-0044-4000-8000-000000000044",
+    "schemaVersion": "0.1.0",
+    "name": "Barhocker Samt Senf",
+    "kategorie": "kueche-barhocker",
+    "funktionsTyp": "barhocker",
+    "roomTypes": [
+      "kueche"
+    ],
+    "gewerk": "moebel",
+    "masse": {
+      "w": 0.4,
+      "d": 0.42,
+      "h": 0.78
+    },
+    "assetStatus": "placeholder",
+    "priorityClass": "P3",
+    "objektEbene": "ergaenzung",
+    "mount": "boden",
+    "achsenTags": {
+      "temperatur": 0.6,
+      "opulenz": 0.6,
+      "materialitaet": 0.4,
+      "helligkeit": 0.1,
+      "epoche": -0.2,
+      "kontur": -0.6,
+      "farbigkeit": 0.8,
+      "raumgefuehl": 0.1
+    },
+    "attributTags": [],
+    "anschluesse": [],
+    "relationalRules": [],
+    "preis": {
+      "value": 290,
+      "currency": "CHF",
+      "stand": "2026-08-04",
+      "quelle": "Sample-Mittelpreis (Schätzung)",
+      "bandbreitePct": 30
+    },
+    "maxAnzahl": 4,
+    "farbVarianten": [
+      "senf",
+      "petrol",
+      "bordeaux",
+      "graugruen",
+      "taupe"
+    ]
   }
 ]

@@ -128,6 +128,16 @@ TEMP_FOKUSSIERT = 0.3
 # belegte Bodenfläche eines boden-montierten Items = Breite × Tiefe × 2.5
 # (2.5 = Möbelfläche + Bewegungsfläche). Wand-montierte Items belegen 0.
 _FOOTPRINT_FAKTOR = 2.5
+# Vorfilter-Daumenregeln (`_passt_geometrisch`): typische Bewegungstiefe vor
+# einem Objekt und der Anteil der Raumfläche, den EIN Objekt samt dieser Fläche
+# höchstens beanspruchen darf. Grob wie der Footprint-Faktor – sie sollen nur
+# offensichtlich Unmögliches aussortieren.
+_BEWEGUNGSTIEFE = 0.8
+# Ein Raum muss mehrere Pflicht-Objekte tragen (Bad: WC + Lavabo + Dusche).
+# Beansprucht EINES davon samt Bewegungsfläche mehr als rund ein Drittel, bleibt
+# für die übrigen nichts – der Solver quittiert das erst spät mit
+# NoFeasiblePlacement, und dann scheitert der ganze Plan.
+_FLAECHEN_ANTEIL_MAX = 0.35
 # Präfix der Platz-Budget-Fehlermeldung: EINE Quelle für den Repair-Hinweis an
 # das LLM UND die Entscheidung, ob deterministisch getrimmt werden darf
 # (`_trimme_letzte_auswahl`). Ein zweiter Textvergleich würde stillschweigend
@@ -415,6 +425,45 @@ def stil_score(stilprofil: dict[str, Any], item: dict[str, Any]) -> float:
     return score
 
 
+def _laengste_montagewand(room: dict[str, Any]) -> float:
+    """Länge der längsten massiven Wand (m); 0.0, wenn es keine gibt.
+
+    Nur massive Wände tragen Möbel – offene/virtuelle Zonengrenzen nicht (gleiche
+    Sicht wie Solver und Interpreter).
+    """
+    laengen = [
+        math.hypot(w["end"][0] - w["start"][0], w["end"][1] - w["start"][1])
+        for w in room["shell"]["walls"]
+        if w.get("kind") == "massiv"
+    ]
+    return max(laengen, default=0.0)
+
+
+def _passt_geometrisch(item: dict[str, Any], laengste_wand: float, flaeche: float) -> bool:
+    """Kann dieses Item im Raum überhaupt untergebracht werden?
+
+    Erste Erdungsstufe gegen eine ganze Fehlerklasse: ein 1.30 m breiter
+    Doppelwaschtisch hat in einem 1.56 m² Gäste-WC keinen Platz, der Solver
+    quittiert das erst spät mit `NoFeasiblePlacement` – und dann scheitert der
+    ganze Plan, statt dass ein kleineres Lavabo gewählt wird. Die
+    Footprint-Daumenregel greift dort nicht, weil wandmontierte Items 0 m²
+    Boden belegen.
+
+    Zwei Schranken, beide bewusst grob (Vorfilter sortiert offensichtlich
+    Unmögliches aus; die Norm-Wahrheit bleibt beim Solver):
+    1. Die Breite muss an die längste massive Wand passen.
+    2. Das Objekt darf mit seiner Bewegungsfläche davor (`_BEWEGUNGSTIEFE`)
+       nicht mehr als `_FLAECHEN_ANTEIL_MAX` des Raums beanspruchen – sonst
+       bliebe für die übrigen Pflicht-Objekte nichts übrig.
+    """
+    breite = float(item["masse"]["w"])
+    if laengste_wand > 0.0 and breite > laengste_wand:
+        return False
+    if flaeche > 0.0 and breite * _BEWEGUNGSTIEFE > flaeche * _FLAECHEN_ANTEIL_MAX:
+        return False
+    return True
+
+
 def vorfilter(
     stilprofil: dict[str, Any],
     room: dict[str, Any],
@@ -427,9 +476,13 @@ def vorfilter(
     """
     room_type = room["roomType"]
     passend = [c for c in catalog if room_type in c["roomTypes"]]
+    laengste = _laengste_montagewand(room)
+    flaeche = float(room["shell"]["floor"].get("area") or 0.0)
     slots: dict[str, list[dict[str, Any]]] = {}
     for item in passend:
         if budget is not None and item["preis"]["value"] > budget:
+            continue
+        if not _passt_geometrisch(item, laengste, flaeche):
             continue
         slots.setdefault(item["funktionsTyp"], []).append(item)
     for typ, items in slots.items():
