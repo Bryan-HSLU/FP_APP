@@ -14,6 +14,7 @@ import httpx
 import pytest
 
 from fp_engines.kurator import (
+    _ANTWORT_TOKENS_AUSWAHL,
     FLAECHEN_REGELN,
     KANDIDATEN_DECKEL,
     KANDIDATEN_MIN,
@@ -759,9 +760,9 @@ def test_sampling_temperature_und_seed(monkeypatch: pytest.MonkeyPatch) -> None:
     temps = {p["temperature"] for p in payloads}
     assert temps == {0.6, 0.3}
     auswahl = [p for p in payloads if p["temperature"] == 0.6]
-    assert len(auswahl) == 1 and auswahl[0]["max_tokens"] == 800
+    assert len(auswahl) == 1 and auswahl[0]["max_tokens"] == _ANTWORT_TOKENS_AUSWAHL
     fokussiert = sorted(p["max_tokens"] for p in payloads if p["temperature"] == 0.3)
-    assert fokussiert == [500, 700]
+    assert fokussiert == [500, 750]
     # Ein ganzer Plan muss ins Groq-Free-Tier-Minutenbudget passen (12k TPM):
     # Rate-Limiter zählt Prompt + reserviertes Antwort-Fenster je Call.
     verbrauch = sum(
@@ -1095,12 +1096,13 @@ def test_adaptive_reduktion_unter_limit(monkeypatch: pytest.MonkeyPatch) -> None
     """Erreichbares kleines Token-Limit → weniger Kandidaten als bei Default UND
     der volle Prompt kommt tatsächlich unter das Limit; nie unter das Slot-Minimum."""
     slots = vorfilter(PROFIL, KUECHE_ROOM_SAMPLE, KUECHE_CATALOG, None)
-    monkeypatch.delenv("FP_KURATOR_MAX_PROMPT_TOKENS", raising=False)
+    # Bewusst BEIDE Limits explizit setzen statt gegen den Default zu vergleichen:
+    # der Default richtet sich nach dem Provider-Minutenbudget und ändert sich
+    # mit ihm – der Beweis «kleineres Limit ⇒ weniger Kandidaten» soll davon
+    # unabhängig gelten.
+    monkeypatch.setenv("FP_KURATOR_MAX_PROMPT_TOKENS", "9000")
     _, voll = _call_a_full(slots, KUECHE_ROOM_SAMPLE)
 
-    # 3300 liegt zwischen Default-Grösse (~3330, Kurznummern statt UUIDs – seit
-    # dem Handle-Mapping kürzer als zuvor) und der nächsten Kürzungs-Stufe
-    # (~3070), ist also durch Kürzung erreichbar (echter «unter Limit»-Beweis).
     monkeypatch.setenv("FP_KURATOR_MAX_PROMPT_TOKENS", "3300")
     full, knapp = _call_a_full(slots, KUECHE_ROOM_SAMPLE)
 
@@ -1505,3 +1507,55 @@ def test_parallel_marker_reihenfolge_bleibt_stabil(monkeypatch: pytest.MonkeyPat
         assert begruendung.index("CURATOR_ANORDNUNG_FALLBACK") < begruendung.index(
             "CURATOR_FLAECHEN_FALLBACK"
         )
+
+def test_abgeschnittene_antwort_wird_erkannt(monkeypatch: pytest.MonkeyPatch) -> None:
+    """finish_reason=length -> klare Ursache im Marker, nicht «JSONDecodeError».
+
+    Bei erschöpftem Antwortfenster liefert der Provider ein mitten im JSON
+    endendes Fragment. Ohne eigene Erkennung sähe das aus wie ein Parse-Fehler –
+    man wüsste nicht, dass schlicht `max_tokens` zu klein war.
+    """
+
+    def fake_post(url: str, **kwargs: Any) -> httpx.Response:
+        body = {
+            "choices": [
+                {"message": {"content": '{"konzept": "Warmes Bad", "hauptOb'},
+                 "finish_reason": "length"}
+            ]
+        }
+        return httpx.Response(200, json=body, request=httpx.Request("POST", url))
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    port = LlmKurator(url="http://test/v1", model="test", api_key=None)
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert "CURATOR_FALLBACK_USED" in ergebnis["begruendung"]
+    assert "abgeschnitten" in ergebnis["begruendung"]
+
+
+def test_antwortfenster_deckt_die_groesste_realistische_antwort(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Das Fenster je Call muss die grösstmögliche echte Antwort tragen.
+
+    Grösster Fall ist eine Küche: bis zu 11 Haupt-Objekte plus Ergänzungen, dazu
+    Farben je Item und laut Prompt EIN SATZ BEGRÜNDUNG JE OBJEKT. Gerechnet wird
+    bewusst mit einem dichteren Token-Faktor als `schaetze_tokens` (JSON hat viele
+    Strukturzeichen, die einzeln tokenisieren) – das Fenster soll auch dann
+    reichen, wenn das Modell ausführlich wird.
+    """
+    antwort = {
+        "konzept": "Warme Landhausküche mit Eiche und Naturstein, erdige Farbwelt.",
+        "hauptObjekte": [f"#{i}" for i in range(1, 12)],
+        "ergaenzungen": [{"itemId": f"#{i}", "anzahl": 2} for i in range(12, 16)],
+        "farben": {f"#{i}": "eiche-natur" for i in range(1, 16)},
+        "begruendung": " · ".join(
+            f"Objekt {i} ergänzt die Zeile mit warmer Eiche und passt zum Konzept"
+            for i in range(1, 16)
+        ),
+    }
+    roh = json.dumps(antwort, ensure_ascii=False)
+    dicht = len(roh) / 2.5  # konservativer als die DE-Fliesstext-Schätzung
+    assert dicht < _ANTWORT_TOKENS_AUSWAHL, (
+        f"Call-A-Antwort braucht ~{dicht:.0f} Tokens, Fenster ist "
+        f"{_ANTWORT_TOKENS_AUSWAHL} – Gefahr abgeschnittener Antworten"
+    )

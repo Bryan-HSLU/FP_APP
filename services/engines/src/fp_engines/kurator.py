@@ -106,19 +106,19 @@ _ZEICHEN_PRO_TOKEN = 3.5  # grobe DE-Token-Schätzung: ~Zeichen/3.5
 # Default für FP_KURATOR_MAX_PROMPT_TOKENS. Hergeleitet aus dem Minutenbudget
 # des Groq Free Tier (llama-3.3-70b: 12k TPM) für EINEN Plan = 3 Calls, wobei
 # der Rate-Limiter Prompt + reserviertes Antwort-Fenster zählt:
-#   A 3900 + 800 · B ~1450 + 700 · C ~1300 + 500  ≈ 8950
+#   A 3600 + 950 · B ~1450 + 700 · C ~1300 + 500  ≈ 8950
 # Der Erstprompt bleibt bewusst grosszügig – je mehr Kandidaten, desto weniger
 # generisch die Auswahl. Der kritische Fall (Plan MIT Repair) wird stattdessen
 # über den verschlankten Repair-Turn abgefangen (s. `_repair_messages`).
-_MAX_PROMPT_TOKENS_DEFAULT = 3900
+_MAX_PROMPT_TOKENS_DEFAULT = 3600
 # Antwort-Fenster JE CALL (v3.3, Free-Tier-Budget). Provider-Rate-Limiter (Groq)
 # rechnen `max_tokens` als RESERVIERUNG in die Request-Grösse ein – nicht die
 # tatsächlich erzeugten Tokens. Ein Plan kostet 3 Calls, also zählt die Summe
 # gegen das Minutenbudget (Llama-3.3-70b Free Tier: 12k TPM). Darum je Call nur
 # so viel Fenster, wie die Antwort wirklich braucht: A trägt Konzept + Auswahl +
 # Farben + Begründung, B/C sind knappe Strukturen.
-_ANTWORT_TOKENS_AUSWAHL = 800
-_ANTWORT_TOKENS_ANORDNUNG = 700
+_ANTWORT_TOKENS_AUSWAHL = 950
+_ANTWORT_TOKENS_ANORDNUNG = 750
 _ANTWORT_TOKENS_FLAECHEN = 500
 # Sampling je Call-Art: Auswahl darf kreativ streuen (sonst liefert «Neue
 # Variante» bei jedem Seed fast dasselbe Set), Anordnung/Flächen füllen enge
@@ -148,6 +148,19 @@ PLATZ_FEHLER_PRAEFIX = "Platz-Budget überschritten"
 # ersten Turn bereits gelesen; sie erneut mitzuschicken kostet ~1300 Tokens, die
 # beim Free-Tier-Minutenbudget fehlen. Für eine Korrektur genügt der Auftrag –
 # die erlaubten Kurznummern stehen weiterhin im User-Turn.
+class AntwortAbgeschnitten(Exception):
+    """Das LLM hat das Antwortfenster (`max_tokens`) ausgeschöpft.
+
+    Eigene Klasse statt eines JSON-Parsefehlers, damit der Fallback-Marker die
+    echte Ursache nennt («Antwort abgeschnitten») statt bloss «JSONDecodeError» –
+    bei zu knappem Fenster ist genau das die Information, die man braucht.
+    """
+
+    def __init__(self, zeichen: int):
+        self.zeichen = zeichen
+        super().__init__(f"Antwort abgeschnitten nach {zeichen} Zeichen (max_tokens erreicht)")
+
+
 KANDIDATEN_MARKER = "## Haupt-Objekte (raumprägend – ZUERST wählen)"
 REPAIR_ROLLE = (
     "Du bist derselbe Schweizer Interior-Designer wie zuvor. Korrigiere deine "
@@ -190,7 +203,7 @@ def schaetze_tokens(text: str) -> int:
 
 
 def _max_prompt_tokens() -> int:
-    """Prompt-Token-Limit aus `FP_KURATOR_MAX_PROMPT_TOKENS` (Default 3900).
+    """Prompt-Token-Limit aus `FP_KURATOR_MAX_PROMPT_TOKENS` (Default 3600).
 
     Zur Laufzeit gelesen (nicht beim Import), damit Env-Overrides – etwa in Tests
     oder je Deployment/Tier – ohne Reload greifen. Ungültige Werte → Default.
@@ -360,6 +373,8 @@ def _fehler_ursache(e: Exception) -> str:
     <Klasse>» (z.B. ConnectError); sonstige → Exception-Klassenname."""
     if isinstance(e, httpx.HTTPStatusError):
         return f"HTTP {e.response.status_code}"
+    if isinstance(e, AntwortAbgeschnitten):
+        return "Antwort abgeschnitten (max_tokens zu klein)"
     if isinstance(e, httpx.HTTPError):
         return f"HTTP {type(e).__name__}"
     return type(e).__name__
@@ -1977,10 +1992,20 @@ class LlmKurator:
             payload["reasoning_format"] = "hidden"
         res = self._post_mit_backoff(headers, payload)
         res.raise_for_status()
-        inhalt = res.json()["choices"][0]["message"]["content"]
+        wahl = res.json()["choices"][0]
+        inhalt = wahl["message"]["content"]
+        # Abgeschnittene Antwort SICHTBAR machen: bei erschöpftem Antwortfenster
+        # liefert der Provider `finish_reason: "length"` und ein mittendrin
+        # endendes JSON. Ohne diese Prüfung käme das nur als kryptischer
+        # JSONDecodeError an und würde als «HTTP JSONDecodeError» im Fallback
+        # landen – also genau die Art stiller Fehler, die uns schon einmal
+        # wochenlang eine tote LLM-Anbindung verdeckt hat.
+        if wahl.get("finish_reason") == "length":
+            raise AntwortAbgeschnitten(len(inhalt))
         log.info(
-            "kurator llm antwort, prompt_hash=%s",
+            "kurator llm antwort, prompt_hash=%s, zeichen=%d",
             hashlib.sha256(json.dumps(messages).encode()).hexdigest()[:12],
+            len(inhalt),
         )
         return json.loads(inhalt)  # type: ignore[no-any-return]
 
@@ -2042,7 +2067,7 @@ class LlmKurator:
             # Repair» allein ist beim Debuggen im Space wertlos – erst «Platz-
             # Budget überschritten: 9.4 > 7.2» macht die Ursache sichtbar.
             self._letzte_ursache = f"ungültig nach Repair: {fehler[:180]}"
-        except (httpx.HTTPError, json.JSONDecodeError, KeyError) as e:
+        except (httpx.HTTPError, json.JSONDecodeError, KeyError, AntwortAbgeschnitten) as e:
             log.warning("kurator[%s]: llm-aufruf fehlgeschlagen (%s)", name, e)
             self._letzte_ursache = _fehler_ursache(e)
         return None
@@ -2118,7 +2143,7 @@ class LlmKurator:
         ]
         try:
             antwort = self._rufe_llm(messages, seed)
-        except (httpx.HTTPError, json.JSONDecodeError, KeyError) as e:
+        except (httpx.HTTPError, json.JSONDecodeError, KeyError, AntwortAbgeschnitten) as e:
             log.warning("kurator[flaechen-norm]: repair-aufruf fehlgeschlagen (%s)", e)
             return None
         if _validiere_flaechen(antwort, n_walls, MATERIAL_SLUGS) is not None:
@@ -2166,7 +2191,7 @@ class LlmKurator:
         ]
         try:
             antwort = self._rufe_llm(messages, seed)
-        except (httpx.HTTPError, json.JSONDecodeError, KeyError) as e:
+        except (httpx.HTTPError, json.JSONDecodeError, KeyError, AntwortAbgeschnitten) as e:
             log.warning("kurator[farben]: repair-aufruf fehlgeschlagen (%s)", e)
             return None
         roh_farben = antwort.get("farben")
@@ -2221,7 +2246,7 @@ class LlmKurator:
         ]
         try:
             roh = self._rufe_llm(messages, seed)
-        except (httpx.HTTPError, json.JSONDecodeError, KeyError) as e:
+        except (httpx.HTTPError, json.JSONDecodeError, KeyError, AntwortAbgeschnitten) as e:
             log.warning("kurator[anzahl]: repair-aufruf fehlgeschlagen (%s)", e)
             return None
         antwort = _uebersetze_auswahl_antwort(roh, handles)
