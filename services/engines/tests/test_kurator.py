@@ -6,6 +6,7 @@ Repair oder Exception bedient werden kann.
 """
 
 import json
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -39,9 +40,11 @@ from fp_engines.kurator import (
     mengen_aus_antwort,
     nasswaende,
     norm_kontext_flaechen,
+    platz_anzeige,
     pruefe_flaechen,
     schaetze_tokens,
     stil_kurz,
+    trimme_platz_budget,
     vorfilter,
 )
 
@@ -180,12 +183,60 @@ def test_validiere_flaechen_hoehe_ausserhalb() -> None:
 # --- LLM-Pipeline (3 Calls) -------------------------------------------------
 
 
+def _call_typ(payload: dict[str, Any]) -> str:
+    """Call-Art aus dem System-Prompt eines Requests (a=Auswahl, b=Anordnung, c=Flächen)."""
+    system = payload["messages"][0]["content"]
+    if "«Anordnung»" in system:
+        return "b"
+    if "«Flächen»" in system:
+        return "c"
+    return "a"
+
+
+def _antwort_typ(inhalt: Any) -> str | None:
+    """Call-Art einer Stub-Antwort aus ihren Feldern; None = nicht zuordenbar."""
+    if not isinstance(inhalt, dict):
+        return None
+    if "anordnung" in inhalt:
+        return "b"
+    if "flaechen" in inhalt:
+        return "c"
+    if {"auswahl", "hauptObjekte", "ergaenzungen", "konzept", "farben"} & set(inhalt):
+        return "a"
+    return None
+
+
+class _Warteschlangen:
+    """Stub-Antworten je Call-Art statt in globaler Aufruf-Reihenfolge.
+
+    Seit Call B und C nebenläufig laufen, ist die Reihenfolge der HTTP-Requests
+    nicht mehr festgelegt – ein `pop(0)` über alle Calls hinweg würde die Suite
+    zufällig rot machen (mal bekäme der Flächen-Call die Anordnungs-Antwort).
+    Die Zuordnung geschieht darum über den System-Prompt des Requests; nicht
+    typisierbare Einträge (Exceptions) bleiben in einer gemeinsamen Restschlange
+    in Reihenfolge – das betrifft nur Call A, der ohnehin allein läuft.
+    """
+
+    def __init__(self, antworten: list[Any]) -> None:
+        self._nach_typ: dict[str, list[Any]] = {"a": [], "b": [], "c": []}
+        self._rest: list[Any] = []
+        for a in antworten:
+            typ = _antwort_typ(a)
+            (self._nach_typ[typ] if typ else self._rest).append(a)
+        self._lock = threading.Lock()
+
+    def hole(self, payload: dict[str, Any]) -> Any:
+        with self._lock:
+            schlange = self._nach_typ[_call_typ(payload)]
+            return schlange.pop(0) if schlange else self._rest.pop(0)
+
+
 def _llm_mit_antworten(monkeypatch: pytest.MonkeyPatch, antworten: list[Any]) -> LlmKurator:
-    """LLM-Port mit gestubbtem HTTP: gibt die Antworten der Reihe nach zurück."""
-    rest = list(antworten)
+    """LLM-Port mit gestubbtem HTTP: Antworten werden je Call-Art zugeordnet."""
+    schlangen = _Warteschlangen(antworten)
 
     def fake_post(url: str, **kwargs: Any) -> httpx.Response:
-        inhalt = rest.pop(0)
+        inhalt = schlangen.hole(kwargs["json"])
         if isinstance(inhalt, Exception):
             raise inhalt
         body = {"choices": [{"message": {"content": json.dumps(inhalt)}}]}
@@ -443,12 +494,15 @@ def test_llm_flaechen_norm_repair_hinweis_enthaelt_regel(monkeypatch: pytest.Mon
     """Der Norm-Repair-Prompt gibt die konkrete verletzte Regel-ID ans LLM zurück."""
     gesendet: list[list[dict[str, str]]] = []
 
-    antworten = [_auswahl_ok(), _anordnung_ok(), _flaechen_verstoss(), _flaechen_ok()]
-    rest = list(antworten)
+    schlangen = _Warteschlangen(
+        [_auswahl_ok(), _anordnung_ok(), _flaechen_verstoss(), _flaechen_ok()]
+    )
+    sperre = threading.Lock()
 
     def fake_post(url: str, **kwargs: Any) -> httpx.Response:
-        gesendet.append(kwargs["json"]["messages"])
-        inhalt = rest.pop(0)
+        with sperre:
+            gesendet.append(kwargs["json"]["messages"])
+        inhalt = schlangen.hole(kwargs["json"])
         body = {"choices": [{"message": {"content": json.dumps(inhalt)}}]}
         return httpx.Response(200, json=body, request=httpx.Request("POST", url))
 
@@ -456,9 +510,11 @@ def test_llm_flaechen_norm_repair_hinweis_enthaelt_regel(monkeypatch: pytest.Mon
     port = LlmKurator(url="http://test/v1", model="test", api_key=None)
     port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
 
-    # Der 4. Call ist der Norm-Repair; sein User-Hinweis nennt die Regel-ID.
-    repair_hinweis = gesendet[3][-1]["content"]
-    assert "bad-boden-wasserfest" in repair_hinweis
+    # Der Norm-Repair nennt die verletzte Regel-ID im User-Hinweis. Gesucht wird
+    # inhaltlich, nicht über den Index: seit B und C nebenläufig laufen, ist die
+    # Reihenfolge der Requests nicht mehr festgelegt.
+    hinweise = [m[-1]["content"] for m in gesendet]
+    assert any("bad-boden-wasserfest" in h for h in hinweise)
 
 
 # --- Welle 1: Platz-Budget (harte Kontrolle in Call A) -----------------------
@@ -668,11 +724,13 @@ def _capture_pipeline(
 ) -> list[dict[str, Any]]:
     """Fährt die Pipeline und gibt die gesendeten Request-Payloads zurück."""
     payloads: list[dict[str, Any]] = []
-    rest = list(antworten)
+    schlangen = _Warteschlangen(antworten)
+    sperre = threading.Lock()
 
     def fake_post(url: str, **kwargs: Any) -> httpx.Response:
-        payloads.append(kwargs["json"])
-        inhalt = rest.pop(0)
+        with sperre:
+            payloads.append(kwargs["json"])
+        inhalt = schlangen.hole(kwargs["json"])
         body = {"choices": [{"message": {"content": json.dumps(inhalt)}}]}
         return httpx.Response(200, json=body, request=httpx.Request("POST", url))
 
@@ -693,8 +751,30 @@ def test_prompt_b_enthaelt_stilprofil_und_c_die_auswahl(monkeypatch: pytest.Monk
 
 def test_sampling_temperature_und_seed(monkeypatch: pytest.MonkeyPatch) -> None:
     payloads = _capture_pipeline(monkeypatch, [_auswahl_ok(), _anordnung_ok(), _flaechen_ok()])
-    assert payloads[0]["temperature"] == 0.3
     assert payloads[0]["seed"] == 7
+    # Temperatur je Call-Art: Auswahl kreativ (Varianz bei «Neue Variante»),
+    # Anordnung/Flächen fokussiert. Antwort-Fenster je Call knapp gehalten,
+    # weil der Rate-Limiter die Reservierung mitzählt (Free-Tier-Budget).
+    temps = {p["temperature"] for p in payloads}
+    assert temps == {0.6, 0.3}
+    auswahl = [p for p in payloads if p["temperature"] == 0.6]
+    assert len(auswahl) == 1 and auswahl[0]["max_tokens"] == 900
+    fokussiert = sorted(p["max_tokens"] for p in payloads if p["temperature"] == 0.3)
+    assert fokussiert == [500, 700]
+    # Ein ganzer Plan muss ins Groq-Free-Tier-Minutenbudget passen (12k TPM):
+    # Rate-Limiter zählt Prompt + reserviertes Antwort-Fenster je Call.
+    verbrauch = sum(
+        schaetze_tokens("\n".join(m["content"] for m in p["messages"])) + p["max_tokens"]
+        for p in payloads
+    )
+    assert verbrauch < 12_000, f"Plan verbraucht {verbrauch} Tokens – über dem Free-Tier-Budget"
+
+
+def test_env_temp_uebersteuert_alle_calls(monkeypatch: pytest.MonkeyPatch) -> None:
+    """FP_KURATOR_TEMP bleibt der eine Messwert – es übersteuert jeden Call."""
+    monkeypatch.setenv("FP_KURATOR_TEMP", "0.15")
+    payloads = _capture_pipeline(monkeypatch, [_auswahl_ok(), _anordnung_ok(), _flaechen_ok()])
+    assert {p["temperature"] for p in payloads} == {0.15}
 
 
 # --- Welle A: Objekt-Ebenen (Haupt/Ergänzung, Anzahl, ADR-0014) --------------
@@ -903,7 +983,7 @@ def test_reasoning_payload_absent_ohne_env(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.delenv("FP_KURATOR_TEMP", raising=False)
     payload = _erster_payload(monkeypatch)
     assert "reasoning_effort" not in payload and "reasoning_format" not in payload
-    assert payload["temperature"] == 0.3  # unveränderter Standard
+    assert payload["temperature"] == 0.6  # Call A: kreative Auswahl
 
 
 # --- v3.2: Prompt-Diät + adaptive Grössen-Kontrolle (Groq-413-Fix) -----------
@@ -1256,3 +1336,148 @@ def test_baseline_kurator_arbeitet_ohne_handles() -> None:
     a = BaselineKurator().kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
     for iid in a["auswahl"]:
         assert iid in BY_ID  # echte Katalog-UUIDs, keine Handles
+
+
+# --- v3.3: Platz vorrechnen, Trimmen statt Verwerfen, B/C parallel -----------
+
+
+def test_platzwert_deckt_die_validierungsformel() -> None:
+    """Der im Prompt gezeigte Platzwert darf NIE kleiner sein als der geprüfte
+    Footprint – sonst würde die KI mit zu optimistischen Zahlen planen und die
+    harte Kontrolle wäre für sie nicht vorhersehbar."""
+    for katalog in (CATALOG, WOHNEN_CATALOG, KUECHE_CATALOG):
+        for item in katalog:
+            echt = _footprint(item)
+            gezeigt = platz_anzeige(item)
+            assert gezeigt >= echt - 1e-9, item["name"]
+            assert gezeigt - echt < 0.1 + 1e-9, item["name"]  # nicht unnötig pessimistisch
+            if item.get("mount") == "wand":
+                assert gezeigt == 0.0, item["name"]
+
+
+def test_kandidatenzeile_zeigt_den_platzwert(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Call A nennt je Kandidat den fertigen Platzwert und verlangt nur Addition."""
+    payloads = _capture_pipeline(monkeypatch, [_auswahl_ok(), _anordnung_ok(), _flaechen_ok()])
+    call_a = payloads[0]["messages"][-1]["content"]
+    assert "Platz " in call_a and "m²" in call_a
+    assert "addiere die «Platz»-Werte" in call_a
+    # Die alte Rechenaufgabe darf nicht mehr im Prompt stehen.
+    assert "Breite×Tiefe×2.5" not in call_a
+
+
+def test_trimmen_opfert_die_schwaechste_ergaenzung() -> None:
+    """Deko (P3) fällt vor Funktion (P2); Haupt-Objekte bleiben unangetastet."""
+    erlaubte = {
+        "haupt": {"id": "haupt", "masse": {"w": 1.0, "d": 1.0}, "priorityClass": "P1"},
+        "p2": {"id": "p2", "masse": {"w": 1.0, "d": 1.0}, "priorityClass": "P2"},
+        "p3": {"id": "p3", "masse": {"w": 1.0, "d": 1.0}, "priorityClass": "P3"},
+    }
+    erg = [{"itemId": "p2", "anzahl": 1}, {"itemId": "p3", "anzahl": 1}]
+    # Budget reicht für Haupt + eine Ergänzung (je 2.5 m²).
+    ergebnis = trimme_platz_budget(["haupt"], erg, erlaubte, 5.0, PROFIL)
+    assert ergebnis is not None
+    neu, entfernt = ergebnis
+    assert entfernt == 1
+    assert [e["itemId"] for e in neu] == ["p2"]  # P3 ist gefallen
+
+
+def test_trimmen_reduziert_anzahl_vor_dem_entfernen() -> None:
+    """Ein Esstisch mit 2 statt 4 Stühlen ist besser als gar keine Stühle."""
+    erlaubte = {
+        "haupt": {"id": "haupt", "masse": {"w": 1.0, "d": 1.0}, "priorityClass": "P1"},
+        "stuhl": {"id": "stuhl", "masse": {"w": 1.0, "d": 1.0}, "priorityClass": "P2"},
+    }
+    erg = [{"itemId": "stuhl", "anzahl": 4}]
+    ergebnis = trimme_platz_budget(["haupt"], erg, erlaubte, 7.5, PROFIL)
+    assert ergebnis is not None
+    neu, entfernt = ergebnis
+    assert entfernt == 2 and neu == [{"itemId": "stuhl", "anzahl": 2}]
+
+
+def test_trimmen_ist_deterministisch() -> None:
+    """Gleiche Eingabe ⇒ gleiches Ergebnis (Projekt-Gesetz)."""
+    erlaubte = {
+        "h": {"id": "h", "masse": {"w": 1.0, "d": 1.0}, "priorityClass": "P1"},
+        "a": {"id": "a", "masse": {"w": 1.0, "d": 1.0}, "priorityClass": "P3"},
+        "b": {"id": "b", "masse": {"w": 1.0, "d": 1.0}, "priorityClass": "P3"},
+    }
+    erg = [{"itemId": "a", "anzahl": 1}, {"itemId": "b", "anzahl": 1}]
+    laeufe = [trimme_platz_budget(["h"], erg, erlaubte, 5.0, PROFIL) for _ in range(5)]
+    assert all(x == laeufe[0] for x in laeufe)
+
+
+def test_trimmen_gibt_auf_wenn_schon_die_hauptobjekte_sprengen() -> None:
+    """Haupt-Objekte werden nie geopfert (sie tragen P1-Pflicht/Anker) → None,
+    damit der ehrliche Baseline-Fallback greift."""
+    erlaubte = {"h": {"id": "h", "masse": {"w": 3.0, "d": 3.0}, "priorityClass": "P1"}}
+    assert trimme_platz_budget(["h"], [], erlaubte, 5.0, PROFIL) is None
+
+
+def test_llm_platz_trimmen_statt_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Überladene KI-Auswahl wird getrimmt, NICHT verworfen: die Haupt-Objekte der
+    KI überleben, der Marker ist sichtbar, und kein Baseline-Fallback greift."""
+    # Haupt 10.6 m² + 6 Stühle 3.7 + Couchtisch 1.6 + Teppich 7.0 = 22.9 > 16.2 m².
+    haupt = _haupt("esstisch", "sofa", "tvmoebel")
+    ueberladen = {
+        "konzept": "Warm und viel zu voll.",
+        "hauptObjekte": haupt,
+        "ergaenzungen": [
+            {"itemId": STUHL, "anzahl": 6},
+            {"itemId": _w("couchtisch"), "anzahl": 1},
+            {"itemId": _w("teppich"), "anzahl": 1},
+        ],
+        "begruendung": "zu viel",
+    }
+    port = _llm_mit_antworten(monkeypatch, [ueberladen, ueberladen, _anordnung_w(), _flaechen_w()])
+    ergebnis = _kuratiere_wohnen(port)
+    assert "CURATOR_PLATZ_REDUZIERT" in ergebnis["begruendung"]
+    assert "CURATOR_FALLBACK_USED" not in ergebnis["begruendung"]
+    assert ergebnis["konzept"] == "Warm und viel zu voll."  # KI-Idee überlebt
+    assert ergebnis["hauptObjekte"] == haupt
+    # Das Ergebnis hält die harte Kontrolle aus (nicht bloss «irgendwie kleiner»).
+    slots = vorfilter(PROFIL, WOHNEN_ROOM, WOHNEN_CATALOG, None)
+    budget = _platz_budget(WOHNEN_ROOM, slots, "wohnen")
+    assert _validiere_ebenen(ergebnis, slots, "wohnen", None, budget, WOHNEN_BY) is None
+
+
+def test_llm_kein_trimmen_bei_anderem_fehler(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Erfundene IDs sind kein Platz-Problem → Trimmen greift NICHT, Fallback schon."""
+    erfunden = {"hauptObjekte": ["gibt-es-nicht"], "begruendung": "x"}
+    port = _llm_mit_antworten(monkeypatch, [erfunden, erfunden, _anordnung_w(), _flaechen_w()])
+    ergebnis = _kuratiere_wohnen(port)
+    assert "CURATOR_FALLBACK_USED" in ergebnis["begruendung"]
+    assert "CURATOR_PLATZ_REDUZIERT" not in ergebnis["begruendung"]
+
+
+def test_calls_b_und_c_laufen_parallel(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Beweis der Nebenläufigkeit: beide Calls müssen sich an einer Barriere
+    treffen – sequenziell ausgeführt liefe sie in den Timeout."""
+    barriere = threading.Barrier(2, timeout=5.0)
+    schlangen = _Warteschlangen([_auswahl_ok(), _anordnung_ok(), _flaechen_ok()])
+
+    def fake_post(url: str, **kwargs: Any) -> httpx.Response:
+        if _call_typ(kwargs["json"]) in ("b", "c"):
+            barriere.wait()
+        inhalt = schlangen.hole(kwargs["json"])
+        body = {"choices": [{"message": {"content": json.dumps(inhalt)}}]}
+        return httpx.Response(200, json=body, request=httpx.Request("POST", url))
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    port = LlmKurator(url="http://test/v1", model="test", api_key=None)
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert "FALLBACK" not in ergebnis["begruendung"]
+
+
+def test_parallel_marker_reihenfolge_bleibt_stabil(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Trotz Nebenläufigkeit steht der Anordnungs-Marker immer vor dem Flächen-
+    Marker – sonst wackelten Diagnose-Ausgaben und Konsumenten."""
+    for _ in range(5):
+        port = _llm_mit_antworten(
+            monkeypatch, [_auswahl_ok(), {"anordnung": "kaputt"}, {"flaechen": "kaputt"}] * 2
+        )
+        begruendung = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)["begruendung"]
+        assert "CURATOR_ANORDNUNG_FALLBACK" in begruendung
+        assert "CURATOR_FLAECHEN_FALLBACK" in begruendung
+        assert begruendung.index("CURATOR_ANORDNUNG_FALLBACK") < begruendung.index(
+            "CURATOR_FLAECHEN_FALLBACK"
+        )

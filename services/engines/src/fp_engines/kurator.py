@@ -75,6 +75,7 @@ import os
 import random
 import time
 from collections.abc import Callable
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol, TypeGuard
@@ -102,11 +103,36 @@ KANDIDATEN_ERGAENZUNG = 3  # max. angezeigte Kandidaten je Ergänzungs-Slot
 KANDIDATEN_MIN = 2  # Untergrenze je Slot bei adaptiver Kürzung (nie darunter)
 KANDIDATEN_DECKEL = 55  # Gesamt-Deckel angezeigter Kandidatenzeilen im Prompt
 _ZEICHEN_PRO_TOKEN = 3.5  # grobe DE-Token-Schätzung: ~Zeichen/3.5
-_MAX_PROMPT_TOKENS_DEFAULT = 5000  # Default für FP_KURATOR_MAX_PROMPT_TOKENS
+# Default für FP_KURATOR_MAX_PROMPT_TOKENS. Hergeleitet aus dem Minutenbudget
+# des Groq Free Tier (llama-3.3-70b: 12k TPM) für EINEN Plan = 3 Calls, wobei
+# der Rate-Limiter Prompt + reserviertes Antwort-Fenster zählt:
+#   A 4200 + 900 · B ~1000 + 700 · C ~900 + 500  ≈ 8200 < 12000 (Reserve für
+# Repair-Retries). Höher wäre riskant, niedriger würde die Kandidatenliste
+# unnötig kürzen – und je weniger Kandidaten, desto generischer die Auswahl.
+_MAX_PROMPT_TOKENS_DEFAULT = 4200
+# Antwort-Fenster JE CALL (v3.3, Free-Tier-Budget). Provider-Rate-Limiter (Groq)
+# rechnen `max_tokens` als RESERVIERUNG in die Request-Grösse ein – nicht die
+# tatsächlich erzeugten Tokens. Ein Plan kostet 3 Calls, also zählt die Summe
+# gegen das Minutenbudget (Llama-3.3-70b Free Tier: 12k TPM). Darum je Call nur
+# so viel Fenster, wie die Antwort wirklich braucht: A trägt Konzept + Auswahl +
+# Farben + Begründung, B/C sind knappe Strukturen.
+_ANTWORT_TOKENS_AUSWAHL = 900
+_ANTWORT_TOKENS_ANORDNUNG = 700
+_ANTWORT_TOKENS_FLAECHEN = 500
+# Sampling je Call-Art: Auswahl darf kreativ streuen (sonst liefert «Neue
+# Variante» bei jedem Seed fast dasselbe Set), Anordnung/Flächen füllen enge
+# Strukturen und bleiben fokussiert.
+TEMP_AUSWAHL = 0.6
+TEMP_FOKUSSIERT = 0.3
 # Footprint-Daumenregel (identisch Baseline & Platz-Budget-Validierung, s.u.):
 # belegte Bodenfläche eines boden-montierten Items = Breite × Tiefe × 2.5
 # (2.5 = Möbelfläche + Bewegungsfläche). Wand-montierte Items belegen 0.
 _FOOTPRINT_FAKTOR = 2.5
+# Präfix der Platz-Budget-Fehlermeldung: EINE Quelle für den Repair-Hinweis an
+# das LLM UND die Entscheidung, ob deterministisch getrimmt werden darf
+# (`_trimme_letzte_auswahl`). Ein zweiter Textvergleich würde stillschweigend
+# brechen, sobald jemand die Meldung umformuliert.
+PLATZ_FEHLER_PRAEFIX = "Platz-Budget überschritten"
 
 log = logging.getLogger("fp.kurator")
 
@@ -142,7 +168,7 @@ def schaetze_tokens(text: str) -> int:
 
 
 def _max_prompt_tokens() -> int:
-    """Prompt-Token-Limit aus `FP_KURATOR_MAX_PROMPT_TOKENS` (Default 5000).
+    """Prompt-Token-Limit aus `FP_KURATOR_MAX_PROMPT_TOKENS` (Default 4200).
 
     Zur Laufzeit gelesen (nicht beim Import), damit Env-Overrides – etwa in Tests
     oder je Deployment/Tier – ohne Reload greifen. Ungültige Werte → Default.
@@ -213,11 +239,15 @@ def _stil_legende() -> list[str]:
     return [
         "## Notation der Kandidatenzeilen",
         "Aufbau je Zeile: #N (Kurznummer) · Name · Stil-Kürzel · B×T×H (m) · "
-        "CHF-Preis · F:Farb-Slugs.",
-        "Referenziere Items IMMER über ihre Kurznummer #N (z.B. \"#3\"), niemals "
+        "CHF-Preis · Platz (m², bereits ausgerechnet) · F:Farb-Slugs.",
+        'Referenziere Items IMMER über ihre Kurznummer #N (z.B. "#3"), niemals '
         "über Name, Masse oder andere Bezeichner.",
         "Stil-Kürzel = die 2–3 stärksten Stil-Achsen als «Pol±» (+ positiver, − "
         "negativer Pol; Betrag ~ Stärke). Pol-Paare je Achse: " + pole + ".",
+        "Platz = bereits ausgerechnete belegte Bodenfläche inkl. Bewegungsfläche. "
+        "Du musst NICHTS multiplizieren – nur die Platz-Werte deiner Auswahl "
+        "addieren (bei anzahl>1 entsprechend mehrfach). «Platz 0.0m²» = "
+        "wandmontiert, zählt nicht mit.",
         "F: = wählbare Farb-Slugs (nur diese sind für das optionale Feld «farben» erlaubt).",
     ]
 
@@ -255,6 +285,21 @@ def _logge_prompt_groesse(messages: list[dict[str, str]], name: str) -> None:
         )
     else:
         log.info("kurator[%s]: prompt ~%d tokens (limit %d)", name, tokens, limit)
+
+
+def _future_ergebnis(future: Future[dict[str, Any] | None], name: str) -> dict[str, Any] | None:
+    """Ergebnis eines nebenläufigen Calls einsammeln; None bei jedem Fehler.
+
+    `_call_json` fängt bereits alle erwarteten Fehler (HTTP/JSON) ab. Diese
+    Klammer sichert nur den Rest ab: eine unerwartete Exception im einen Thread
+    darf den anderen Call nicht mitreissen – der Teil-Fallback (Baseline-
+    Anordnung bzw. flaechen=None) ist immer noch ein brauchbarer Plan.
+    """
+    try:
+        return future.result()
+    except Exception as e:  # noqa: BLE001 – Teil-Fallback ist besser als kein Plan
+        log.warning("kurator[%s]: nebenläufiger call fehlgeschlagen (%s)", name, e)
+        return None
 
 
 def _fehler_ursache(e: Exception) -> str:
@@ -408,6 +453,20 @@ def _footprint(item: dict[str, Any]) -> float:
     return float(m["w"]) * float(m["d"]) * _FOOTPRINT_FAKTOR
 
 
+def platz_anzeige(item: dict[str, Any]) -> float:
+    """Platzwert eines Items für die Kandidatenzeile (m², auf 0.1 aufgerundet).
+
+    Quelle ist `_footprint` – also EXAKT die Formel, gegen die `_validiere_ebenen`
+    prüft (kein zweiter Rechenweg, sonst driften Prompt und Kontrolle
+    auseinander). Warum überhaupt vorrechnen: Sprachmodelle können Breite×Tiefe×
+    2.5 nicht über zehn Zeilen zuverlässig im Kopf multiplizieren – ein echter
+    Diagnoselauf wählte für 16.2 m² Möbel mit 19.0 m² Bedarf. Addieren können sie.
+    Aufgerundet, damit die im Prompt gebildete Summe NIE kleiner ist als die
+    geprüfte (konservativ zugunsten der harten Kontrolle).
+    """
+    return math.ceil(_footprint(item) * 10.0) / 10.0
+
+
 def _min_pflicht_footprint(slots: dict[str, list[dict[str, Any]]], room_type: str) -> float:
     """Kleinstmögliche Footprint-Summe einer P1-Pflicht-vollständigen Auswahl.
 
@@ -536,7 +595,7 @@ def _validiere(
         belegt = sum(_footprint(erlaubte[i]) for i in antwort["auswahl"])
         if belegt > platz_budget:
             return (
-                f"Platz-Budget überschritten: belegte Bodenfläche {belegt:.1f} m² "
+                f"{PLATZ_FEHLER_PRAEFIX}: belegte Bodenfläche {belegt:.1f} m² "
                 f"> {platz_budget:.1f} m² (Summe Breite×Tiefe×2.5 der boden-montierten "
                 "Items). Wähle weniger/kleinere boden-montierte Objekte."
             )
@@ -652,11 +711,80 @@ def _validiere_ebenen(
         belegt += sum(_footprint(erlaubte[e["itemId"]]) * e.get("anzahl", 1) for e in erg)
         if belegt > platz_budget:
             return (
-                f"Platz-Budget überschritten: belegte Bodenfläche {belegt:.1f} m² "
+                f"{PLATZ_FEHLER_PRAEFIX}: belegte Bodenfläche {belegt:.1f} m² "
                 f"> {platz_budget:.1f} m² (Summe anzahl×Breite×Tiefe×2.5 der boden-"
                 "montierten Items). Wähle weniger/kleinere Objekte oder reduziere die Anzahl."
             )
     return None
+
+
+def _erg_schwaeche(
+    eintrag: dict[str, Any], erlaubte: dict[str, dict[str, Any]], stilprofil: dict[str, Any]
+) -> tuple[int, float, float, str]:
+    """Sortierschlüssel «wie entbehrlich ist diese Ergänzung» (grösser = eher weg).
+
+    Reihenfolge der Kriterien: (1) priorityClass – Deko (P3) fällt vor Funktion
+    (P2); (2) kleinster Stil-Score – was am wenigsten zum Geschmack passt, geht
+    zuerst; (3) grösster Platzverbrauch – eine Streichung soll möglichst viel
+    bringen; (4) itemId als Tiebreak, damit die Ordnung total und damit
+    deterministisch ist (gleicher Input ⇒ gleicher Plan bleibt Gesetz).
+    """
+    item = erlaubte[eintrag["itemId"]]
+    prio = _PRIO_KLASSE.get(str(item.get("priorityClass", "P3")), 3)
+    # Grösser = entbehrlicher: hohe priorityClass-Zahl (P3=Deko) zuerst, dann
+    # geringer Stil-Score (darum negiert), dann grosser Platzgewinn.
+    return (prio, -stil_score(stilprofil, item), _footprint(item), str(eintrag["itemId"]))
+
+
+def trimme_platz_budget(
+    haupt: list[str],
+    erg: list[dict[str, Any]],
+    erlaubte: dict[str, dict[str, Any]],
+    platz_budget: float,
+    stilprofil: dict[str, Any],
+) -> tuple[list[dict[str, Any]], int] | None:
+    """Ergänzungen deterministisch kürzen, bis das Platz-Budget hält.
+
+    Bryans Vorgabe: die KI-Auswahl ist ein wichtiger Bestandteil und soll NICHT
+    verworfen werden, nur weil sie den Raum überlädt. Statt des vollen
+    Baseline-Fallbacks fallen darum gezielt die schwächsten Ergänzungen weg
+    (Ordnung s. `_erg_schwaeche`): erst wird die `anzahl` reduziert, dann das
+    Item ganz entfernt – so überlebt ein Esstisch mit 2 statt 4 Stühlen, statt
+    dass die ganze Idee stirbt.
+
+    Haupt-Objekte bleiben unangetastet: sie tragen die P1-Pflicht und die
+    Anker-Bedingungen der Ergänzungen; sie zu streichen würde die harten
+    Kontrollen verletzen, statt sie zu erfüllen.
+
+    Rückgabe: (neue Ergänzungsliste, Anzahl entfernter Instanzen) oder None,
+    wenn selbst ohne jede Ergänzung nicht genug Platz da ist (dann bleibt der
+    Baseline-Fallback die ehrliche Antwort).
+    """
+    haupt_belegt = sum(_footprint(erlaubte[i]) for i in haupt)
+    if haupt_belegt > platz_budget:
+        return None
+    rest = [dict(e) for e in erg]
+    entfernt = 0
+
+    def _belegt() -> float:
+        return haupt_belegt + sum(
+            _footprint(erlaubte[e["itemId"]]) * int(e.get("anzahl", 1)) for e in rest
+        )
+
+    while _belegt() > platz_budget:
+        # Nur boden-montierte Ergänzungen bringen Platz; wandmontierte (Spiegel,
+        # Hängeschrank) zu streichen würde die Auswahl ärmer machen, ohne die
+        # Bilanz zu verbessern.
+        kandidaten = [e for e in rest if _footprint(erlaubte[e["itemId"]]) > 0.0]
+        if not kandidaten:
+            return None
+        opfer = max(kandidaten, key=lambda e: _erg_schwaeche(e, erlaubte, stilprofil))
+        if int(opfer.get("anzahl", 1)) > 1:
+            opfer["anzahl"] = int(opfer["anzahl"]) - 1
+        else:
+            rest.remove(opfer)
+        entfernt += 1
+    return rest, entfernt
 
 
 def _instanz_anzahl(haupt: list[str], erg: list[dict[str, Any]]) -> int:
@@ -1396,16 +1524,26 @@ class LlmKurator:
         # Thinking-/Sampling-Steuerung (ADR-0014) – nur wenn Env gesetzt, sonst
         # bleibt das Payload wie bisher (andere Provider unberührt).
         self.reasoning: str | None = os.environ.get("FP_KURATOR_REASONING")
+        # Temperatur je Call-Art: Call A wählt Möbel + Konzept aus (dort will man
+        # Varianz, sonst liefert «Neue Variante» bei jedem Seed fast dasselbe),
+        # Call B/C füllen enge Strukturen (dort will man Fokus). Ein gesetztes
+        # FP_KURATOR_TEMP übersteuert BEIDE bewusst – ein Wert zum Messen.
         temp_env = os.environ.get("FP_KURATOR_TEMP")
-        self.temperature: float = float(temp_env) if temp_env else 0.3
+        self.temp_override: float | None = float(temp_env) if temp_env else None
+        self.temperature: float = self.temp_override if self.temp_override is not None else 0.3
         # Explizites Antwort-Budget: Rate-Limiter (Groq) zählen sonst das
         # maximale Completion-Fenster zur Request-Grösse → 413. Override via
-        # FP_KURATOR_MAX_ANTWORT_TOKENS (z.B. höher für Thinking-Modus).
+        # FP_KURATOR_MAX_ANTWORT_TOKENS (z.B. höher für Thinking-Modus); ohne
+        # Override gilt das knappere Budget JE CALL (s. _ANTWORT_TOKENS_*).
         antwort_env = os.environ.get("FP_KURATOR_MAX_ANTWORT_TOKENS")
-        self.max_antwort_tokens: int = int(antwort_env) if antwort_env else 1200
+        self.max_antwort_tokens: int | None = int(antwort_env) if antwort_env else None
         # Ursache des letzten gescheiterten _call_json (für den Fallback-Marker,
         # z.B. «HTTP 413»); None = kein Fehler bzw. noch kein Call.
         self._letzte_ursache: str | None = None
+        # Letzte nach dem Repair noch ungültige Antwort + ihr Grund – Grundlage
+        # der Platz-Rettung in `kuratiere` (s. `trimme_platz_budget`).
+        self._letzte_ungueltige: dict[str, Any] | None = None
+        self._letzter_fehler: str | None = None
 
     def _post_mit_backoff(self, headers: dict[str, str], payload: dict[str, Any]) -> httpx.Response:
         """POST mit kleinem 429-Backoff (max. 3 Wiederholungen, Retry-After
@@ -1455,8 +1593,8 @@ class LlmKurator:
         area = room["shell"]["floor"].get("area") or 0.0
         budget_zeile = f"Budget: CHF {budget}" if budget is not None else "Budget: keines"
         platz_zeile = (
-            f"Platz-Budget (hart geprüft): Summe anzahl×Breite×Tiefe×2.5 aller "
-            f"boden-montierten Instanzen ≤ {area:.1f} m² (wandmontierte Items zählen nicht)."
+            f"Platz-Budget (hart geprüft): addiere die «Platz»-Werte deiner gewählten "
+            f"Objekte (bei anzahl>1 mehrfach). Die Summe muss ≤ {area:.1f} m² bleiben."
         )
 
         def _item_zeile(i: dict[str, Any], karte: HandleKarte) -> str:
@@ -1471,6 +1609,8 @@ class LlmKurator:
                 teile.append(stil)
             teile.append(f"{m['w']}×{m['d']}×{m['h']}")
             teile.append(f"CHF {int(round(float(i['preis']['value'])))}")
+            # Vorgerechneter Platzwert statt Rechenaufgabe (s. `platz_anzeige`).
+            teile.append(f"Platz {platz_anzeige(i):.1f}m²")
             varianten = _farb_varianten(i)
             if varianten:
                 teile.append("F:" + "|".join(varianten))
@@ -1551,10 +1691,14 @@ class LlmKurator:
                     *_leitplanke_zeile(room["roomType"], area),
                 ]
             )
-            return [
-                {"role": "system", "content": rolle},
-                {"role": "user", "content": user},
-            ], gezeigt, karte
+            return (
+                [
+                    {"role": "system", "content": rolle},
+                    {"role": "user", "content": user},
+                ],
+                gezeigt,
+                karte,
+            )
 
         # Adaptive Grössen-Kontrolle: Kürzungs-Leiter ablaufen, bis Gesamt-Deckel
         # UND Token-Limit eingehalten sind; sonst die Minimal-Stufe nehmen (nie
@@ -1695,24 +1839,32 @@ class LlmKurator:
 
     # --- LLM-Aufruf + generischer Repair-Runner -----------------------------
 
-    def _rufe_llm(self, messages: list[dict[str, str]], seed: int | None = None) -> dict[str, Any]:
+    def _rufe_llm(
+        self,
+        messages: list[dict[str, str]],
+        seed: int | None = None,
+        temperature: float | None = None,
+        max_antwort_tokens: int | None = None,
+    ) -> dict[str, Any]:
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
-        # temperature 0.3 (bzw. FP_KURATOR_TEMP-Override): fokussierter als 0.7
-        # (weniger Rauschen), aber nicht deterministisch-flach. seed: OpenAI-
-        # kompatibel «best effort» – reduziert Run-zu-Run-Streuung, wo das Serving
-        # es unterstützt (sonst ignoriert).
+        # temperature: fokussierter als 0.7 (weniger Rauschen), aber nicht
+        # deterministisch-flach; je Call gesetzt (s. __init__), FP_KURATOR_TEMP
+        # übersteuert. seed: OpenAI-kompatibel «best effort» – reduziert
+        # Run-zu-Run-Streuung, wo das Serving es unterstützt (sonst ignoriert).
+        temp = self.temp_override if self.temp_override is not None else (temperature or 0.3)
+        fenster = self.max_antwort_tokens or max_antwort_tokens or _ANTWORT_TOKENS_AUSWAHL
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
-            "temperature": self.temperature,
+            "temperature": temp,
             "response_format": {"type": "json_object"},
             # Ohne explizites max_tokens rechnen Rate-Limiter (z.B. Groq) das
             # MAXIMALE Antwort-Budget in die Request-Grösse ein → 413 trotz
             # kleinem Prompt. Unsere JSON-Antworten sind kompakt; 1200 deckt
             # Auswahl inkl. Konzept/Begründung locker.
-            "max_tokens": self.max_antwort_tokens,
+            "max_tokens": fenster,
         }
         if seed is not None:
             payload["seed"] = seed
@@ -1745,6 +1897,8 @@ class LlmKurator:
         name: str,
         seed: int | None = None,
         uebersetze: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
+        temperature: float | None = None,
+        max_antwort_tokens: int | None = None,
     ) -> dict[str, Any] | None:
         """Ein LLM-Call mit Validierung + max. 1 Repair-Retry. None = gescheitert.
 
@@ -1763,8 +1917,10 @@ class LlmKurator:
         nötig, da `validiere` ohnehin nur die übersetzte Fassung sieht).
         """
         self._letzte_ursache = None
+        self._letzte_ungueltige = None
+        self._letzter_fehler = None
         try:
-            roh = self._rufe_llm(messages, seed)
+            roh = self._rufe_llm(messages, seed, temperature, max_antwort_tokens)
             antwort = uebersetze(roh) if uebersetze else roh
             fehler = validiere(antwort)
             if fehler is not None:
@@ -1778,12 +1934,17 @@ class LlmKurator:
                         "Korrigiere und antworte erneut nur mit JSON.",
                     },
                 ]
-                roh = self._rufe_llm(messages, seed)
+                roh = self._rufe_llm(messages, seed, temperature, max_antwort_tokens)
                 antwort = uebersetze(roh) if uebersetze else roh
                 fehler = validiere(antwort)
             if fehler is None:
                 return antwort
             log.warning("kurator[%s]: nach repair weiterhin ungültig (%s)", name, fehler)
+            # Antwort + Grund aufheben: bei reiner Platz-Überbelegung rettet der
+            # Aufrufer die KI-Auswahl deterministisch (`trimme_platz_budget`),
+            # statt sie zu verwerfen.
+            self._letzte_ungueltige = antwort
+            self._letzter_fehler = fehler
             # Konkreten Validierungsgrund in den Marker heben: «ungültig nach
             # Repair» allein ist beim Debuggen im Space wertlos – erst «Platz-
             # Budget überschritten: 9.4 > 7.2» macht die Ursache sichtbar.
@@ -1792,6 +1953,52 @@ class LlmKurator:
             log.warning("kurator[%s]: llm-aufruf fehlgeschlagen (%s)", name, e)
             self._letzte_ursache = _fehler_ursache(e)
         return None
+
+    def _trimme_letzte_auswahl(
+        self,
+        slots: dict[str, list[dict[str, Any]]],
+        platz_budget: float | None,
+        stilprofil: dict[str, Any],
+        validiere: Callable[[dict[str, Any]], str | None],
+    ) -> tuple[dict[str, Any], int] | None:
+        """Die zuletzt am Platz-Budget gescheiterte Antwort retten. None = nicht möglich.
+
+        Greift NUR, wenn `_call_json` genau diesen Fehler gemeldet hat (Präfix
+        `PLATZ_FEHLER_PRAEFIX`) – bei erfundenen IDs, fehlender P1-Pflicht oder
+        HTTP-Fehlern wäre Trimmen sinnlos oder gefährlich. Das getrimmte Ergebnis
+        läuft anschliessend ERNEUT komplett durch `_validiere_ebenen`: die harte
+        Erdung wird hier nicht aufgeweicht, sondern noch einmal bewiesen.
+        """
+        antwort = self._letzte_ungueltige
+        fehler = self._letzter_fehler
+        if antwort is None or not fehler or not fehler.startswith(PLATZ_FEHLER_PRAEFIX):
+            return None
+        if platz_budget is None:
+            return None
+        haupt, erg = _extrahiere_ebenen(antwort)
+        erlaubte = {i["id"]: i for items in slots.values() for i in items}
+        if any(i not in erlaubte for i in _auswahl_aus_ebenen(haupt, erg)):
+            return None
+        getrimmt = trimme_platz_budget(haupt, erg, erlaubte, platz_budget, stilprofil)
+        if getrimmt is None:
+            return None
+        neue_erg, entfernt = getrimmt
+        neu = dict(antwort)
+        neu["hauptObjekte"] = haupt
+        neu["ergaenzungen"] = neue_erg
+        neu.pop("auswahl", None)  # wird aus den Ebenen neu abgeleitet
+        # Farben der weggefallenen Items mitnehmen, sonst schlägt die
+        # Farb-Validierung auf einer Auswahl fehl, die es nicht mehr gibt.
+        behalten = set(_auswahl_aus_ebenen(haupt, neue_erg))
+        farben = neu.get("farben")
+        if isinstance(farben, dict):
+            neu["farben"] = {k: v for k, v in farben.items() if k in behalten}
+        rest_fehler = validiere(neu)
+        if rest_fehler is not None:
+            log.warning("kurator[auswahl]: trimmen half nicht (%s)", rest_fehler)
+            return None
+        log.info("kurator[auswahl]: platz-budget durch trimmen erfüllt (%d entfernt)", entfernt)
+        return (neu, entfernt)
 
     def _flaechen_norm_repair(
         self,
@@ -1952,13 +2159,31 @@ class LlmKurator:
         # Kurznummer-Karte für diesen Call – Repair-Schritte (Anzahl/Farben)
         # bauen dieselbe Karte einfach erneut über dieselben Argumente.
         messages_a, handles_a = self._prompt_auswahl(stilprofil, room, slots, budget)
+
+        def _validiere_a(a: dict[str, Any]) -> str | None:
+            return _validiere_ebenen(a, slots, room_type, budget, platz_budget, by_id)
+
         antwort_a = self._call_json(
             messages_a,
-            lambda a: _validiere_ebenen(a, slots, room_type, budget, platz_budget, by_id),
+            _validiere_a,
             "auswahl",
             seed,
             uebersetze=lambda a: _uebersetze_auswahl_antwort(a, handles_a),
+            temperature=TEMP_AUSWAHL,
+            max_antwort_tokens=_ANTWORT_TOKENS_AUSWAHL,
         )
+        platz_hinweis = ""
+        if antwort_a is None:
+            # Rettungsversuch VOR dem Fallback: scheiterte die Antwort einzig am
+            # Platz-Budget, wird die KI-Auswahl deterministisch getrimmt statt
+            # verworfen (Bryans Vorgabe – die KI-Entscheidung ist der Wert).
+            gerettet = self._trimme_letzte_auswahl(slots, platz_budget, stilprofil, _validiere_a)
+            if gerettet is not None:
+                antwort_a, entfernt = gerettet
+                platz_hinweis = (
+                    f" (Platz-Budget: CURATOR_PLATZ_REDUZIERT, {entfernt} "
+                    f"Ergänzung{'en' if entfernt != 1 else ''} entfernt)"
+                )
         if antwort_a is None:
             ergebnis = BaselineKurator().kuratiere(stilprofil, room, catalog, budget, seed)
             # Marker-Präfix «CURATOR_FALLBACK_USED» bleibt stabil (Tests/Konsumenten
@@ -1972,7 +2197,7 @@ class LlmKurator:
         auswahl: list[str] = _auswahl_aus_ebenen(haupt_objekte, ergaenzungen)
         # Konzept ist weich/optional (keine Norm) → fehlend = kein Konzept-Block.
         konzept = antwort_a.get("konzept")
-        begruendung = str(antwort_a.get("begruendung", ""))
+        begruendung = str(antwort_a.get("begruendung", "")) + platz_hinweis
         gewaehlte_typen = {by_id[i]["funktionsTyp"] for i in auswahl}
 
         # Anzahl-Korridor (WEICH, ADR-0014): nur bei der neuen zweistufigen Form
@@ -2035,35 +2260,58 @@ class LlmKurator:
                 farben = _bereinige_farben(roh_farben, auswahl, by_id)
                 begruendung += " (Farben bereinigt: CURATOR_FARBEN_BEREINIGT)"
 
-        # Call B – Anordnung. Scheitert B → Teil-Fallback aus relationalRules.
-        # Eigene Handle-Karte (Call-A-Handles gelten nicht 1:1 weiter – Call B
+        # Calls B und C hängen beide NUR von Call A ab – sie laufen darum
+        # nebenläufig (zwei Threads; die HTTP-Calls sind I/O-bound, ein
+        # async-Umbau des ganzen Moduls wäre unverhältnismässig). Der Nutzer
+        # wartet dadurch spürbar kürzer auf seinen Vorschlag. Die Ergebnisse
+        # werden anschliessend in FESTER Reihenfolge ausgewertet (erst
+        # Anordnung, dann Flächen), damit die Marker-Reihenfolge in der
+        # `begruendung` und damit alle Tests/Diagnosen stabil bleiben.
+        # Eigene Handle-Karte für B (Call-A-Handles gelten nicht 1:1 weiter – B
         # zeigt nur die Auswahl, frisch 1..N nummeriert, s. `_prompt_anordnung`).
         messages_b, handles_b = self._prompt_anordnung(auswahl, by_id, room, stilprofil, konzept)
-        antwort_b = self._call_json(
-            messages_b,
-            lambda a: _validiere_anordnung(a, auswahl, n_walls, gewaehlte_typen),
-            "anordnung",
-            seed,
-            uebersetze=lambda a: _uebersetze_anordnung_antwort(a, handles_b),
-        )
+        messages_c = self._prompt_flaechen(stilprofil, room, auswahl, by_id, konzept)
+
+        def _hole_anordnung() -> dict[str, Any] | None:
+            return self._call_json(
+                messages_b,
+                lambda a: _validiere_anordnung(a, auswahl, n_walls, gewaehlte_typen),
+                "anordnung",
+                seed,
+                uebersetze=lambda a: _uebersetze_anordnung_antwort(a, handles_b),
+                temperature=TEMP_FOKUSSIERT,
+                max_antwort_tokens=_ANTWORT_TOKENS_ANORDNUNG,
+            )
+
+        def _hole_flaechen() -> dict[str, Any] | None:
+            return self._call_json(
+                messages_c,
+                lambda a: _validiere_flaechen(a, n_walls, MATERIAL_SLUGS),
+                "flaechen",
+                seed,
+                temperature=TEMP_FOKUSSIERT,
+                max_antwort_tokens=_ANTWORT_TOKENS_FLAECHEN,
+            )
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            future_b = pool.submit(_hole_anordnung)
+            future_c = pool.submit(_hole_flaechen)
+            antwort_b = _future_ergebnis(future_b, "anordnung")
+            antwort_c = _future_ergebnis(future_c, "flaechen")
+
         if antwort_b is not None:
             anordnung: list[dict[str, Any]] = antwort_b["anordnung"]
         else:
             anordnung = _baseline_anordnung(auswahl, by_id)
             begruendung += " (Teil-Fallback Anordnung: CURATOR_ANORDNUNG_FALLBACK)"
 
-        # Call C – Flächen. Zwei Kontrollen, «davor UND danach»:
+        # Call C – Flächen (oben parallel zu B geholt). Zwei Kontrollen,
+        # «davor UND danach»:
         #   1. strukturell (_call_json: Slugs/Bereiche, +1 Repair) – scheitert das
         #      oder der HTTP-Call → Teil-Fallback flaechen=None (Client leitet ab).
         #   2. hart normativ (pruefe_flaechen gegen data/rules/flaechen.json):
         #      bei Verstoß 1 Norm-Repair-Retry → sonst deterministische
         #      korrigiere_flaechen (verwirft NICHT, sondern macht konform).
-        antwort_c = self._call_json(
-            self._prompt_flaechen(stilprofil, room, auswahl, by_id, konzept),
-            lambda a: _validiere_flaechen(a, n_walls, MATERIAL_SLUGS),
-            "flaechen",
-            seed,
-        )
         flaechen: dict[str, Any] | None
         if antwort_c is None:
             flaechen = None
@@ -2073,7 +2321,7 @@ class LlmKurator:
             verstoesse = pruefe_flaechen(flaechen, room, FLAECHEN_REGELN)
             if verstoesse:
                 repariert = self._flaechen_norm_repair(
-                    self._prompt_flaechen(stilprofil, room, auswahl, by_id, konzept),
+                    messages_c,
                     flaechen,
                     verstoesse,
                     n_walls,
