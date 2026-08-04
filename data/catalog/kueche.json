@@ -43,7 +43,11 @@
     },
     "normProfileVariante": "ch55",
     "farbVarianten": [
-      "hellgrau"
+      "hellgrau",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl",
+      "anthrazit"
     ]
   },
   {
@@ -90,7 +94,11 @@
     },
     "normProfileVariante": "eu60",
     "farbVarianten": [
-      "hellgrau"
+      "hellgrau",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl",
+      "anthrazit"
     ]
   },
   {
@@ -137,7 +145,11 @@
     },
     "normProfileVariante": "ch55",
     "farbVarianten": [
-      "anthrazit"
+      "anthrazit",
+      "naturstein-hell",
+      "beton",
+      "marmor-weiss",
+      "warmgrau"
     ]
   },
   {
@@ -184,7 +196,11 @@
     },
     "normProfileVariante": "eu60",
     "farbVarianten": [
-      "anthrazit"
+      "anthrazit",
+      "naturstein-hell",
+      "beton",
+      "marmor-weiss",
+      "warmgrau"
     ]
   },
   {
@@ -231,7 +247,10 @@
     "normProfileVariante": "ch55",
     "farbVarianten": [
       "schwarz",
-      "hellgrau"
+      "hellgrau",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl"
     ]
   },
   {
@@ -278,7 +297,10 @@
     "normProfileVariante": "eu60",
     "farbVarianten": [
       "schwarz",
-      "hellgrau"
+      "hellgrau",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl"
     ]
   },
   {
@@ -324,7 +346,11 @@
     },
     "normProfileVariante": "ch55",
     "farbVarianten": [
-      "schwarz"
+      "schwarz",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl",
+      "anthrazit"
     ]
   },
   {
@@ -370,7 +396,11 @@
     },
     "normProfileVariante": "eu60",
     "farbVarianten": [
-      "schwarz"
+      "schwarz",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl",
+      "anthrazit"
     ]
   },
   {
@@ -417,7 +447,10 @@
     "normProfileVariante": "ch55",
     "farbVarianten": [
       "weiss",
-      "hellgrau"
+      "hellgrau",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl"
     ]
   },
   {
@@ -464,7 +497,10 @@
     "normProfileVariante": "eu60",
     "farbVarianten": [
       "weiss",
-      "hellgrau"
+      "hellgrau",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl"
     ]
   },
   {
@@ -510,7 +546,11 @@
     },
     "normProfileVariante": "ch55",
     "farbVarianten": [
-      "hellgrau"
+      "hellgrau",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl",
+      "anthrazit"
     ]
   },
   {
@@ -556,7 +596,11 @@
     },
     "normProfileVariante": "eu60",
     "farbVarianten": [
-      "hellgrau"
+      "hellgrau",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl",
+      "anthrazit"
     ]
   },
   {
@@ -607,7 +651,10 @@
     "normProfileVariante": "ch55",
     "farbVarianten": [
       "hellgrau",
-      "weiss"
+      "weiss",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl"
     ]
   },
   {
@@ -658,7 +705,10 @@
     "normProfileVariante": "eu60",
     "farbVarianten": [
       "hellgrau",
-      "weiss"
+      "weiss",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl"
     ]
   },
   {
@@ -703,7 +753,10 @@
     "normProfileVariante": "ch55",
     "farbVarianten": [
       "eiche-hell",
-      "nussbaum"
+      "nussbaum",
+      "esche-hell",
+      "eiche-natur",
+      "buche"
     ]
   },
   {
@@ -748,7 +801,10 @@
     "normProfileVariante": "eu60",
     "farbVarianten": [
       "eiche-hell",
-      "nussbaum"
+      "nussbaum",
+      "esche-hell",
+      "eiche-natur",
+      "buche"
     ]
   },
   {
@@ -792,7 +848,11 @@
     },
     "normProfileVariante": "ch55",
     "farbVarianten": [
-      "weiss"
+      "weiss",
+      "creme",
+      "hellgrau",
+      "sand",
+      "salbei"
     ]
   },
   {
@@ -836,7 +896,11 @@
     },
     "normProfileVariante": "eu60",
     "farbVarianten": [
-      "weiss"
+      "weiss",
+      "creme",
+      "hellgrau",
+      "sand",
+      "salbei"
     ]
   },
   {
@@ -885,7 +949,10 @@
     },
     "farbVarianten": [
       "eiche-hell",
-      "nussbaum"
+      "nussbaum",
+      "esche-hell",
+      "eiche-natur",
+      "buche"
     ]
   },
   {
@@ -934,7 +1001,10 @@
     },
     "farbVarianten": [
       "eiche-hell",
-      "nussbaum"
+      "nussbaum",
+      "esche-hell",
+      "eiche-natur",
+      "buche"
     ]
   },
   {
@@ -982,7 +1052,11 @@
       "max": 1.5
     },
     "farbVarianten": [
-      "weiss"
+      "weiss",
+      "creme",
+      "hellgrau",
+      "sand",
+      "salbei"
     ]
   },
   {
@@ -1030,7 +1104,11 @@
       "max": 1.5
     },
     "farbVarianten": [
-      "weiss"
+      "weiss",
+      "creme",
+      "hellgrau",
+      "sand",
+      "salbei"
     ]
   },
   {
@@ -1075,7 +1153,10 @@
     "normProfileVariante": "ch55",
     "farbVarianten": [
       "eiche-hell",
-      "nussbaum"
+      "nussbaum",
+      "esche-hell",
+      "eiche-natur",
+      "buche"
     ]
   },
   {
@@ -1120,7 +1201,10 @@
     "normProfileVariante": "eu60",
     "farbVarianten": [
       "eiche-hell",
-      "nussbaum"
+      "nussbaum",
+      "esche-hell",
+      "eiche-natur",
+      "buche"
     ]
   },
   {
@@ -1164,7 +1248,11 @@
     },
     "normProfileVariante": "ch55",
     "farbVarianten": [
-      "weiss"
+      "weiss",
+      "creme",
+      "hellgrau",
+      "sand",
+      "salbei"
     ]
   },
   {
@@ -1208,7 +1296,11 @@
     },
     "normProfileVariante": "eu60",
     "farbVarianten": [
-      "weiss"
+      "weiss",
+      "creme",
+      "hellgrau",
+      "sand",
+      "salbei"
     ]
   },
   {
@@ -1261,7 +1353,11 @@
       "max": 1.65
     },
     "farbVarianten": [
-      "hellgrau"
+      "hellgrau",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl",
+      "anthrazit"
     ]
   },
   {
@@ -1314,7 +1410,11 @@
       "max": 1.65
     },
     "farbVarianten": [
-      "hellgrau"
+      "hellgrau",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl",
+      "anthrazit"
     ]
   },
   {
@@ -1367,7 +1467,11 @@
       "max": 1.65
     },
     "farbVarianten": [
-      "schwarz"
+      "schwarz",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl",
+      "anthrazit"
     ]
   },
   {
@@ -1420,7 +1524,11 @@
       "max": 1.65
     },
     "farbVarianten": [
-      "schwarz"
+      "schwarz",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl",
+      "anthrazit"
     ]
   },
   {
@@ -1465,7 +1573,10 @@
     "normProfileVariante": "ch55",
     "farbVarianten": [
       "weiss",
-      "eiche-hell"
+      "eiche-hell",
+      "creme",
+      "hellgrau",
+      "sand"
     ]
   },
   {
@@ -1510,7 +1621,10 @@
     "normProfileVariante": "eu60",
     "farbVarianten": [
       "weiss",
-      "eiche-hell"
+      "eiche-hell",
+      "creme",
+      "hellgrau",
+      "sand"
     ]
   },
   {
@@ -1555,7 +1669,10 @@
     "normProfileVariante": "ch55",
     "farbVarianten": [
       "weiss",
-      "eiche-hell"
+      "eiche-hell",
+      "creme",
+      "hellgrau",
+      "sand"
     ]
   },
   {
@@ -1600,7 +1717,10 @@
     "normProfileVariante": "eu60",
     "farbVarianten": [
       "weiss",
-      "eiche-hell"
+      "eiche-hell",
+      "creme",
+      "hellgrau",
+      "sand"
     ]
   },
   {
@@ -1644,7 +1764,10 @@
     },
     "farbVarianten": [
       "eiche-hell",
-      "nussbaum"
+      "nussbaum",
+      "esche-hell",
+      "eiche-natur",
+      "buche"
     ]
   },
   {
@@ -1688,7 +1811,9 @@
     },
     "farbVarianten": [
       "olive",
-      "terracotta"
+      "terracotta",
+      "salbei",
+      "graugruen"
     ]
   },
   {
@@ -1732,7 +1857,10 @@
     },
     "farbVarianten": [
       "weiss",
-      "terracotta"
+      "terracotta",
+      "creme",
+      "hellgrau",
+      "sand"
     ]
   },
   {
@@ -1777,7 +1905,10 @@
     "normProfileVariante": "ch55",
     "farbVarianten": [
       "eiche-hell",
-      "nussbaum"
+      "nussbaum",
+      "esche-hell",
+      "eiche-natur",
+      "buche"
     ]
   },
   {
@@ -1821,7 +1952,11 @@
     },
     "normProfileVariante": "eu60",
     "farbVarianten": [
-      "weiss"
+      "weiss",
+      "creme",
+      "hellgrau",
+      "sand",
+      "salbei"
     ]
   },
   {
@@ -1870,7 +2005,10 @@
     },
     "farbVarianten": [
       "eiche-hell",
-      "nussbaum"
+      "nussbaum",
+      "esche-hell",
+      "eiche-natur",
+      "buche"
     ]
   },
   {
@@ -1918,7 +2056,11 @@
       "bandbreitePct": 30
     },
     "farbVarianten": [
-      "schwarz"
+      "schwarz",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl",
+      "anthrazit"
     ]
   },
   {
@@ -1964,7 +2106,10 @@
     },
     "farbVarianten": [
       "eiche-hell",
-      "nussbaum"
+      "nussbaum",
+      "esche-hell",
+      "eiche-natur",
+      "buche"
     ]
   },
   {
@@ -2009,7 +2154,11 @@
       "bandbreitePct": 30
     },
     "farbVarianten": [
-      "hellgrau"
+      "hellgrau",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl",
+      "anthrazit"
     ]
   },
   {
@@ -2057,7 +2206,10 @@
     },
     "farbVarianten": [
       "eiche-hell",
-      "nussbaum"
+      "nussbaum",
+      "esche-hell",
+      "eiche-natur",
+      "buche"
     ]
   },
   {
@@ -2104,7 +2256,11 @@
       "bandbreitePct": 30
     },
     "farbVarianten": [
-      "weiss"
+      "weiss",
+      "creme",
+      "hellgrau",
+      "sand",
+      "salbei"
     ]
   },
   {
@@ -2153,7 +2309,11 @@
       "bandbreitePct": 30
     },
     "farbVarianten": [
-      "hellgrau"
+      "hellgrau",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl",
+      "anthrazit"
     ]
   },
   {
@@ -2202,7 +2362,11 @@
       "bandbreitePct": 30
     },
     "farbVarianten": [
-      "schwarz"
+      "schwarz",
+      "edelstahl",
+      "chrom",
+      "schwarzstahl",
+      "anthrazit"
     ]
   }
 ]

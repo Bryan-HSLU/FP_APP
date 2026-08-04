@@ -67,7 +67,7 @@ export interface KuratorRequest {
         [k: string]: number;
       };
       attributTags?: string[];
-    }[],
+    }[]
   ];
   budget?: number;
   normProfile: "ch" | "eu";
@@ -144,23 +144,43 @@ export interface KuratorResponse {
    * Gewählte Farbvariante je generischem Objekt (Call A, Kurator-Pipeline v3, Welle 3): Abbildung itemId → Farb-Slug. Optional; wenn vorhanden, müssen die Keys eine Teilmenge von «auswahl» sein und jeder Slug in den farbVarianten des jeweiligen Katalog-Items liegen (hart validiert – Erdung wie bei den Material-Slugs). Fehlt/leer = kein KI-Farbwunsch; der Client nutzt die Default-Optik (erste farbVariante).
    */
   farben?: {
+    /**
+     * Farbwelt der Katalog-Items (additiv erweiterbar, minor). Gruppiert: Neutraltöne, Holz, Metall/Stein, Farbakzente. Reihenfolge ist stabil – der Client leitet daraus die Picker-Sortierung ab.
+     */
     [k: string]:
       | "weiss"
       | "creme"
       | "sand"
       | "beige"
+      | "taupe"
       | "hellgrau"
+      | "warmgrau"
       | "anthrazit"
       | "schwarz"
+      | "esche-hell"
       | "eiche-hell"
+      | "eiche-natur"
       | "nussbaum"
+      | "wenge"
+      | "buche"
+      | "chrom"
+      | "edelstahl"
+      | "schwarzstahl"
+      | "messing"
+      | "kupfer"
+      | "beton"
+      | "naturstein-hell"
+      | "marmor-weiss"
       | "salbei"
+      | "graugruen"
       | "olive"
-      | "terracotta"
-      | "bordeaux"
+      | "petrol"
       | "blaugrau"
       | "dunkelblau"
-      | "messing";
+      | "terracotta"
+      | "rostrot"
+      | "senf"
+      | "bordeaux";
   };
   begruendung?: string;
 }

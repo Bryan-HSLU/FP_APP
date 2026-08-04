@@ -21,22 +21,43 @@ export type FarbSlug = katalogItem.FarbSlug;
  * dass jeder Schema-Slug einen Hex hat; der Laufzeit-Test prüft die Gegenrichtung.
  */
 export const FARBSLUG_HEX: Record<FarbSlug, string> = {
+  // Neutraltöne
   weiss: "#f4f4f2",
   creme: "#ece5d8",
   sand: "#d9c9a8",
   beige: "#cbb99a",
+  taupe: "#a89a8c",
   hellgrau: "#c9c9c6",
+  warmgrau: "#b3aca4",
   anthrazit: "#3f4145",
   schwarz: "#232323",
+  // Hölzer – hell nach dunkel
+  "esche-hell": "#ddc9a3",
   "eiche-hell": "#c9a76c",
+  "eiche-natur": "#a8834f",
+  buche: "#c8a882",
   nussbaum: "#6f4e33",
+  wenge: "#453026",
+  // Metalle & Stein (gedämpft, damit sie neben Holz nicht schreien)
+  chrom: "#c4c8cb",
+  edelstahl: "#b9bebe",
+  schwarzstahl: "#41454a",
+  messing: "#ad8a4c",
+  kupfer: "#a8674a",
+  beton: "#9c9b97",
+  "naturstein-hell": "#cfc7b8",
+  "marmor-weiss": "#e8e6e0",
+  // Farbakzente
   salbei: "#9aa88e",
+  graugruen: "#7d8b7a",
   olive: "#6f7250",
-  terracotta: "#b0603f",
-  bordeaux: "#6e2b35",
+  petrol: "#3c6069",
   blaugrau: "#7d8b96",
   dunkelblau: "#2d3a55",
-  messing: "#ad8a4c",
+  terracotta: "#b0603f",
+  rostrot: "#9b4a2f",
+  senf: "#c4964a",
+  bordeaux: "#6e2b35",
 };
 
 /** Alle Slugs (stabile Reihenfolge = Insertion, entspricht dem Schema-Enum). */

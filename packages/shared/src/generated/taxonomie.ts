@@ -32,7 +32,7 @@ export interface Taxonomie {
        */
       positivPol: string;
       beschreibung?: string;
-    }[],
+    }[]
   ];
   attributKategorien: {
     id: string;

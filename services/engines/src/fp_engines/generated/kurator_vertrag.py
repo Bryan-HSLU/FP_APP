@@ -204,22 +204,43 @@ class Flaechen(BaseModel):
 
 
 class FarbSlug(Enum):
+    """
+    Farbwelt der Katalog-Items (additiv erweiterbar, minor). Gruppiert: Neutraltöne, Holz, Metall/Stein, Farbakzente. Reihenfolge ist stabil – der Client leitet daraus die Picker-Sortierung ab.
+    """
+
     weiss = "weiss"
     creme = "creme"
     sand = "sand"
     beige = "beige"
+    taupe = "taupe"
     hellgrau = "hellgrau"
+    warmgrau = "warmgrau"
     anthrazit = "anthrazit"
     schwarz = "schwarz"
+    esche_hell = "esche-hell"
     eiche_hell = "eiche-hell"
+    eiche_natur = "eiche-natur"
     nussbaum = "nussbaum"
+    wenge = "wenge"
+    buche = "buche"
+    chrom = "chrom"
+    edelstahl = "edelstahl"
+    schwarzstahl = "schwarzstahl"
+    messing = "messing"
+    kupfer = "kupfer"
+    beton = "beton"
+    naturstein_hell = "naturstein-hell"
+    marmor_weiss = "marmor-weiss"
     salbei = "salbei"
+    graugruen = "graugruen"
     olive = "olive"
-    terracotta = "terracotta"
-    bordeaux = "bordeaux"
+    petrol = "petrol"
     blaugrau = "blaugrau"
     dunkelblau = "dunkelblau"
-    messing = "messing"
+    terracotta = "terracotta"
+    rostrot = "rostrot"
+    senf = "senf"
+    bordeaux = "bordeaux"
 
 
 class Semver(RootModel[constr(pattern=r"^\d+\.\d+\.\d+$")]):

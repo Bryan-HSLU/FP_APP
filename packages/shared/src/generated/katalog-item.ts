@@ -2,23 +2,43 @@
 
 export type Uuid = string;
 export type Semver = string;
+/**
+ * Farbwelt der Katalog-Items (additiv erweiterbar, minor). Gruppiert: Neutraltöne, Holz, Metall/Stein, Farbakzente. Reihenfolge ist stabil – der Client leitet daraus die Picker-Sortierung ab.
+ */
 export type FarbSlug =
   | "weiss"
   | "creme"
   | "sand"
   | "beige"
+  | "taupe"
   | "hellgrau"
+  | "warmgrau"
   | "anthrazit"
   | "schwarz"
+  | "esche-hell"
   | "eiche-hell"
+  | "eiche-natur"
   | "nussbaum"
+  | "wenge"
+  | "buche"
+  | "chrom"
+  | "edelstahl"
+  | "schwarzstahl"
+  | "messing"
+  | "kupfer"
+  | "beton"
+  | "naturstein-hell"
+  | "marmor-weiss"
   | "salbei"
+  | "graugruen"
   | "olive"
-  | "terracotta"
-  | "bordeaux"
+  | "petrol"
   | "blaugrau"
   | "dunkelblau"
-  | "messing";
+  | "terracotta"
+  | "rostrot"
+  | "senf"
+  | "bordeaux";
 
 /**
  * Vertrag 4: Möbel-/Objektkatalog (Stammdaten). Box-Platzhalter mit Auto-Upgrade: ohne gltfRef rendert der Viewer eine Box aus masse; Platzierungen referenzieren nur die ID.
@@ -37,7 +57,7 @@ export interface KatalogItem {
    */
   roomTypes: [
     "bad" | "kueche" | "wohnen" | "schlafen" | "essen" | "flur" | "sonstig",
-    ...("bad" | "kueche" | "wohnen" | "schlafen" | "essen" | "flur" | "sonstig")[],
+    ...("bad" | "kueche" | "wohnen" | "schlafen" | "essen" | "flur" | "sonstig")[]
   ];
   gewerk:
     | "sanitaer"
@@ -97,16 +117,18 @@ export interface KatalogItem {
     [k: string]: number;
   };
   /**
-   * Wählbare Farbvarianten des generischen Objekts; erste = Default-Optik. Grundlage für KI-Farbwahl und UI-Picker (nur solange Eigen-Objekte, keine Hersteller-Assets).
+   * Wählbare Farbvarianten des generischen Objekts; erste = Default-Optik. Grundlage für KI-Farbwahl und UI-Picker (nur solange Eigen-Objekte, keine Hersteller-Assets). Obergrenze 6 (war 4): generische Möbel wirken sonst austauschbar – mehr wählbare Töne je Objekt sind der günstigste Hebel gegen «immer dasselbe».
    *
    * @minItems 1
-   * @maxItems 4
+   * @maxItems 6
    */
   farbVarianten?:
     | [FarbSlug]
     | [FarbSlug, FarbSlug]
     | [FarbSlug, FarbSlug, FarbSlug]
-    | [FarbSlug, FarbSlug, FarbSlug, FarbSlug];
+    | [FarbSlug, FarbSlug, FarbSlug, FarbSlug]
+    | [FarbSlug, FarbSlug, FarbSlug, FarbSlug, FarbSlug]
+    | [FarbSlug, FarbSlug, FarbSlug, FarbSlug, FarbSlug, FarbSlug];
   attributTags: string[];
   anschluesse: ("wasser" | "abwasser" | "elektro" | "starkstrom" | "lueftung" | "heizung")[];
   relationalRules: string[];

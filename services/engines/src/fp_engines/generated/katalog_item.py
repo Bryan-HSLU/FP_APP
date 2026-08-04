@@ -131,22 +131,43 @@ class Semver(RootModel[constr(pattern=r"^\d+\.\d+\.\d+$")]):
 
 
 class FarbSlug(Enum):
+    """
+    Farbwelt der Katalog-Items (additiv erweiterbar, minor). Gruppiert: Neutraltöne, Holz, Metall/Stein, Farbakzente. Reihenfolge ist stabil – der Client leitet daraus die Picker-Sortierung ab.
+    """
+
     weiss = "weiss"
     creme = "creme"
     sand = "sand"
     beige = "beige"
+    taupe = "taupe"
     hellgrau = "hellgrau"
+    warmgrau = "warmgrau"
     anthrazit = "anthrazit"
     schwarz = "schwarz"
+    esche_hell = "esche-hell"
     eiche_hell = "eiche-hell"
+    eiche_natur = "eiche-natur"
     nussbaum = "nussbaum"
+    wenge = "wenge"
+    buche = "buche"
+    chrom = "chrom"
+    edelstahl = "edelstahl"
+    schwarzstahl = "schwarzstahl"
+    messing = "messing"
+    kupfer = "kupfer"
+    beton = "beton"
+    naturstein_hell = "naturstein-hell"
+    marmor_weiss = "marmor-weiss"
     salbei = "salbei"
+    graugruen = "graugruen"
     olive = "olive"
-    terracotta = "terracotta"
-    bordeaux = "bordeaux"
+    petrol = "petrol"
     blaugrau = "blaugrau"
     dunkelblau = "dunkelblau"
-    messing = "messing"
+    terracotta = "terracotta"
+    rostrot = "rostrot"
+    senf = "senf"
+    bordeaux = "bordeaux"
 
 
 class KatalogItem(BaseModel):
@@ -201,8 +222,8 @@ class KatalogItem(BaseModel):
     achsenTags: dict[str, confloat(ge=-1.0, le=1.0)]
     farbVarianten: list[FarbSlug] | None = Field(
         None,
-        description="Wählbare Farbvarianten des generischen Objekts; erste = Default-Optik. Grundlage für KI-Farbwahl und UI-Picker (nur solange Eigen-Objekte, keine Hersteller-Assets).",
-        max_length=4,
+        description="Wählbare Farbvarianten des generischen Objekts; erste = Default-Optik. Grundlage für KI-Farbwahl und UI-Picker (nur solange Eigen-Objekte, keine Hersteller-Assets). Obergrenze 6 (war 4): generische Möbel wirken sonst austauschbar – mehr wählbare Töne je Objekt sind der günstigste Hebel gegen «immer dasselbe».",
+        max_length=6,
         min_length=1,
     )
     attributTags: list[constr(pattern=r"^[a-z0-9-]+:[a-z0-9-]+$")]
