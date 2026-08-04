@@ -106,17 +106,18 @@ _ZEICHEN_PRO_TOKEN = 3.5  # grobe DE-Token-Schätzung: ~Zeichen/3.5
 # Default für FP_KURATOR_MAX_PROMPT_TOKENS. Hergeleitet aus dem Minutenbudget
 # des Groq Free Tier (llama-3.3-70b: 12k TPM) für EINEN Plan = 3 Calls, wobei
 # der Rate-Limiter Prompt + reserviertes Antwort-Fenster zählt:
-#   A 4200 + 900 · B ~1000 + 700 · C ~900 + 500  ≈ 8200 < 12000 (Reserve für
-# Repair-Retries). Höher wäre riskant, niedriger würde die Kandidatenliste
-# unnötig kürzen – und je weniger Kandidaten, desto generischer die Auswahl.
-_MAX_PROMPT_TOKENS_DEFAULT = 4200
+#   A 3900 + 800 · B ~1450 + 700 · C ~1300 + 500  ≈ 8950
+# Der Erstprompt bleibt bewusst grosszügig – je mehr Kandidaten, desto weniger
+# generisch die Auswahl. Der kritische Fall (Plan MIT Repair) wird stattdessen
+# über den verschlankten Repair-Turn abgefangen (s. `_repair_messages`).
+_MAX_PROMPT_TOKENS_DEFAULT = 3900
 # Antwort-Fenster JE CALL (v3.3, Free-Tier-Budget). Provider-Rate-Limiter (Groq)
 # rechnen `max_tokens` als RESERVIERUNG in die Request-Grösse ein – nicht die
 # tatsächlich erzeugten Tokens. Ein Plan kostet 3 Calls, also zählt die Summe
 # gegen das Minutenbudget (Llama-3.3-70b Free Tier: 12k TPM). Darum je Call nur
 # so viel Fenster, wie die Antwort wirklich braucht: A trägt Konzept + Auswahl +
 # Farben + Begründung, B/C sind knappe Strukturen.
-_ANTWORT_TOKENS_AUSWAHL = 900
+_ANTWORT_TOKENS_AUSWAHL = 800
 _ANTWORT_TOKENS_ANORDNUNG = 700
 _ANTWORT_TOKENS_FLAECHEN = 500
 # Sampling je Call-Art: Auswahl darf kreativ streuen (sonst liefert «Neue
@@ -143,6 +144,17 @@ _FLAECHEN_ANTEIL_MAX = 0.35
 # (`_trimme_letzte_auswahl`). Ein zweiter Textvergleich würde stillschweigend
 # brechen, sobald jemand die Meldung umformuliert.
 PLATZ_FEHLER_PRAEFIX = "Platz-Budget überschritten"
+# Kurz-Rolle für Repair-Turns: Das Modell hat die volle Rollen-Beschreibung im
+# ersten Turn bereits gelesen; sie erneut mitzuschicken kostet ~1300 Tokens, die
+# beim Free-Tier-Minutenbudget fehlen. Für eine Korrektur genügt der Auftrag –
+# die erlaubten Kurznummern stehen weiterhin im User-Turn.
+KANDIDATEN_MARKER = "## Haupt-Objekte (raumprägend – ZUERST wählen)"
+REPAIR_ROLLE = (
+    "Du bist derselbe Schweizer Interior-Designer wie zuvor. Korrigiere deine "
+    "letzte Antwort so, dass der genannte Fehler behoben ist. Halte dich exakt "
+    "an dasselbe JSON-Schema und verwende ausschliesslich die Kurznummern (#N) "
+    "aus der Liste oben. Antworte nur mit JSON, ohne Markdown."
+)
 
 log = logging.getLogger("fp.kurator")
 
@@ -178,7 +190,7 @@ def schaetze_tokens(text: str) -> int:
 
 
 def _max_prompt_tokens() -> int:
-    """Prompt-Token-Limit aus `FP_KURATOR_MAX_PROMPT_TOKENS` (Default 4200).
+    """Prompt-Token-Limit aus `FP_KURATOR_MAX_PROMPT_TOKENS` (Default 3900).
 
     Zur Laufzeit gelesen (nicht beim Import), damit Env-Overrides – etwa in Tests
     oder je Deployment/Tier – ohne Reload greifen. Ungültige Werte → Default.
@@ -295,6 +307,35 @@ def _logge_prompt_groesse(messages: list[dict[str, str]], name: str) -> None:
         )
     else:
         log.info("kurator[%s]: prompt ~%d tokens (limit %d)", name, tokens, limit)
+
+
+def _repair_messages(
+    messages: list[dict[str, str]], roh: dict[str, Any], fehler: str
+) -> list[dict[str, str]]:
+    """Schlanker Repair-Turn: Kurz-Rolle + nur der für die Korrektur nötige Kontext.
+
+    Rate-Limiter zählen Prompt + Antwortfenster JE Call; ein Repair, der den
+    kompletten Erstprompt wiederholt, sprengt beim Free Tier das Minutenbudget
+    (429). Für eine Korrektur braucht das Modell aber weder die Rollen-Prosa
+    (~1300 Tokens, im ersten Turn gelesen) noch Raumfakten, Stil-Legende und
+    Wandliste – es braucht den Fehler und die erlaubten Kurznummern. Der
+    User-Turn wird darum ab `KANDIDATEN_MARKER` beschnitten; fehlt der Marker
+    (Call B/C, deren Prompts ohnehin klein sind), bleibt er unverändert.
+    """
+    user = messages[-1]["content"]
+    schnitt = user.find(KANDIDATEN_MARKER)
+    knapp = user[schnitt:] if schnitt > 0 else user
+    return [
+        {"role": "system", "content": REPAIR_ROLLE},
+        *messages[1:-1],
+        {"role": "user", "content": knapp},
+        {"role": "assistant", "content": json.dumps(roh)},
+        {
+            "role": "user",
+            "content": f"Deine Antwort ist ungültig: {fehler} "
+            "Korrigiere und antworte erneut nur mit JSON.",
+        },
+    ]
 
 
 def _future_ergebnis(future: Future[dict[str, Any] | None], name: str) -> dict[str, Any] | None:
@@ -1710,7 +1751,7 @@ class LlmKurator:
                     haupt_block.append(f"Slot {typ}{pflicht}:")
                     haupt_block.extend(_item_zeile(i, karte) for i in auswahl_items)
                 gezeigt += len(auswahl_items)
-            bloecke: list[str] = ["## Haupt-Objekte (raumprägend – ZUERST wählen)", *haupt_block]
+            bloecke: list[str] = [KANDIDATEN_MARKER, *haupt_block]
             if erg_block:
                 bloecke += [
                     "",
@@ -1978,15 +2019,14 @@ class LlmKurator:
             fehler = validiere(antwort)
             if fehler is not None:
                 # Repair-Retry (max. 1) mit konkretem Fehlerhinweis (Konzept §5).
-                messages = [
-                    *messages,
-                    {"role": "assistant", "content": json.dumps(roh)},
-                    {
-                        "role": "user",
-                        "content": f"Deine Antwort ist ungültig: {fehler} "
-                        "Korrigiere und antworte erneut nur mit JSON.",
-                    },
-                ]
+                # Die ausführliche Rollen-Beschreibung (~1300 Tokens) wird dabei
+                # durch eine Kurzfassung ersetzt: das Modell hat die Regeln im
+                # ersten Turn gelesen, für die Korrektur zählt der Fehler plus
+                # die Kandidatenliste (die im User-Turn steht). Das halbiert
+                # beinahe den Repair-Request – entscheidend, weil Rate-Limiter
+                # Prompt + Antwortfenster JE Call zählen und ein Plan mit
+                # Repairs sonst über das Minutenbudget läuft.
+                messages = _repair_messages(messages, roh, fehler)
                 roh = self._rufe_llm(messages, seed, temperature, max_antwort_tokens)
                 antwort = uebersetze(roh) if uebersetze else roh
                 fehler = validiere(antwort)

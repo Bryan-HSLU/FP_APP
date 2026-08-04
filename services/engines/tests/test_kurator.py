@@ -18,6 +18,7 @@ from fp_engines.kurator import (
     KANDIDATEN_DECKEL,
     KANDIDATEN_MIN,
     MATERIAL_SLUGS,
+    REPAIR_ROLLE,
     BaselineKurator,
     LlmKurator,
     _bereinige_farben,
@@ -758,7 +759,7 @@ def test_sampling_temperature_und_seed(monkeypatch: pytest.MonkeyPatch) -> None:
     temps = {p["temperature"] for p in payloads}
     assert temps == {0.6, 0.3}
     auswahl = [p for p in payloads if p["temperature"] == 0.6]
-    assert len(auswahl) == 1 and auswahl[0]["max_tokens"] == 900
+    assert len(auswahl) == 1 and auswahl[0]["max_tokens"] == 800
     fokussiert = sorted(p["max_tokens"] for p in payloads if p["temperature"] == 0.3)
     assert fokussiert == [500, 700]
     # Ein ganzer Plan muss ins Groq-Free-Tier-Minutenbudget passen (12k TPM):
@@ -768,6 +769,29 @@ def test_sampling_temperature_und_seed(monkeypatch: pytest.MonkeyPatch) -> None:
         for p in payloads
     )
     assert verbrauch < 12_000, f"Plan verbraucht {verbrauch} Tokens – über dem Free-Tier-Budget"
+
+
+def test_plan_mit_repair_bleibt_im_minutenbudget(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Auch ein Plan MIT Repair-Turn muss unter das Groq-Free-Tier-Budget passen.
+
+    Der eigentliche Engpass: ein Repair wiederholt den User-Turn (das Modell
+    braucht die Kandidatenliste zum Korrigieren). Ohne die Kurz-Rolle im
+    Repair-Turn lief ein solcher Plan über 12k Tokens und quittierte mit 429.
+    """
+    payloads = _capture_pipeline(
+        monkeypatch,
+        [{"auswahl": ["gibt-es-nicht"]}, _auswahl_ok(), _anordnung_ok(), _flaechen_ok()],
+    )
+    assert len(payloads) == 4, "erwartet: Call A + Repair + B + C"
+    verbrauch = sum(
+        schaetze_tokens("\n".join(m["content"] for m in p["messages"])) + p["max_tokens"]
+        for p in payloads
+    )
+    assert verbrauch < 12_000, f"Plan mit Repair verbraucht {verbrauch} Tokens"
+    # Der Repair-Turn trägt die Kurz-Rolle, nicht die volle Rollenbeschreibung.
+    repair = payloads[1]["messages"][0]["content"]
+    assert repair == REPAIR_ROLLE
+    assert schaetze_tokens(repair) < schaetze_tokens(payloads[0]["messages"][0]["content"])
 
 
 def test_env_temp_uebersteuert_alle_calls(monkeypatch: pytest.MonkeyPatch) -> None:
