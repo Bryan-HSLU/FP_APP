@@ -310,6 +310,10 @@ def _streuung_score(placements: list[dict[str, Any]]) -> float:
 # «closest-first» der near-Relation die Leitgrösse, die übrigen Terme justieren
 # nur innerhalb praktisch gleich naher Posen. Werte v0, im POC kalibrierbar.
 _NEAR_W = 100.0
+# Verteilungs-Gewicht fuer mehrfach platzierte Items (4 Stuehle am Esstisch).
+# Deutlich kleiner als _NEAR_W: die Richtung darf die Naehe nicht ueberstimmen,
+# sonst wandern die Stuehle vom Tisch weg statt sich um ihn zu verteilen.
+_SEKTOR_W = 8.0
 _FACE_W = 1.0
 _OPP_W = 1.0
 _GROUP_W = 2.0
@@ -371,8 +375,42 @@ def _stil_score(ctx: _PlatzKontext, pos: Vec2) -> float:
     return _STYLE_W * rg * naehe
 
 
-def _kandidat_score(kandidat: _Kandidat, rels: list[Relation], ctx: _PlatzKontext) -> float:
-    """Summe der weichen Präferenzen für eine Kandidaten-Pose (höher = besser)."""
+def _sektor_bonus(pos: Vec2, anker: Vec2, sektor: tuple[int, int] | None) -> float:
+    """Richtungs-Bonus, der mehrfach platzierte Items rund um ihren Anker verteilt.
+
+    Instanz i von n bevorzugt die Richtung i·360°/n vom Anker aus; der Bonus ist
+    der Kosinus des Winkelfehlers (1 = genau in der Wunschrichtung, −1 = gegenüber).
+    Bewusst WEICH und kleiner gewichtet als `near` selbst: die Stühle sollen sich
+    verteilen, aber nicht vom Tisch wegwandern – und keine Norm-Entscheidung
+    überstimmen (die bleibt hart beim Feasibility-Filter).
+    """
+    if sektor is None:
+        return 0.0
+    idx, n = sektor
+    if n <= 1:
+        return 0.0
+    dx, dz = pos[0] - anker[0], pos[1] - anker[1]
+    laenge = math.hypot(dx, dz)
+    if laenge < 1e-6:
+        return 0.0
+    ziel = 2.0 * math.pi * (idx % n) / n
+    return _SEKTOR_W * ((dx / laenge) * math.cos(ziel) + (dz / laenge) * math.sin(ziel))
+
+
+def _kandidat_score(
+    kandidat: _Kandidat,
+    rels: list[Relation],
+    ctx: _PlatzKontext,
+    sektor: tuple[int, int] | None = None,
+) -> float:
+    """Summe der weichen Präferenzen für eine Kandidaten-Pose (höher = besser).
+
+    `sektor` = (Instanz-Index, Gesamtzahl) bei mehrfach platzierten Items
+    (4 Stühle am Esstisch). Ohne Sektor zieht `near` jede Instanz auf denselben
+    kürzesten Abstand – die Stühle klumpten dadurch auf einer Tischseite. Mit
+    Sektor bekommt jede Instanz zusätzlich eine eigene Vorzugsrichtung rund um
+    den Anker, sodass sie sich gleichmässig verteilen.
+    """
     pos = kandidat.pos
     score = 0.0
     for r in rels:
@@ -380,6 +418,7 @@ def _kandidat_score(kandidat: _Kandidat, rels: list[Relation], ctx: _PlatzKontex
             anker = ctx.typ_pos.get(r.funktions_typ)
             if anker is not None:
                 score += _NEAR_W * -_dist(pos, anker)
+                score += _sektor_bonus(pos, anker, sektor)
         elif isinstance(r, Facing):
             ziel = ctx.typ_pos.get(r.funktions_typ)
             if ziel is not None:
@@ -449,6 +488,7 @@ def _ordne_kandidaten(
     ctx: _PlatzKontext,
     rnd: random.Random,
     wunsch_wand: int | None = None,
+    sektor: tuple[int, int] | None = None,
 ) -> list[_Kandidat]:
     """Kandidaten filtern + nach Soft-Score ordnen; seed bricht Gleichstände.
 
@@ -460,7 +500,7 @@ def _ordne_kandidaten(
     kandidaten = list(kandidaten)
     rnd.shuffle(kandidaten)
     kandidaten = _filter_kandidaten(kandidaten, rels, ctx)
-    kandidaten.sort(key=lambda k: -_kandidat_score(k, rels, ctx))
+    kandidaten.sort(key=lambda k: -_kandidat_score(k, rels, ctx, sektor))
     return _bevorzuge_wand(kandidaten, wunsch_wand)
 
 
@@ -544,6 +584,11 @@ def solve(
     # Mengen-Expansion: jede itemId erscheint anzahl-mal (Default 1) – konsekutiv,
     # damit die deterministische P1→P2→P3-Aufteilung/Reihenfolge stabil bleibt.
     items = [by_id[i] for i in auswahl_ids for _ in range(max(1, (mengen or {}).get(i, 1)))]
+    # Wie oft kommt jede itemId vor? Grundlage der Sektor-Verteilung (s.u.).
+    instanz_gesamt: dict[str, int] = {}
+    for it in items:
+        instanz_gesamt[it["id"]] = instanz_gesamt.get(it["id"], 0) + 1
+    instanz_lauf: dict[str, int] = {}
     p1 = [i for i in items if i["priorityClass"] == "P1"]
     p2 = [i for i in items if i["priorityClass"] == "P2"]
     p3 = [i for i in items if i["priorityClass"] == "P3"]
@@ -654,8 +699,20 @@ def solve(
         """
         for item in items:
             rels = rel_map.get(item["id"], [])
+            # Mehrfach platzierte Items (4 Stuehle) bekommen je Instanz einen
+            # eigenen Vorzugssektor rund um ihren Anker – sonst klumpen sie alle
+            # auf der naechstgelegenen Tischseite.
+            gesamt = instanz_gesamt.get(item["id"], 1)
+            idx = instanz_lauf.get(item["id"], 0)
+            instanz_lauf[item["id"]] = idx + 1
+            sektor = (idx, gesamt) if gesamt > 1 else None
             kandidaten = _ordne_kandidaten(
-                _candidates(room, item), rels, ctx, rnd, wand_wunsch.get(item["id"])
+                _candidates(room, item),
+                rels,
+                ctx,
+                rnd,
+                wand_wunsch.get(item["id"]),
+                sektor,
             )
             for kandidat in kandidaten[:cap]:
                 if _blockiert_korridor(item, kandidat, korridore):

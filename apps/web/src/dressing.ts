@@ -14,6 +14,7 @@
 import { footprint, overlapDepth, pointInPolygon, type Quad, type Vec2 } from "@fp/shared/rules";
 import type { DressingItem, KatalogItem, Placement, Plan, Room } from "./api";
 import { stilNaehe } from "./stilnaehe";
+import { ablageHoehe } from "./moebelProportionen";
 import { RAUMHOEHE_FALLBACK } from "./viewer3d-logik";
 
 /** Stil-Variante eines Deko-Objekts (steuert Material/Farbe, nicht die Geometrie). */
@@ -180,7 +181,10 @@ function moebelAnker(placements: Placement[], byId: Map<string, KatalogItem>): M
       masse: item.masse,
       yawDeg: p.pose.yawDeg,
       mountHeight,
-      topY: mountHeight + item.masse.h,
+      // Ablagefläche, NICHT bbox-Oberkante: bei einem Sofa ist oben die
+      // Rückenlehne – ein Plaid landete dadurch frei schwebend über der
+      // Sitzfläche. `ablageHoehe` kennt die Sitz-/Liegehöhe je Möbeltyp.
+      topY: mountHeight + ablageHoehe(item.funktionsTyp, item.masse.h),
       fp: footprint(center, item.masse.w, item.masse.d, p.pose.yawDeg),
     });
   }

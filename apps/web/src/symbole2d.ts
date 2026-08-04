@@ -15,6 +15,7 @@
  */
 import { rotateY, type Vec2 } from "@fp/shared/rules";
 import { toScreen, type PlanTransform } from "./plan2d.ts";
+import { SOFA } from "./moebelProportionen.ts";
 
 /** 2D-Punkt im lokalen Objekt-System (Meter, Ursprung = bbox-Mitte). */
 type LVec = [number, number];
@@ -131,29 +132,44 @@ const badewanne: Bauer = (w, d) => {
 
 // WOHNEN / SCHLAFEN --------------------------------------------------------
 
-// Sofa/Sessel: Rückenlehne hinten + zwei Armlehnen + Sitzfläche
+// Sofa/Sessel: Rückenlehne hinten + zwei Armlehnen + Sitzkissen.
+// Die Anteile kommen aus `moebelProportionen.SOFA` – dieselbe Quelle wie der
+// 3D-Bausatz, damit Grundriss und 3D dasselbe Möbel zeigen.
 const sofa: Bauer = (w, d) => {
   const m = Math.min(w, d);
+  const armB = SOFA.armBreite * w;
+  const lehneZ = -d / 2 + SOFA.lehneTiefe * d;
+  const armZ0 = SOFA.armVersatz * d - (SOFA.armTiefe * d) / 2;
+  const armZ1 = SOFA.armVersatz * d + (SOFA.armTiefe * d) / 2;
+  const innen = w - 2 * armB;
+  const kissB = SOFA.kissenBreite * innen;
+  const kissX = SOFA.kissenVersatz * innen;
+  const kissZ0 = SOFA.kissenVersatzTiefe * d - (SOFA.kissenTiefe * d) / 2;
+  const kissZ1 = SOFA.kissenVersatzTiefe * d + (SOFA.kissenTiefe * d) / 2;
   return [
+    // Rückenlehne (hinten, −z)
     poly([
       [-w / 2, -d / 2],
       [w / 2, -d / 2],
-      [w / 2, -d / 2 + 0.22 * d],
-      [-w / 2, -d / 2 + 0.22 * d],
+      [w / 2, lehneZ],
+      [-w / 2, lehneZ],
+    ]),
+    // Armlehnen links/rechts – enden wie im 3D vor der Vorderkante
+    poly([
+      [-w / 2, armZ0],
+      [-w / 2 + armB, armZ0],
+      [-w / 2 + armB, armZ1],
+      [-w / 2, armZ1],
     ]),
     poly([
-      [-w / 2, -d / 2],
-      [-w / 2 + 0.14 * w, -d / 2],
-      [-w / 2 + 0.14 * w, d / 2],
-      [-w / 2, d / 2],
+      [w / 2 - armB, armZ0],
+      [w / 2, armZ0],
+      [w / 2, armZ1],
+      [w / 2 - armB, armZ1],
     ]),
-    poly([
-      [w / 2 - 0.14 * w, -d / 2],
-      [w / 2, -d / 2],
-      [w / 2, d / 2],
-      [w / 2 - 0.14 * w, d / 2],
-    ]),
-    roundRect(-w / 2 + 0.14 * w, -d / 2 + 0.22 * d, w / 2 - 0.14 * w, d / 2, m * 0.08),
+    // Zwei Sitzkissen (Teilung macht die Sitzplätze im Plan ablesbar)
+    roundRect(-kissX - kissB / 2, kissZ0, -kissX + kissB / 2, kissZ1, m * 0.06),
+    roundRect(kissX - kissB / 2, kissZ0, kissX + kissB / 2, kissZ1, m * 0.06),
   ];
 };
 

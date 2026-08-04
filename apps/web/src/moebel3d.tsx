@@ -21,6 +21,7 @@
 import { RoundedBox } from "@react-three/drei";
 import { Vector2 } from "three";
 import { FARBSLUG_HEX, type FarbSlug } from "./farben";
+import { SOFA, TV } from "./moebelProportionen";
 
 /** Material-/Basisfarbe je funktionsTyp für den 3D-Viewer (Bryans Möbel-
  *  Materialwunsch). WICHTIG: Nur wirksam, wenn die Norm-Ampel «ok» ist –
@@ -609,29 +610,51 @@ const matte: Bauer = (w, d, h) => {
 // kissen + 2 Zierkissen (Akzent) + 4 schlanke Chrom-Füsse.
 const sofa: Bauer = (w, d, h) => {
   const rr = Math.min(w, d, h) * 0.09;
-  const armB = w * 0.11;
+  // Anteile aus `moebelProportionen.SOFA` – dieselbe Quelle wie das
+  // 2D-Grundriss-Symbol, damit Plan und 3D dasselbe Möbel zeigen.
+  const armB = w * SOFA.armBreite;
   const innen = w - 2 * armB;
-  const kissB = innen * 0.47;
-  const kissX = innen * 0.24;
+  const kissB = innen * SOFA.kissenBreite;
+  const kissX = innen * SOFA.kissenVersatz;
   const fuss = (x: number, z: number): Teil =>
     zyl(w * 0.018, w * 0.024, h * 0.1, [x, -h / 2 + h * 0.05, z], "chrom");
   return [
     // Sitz-Korpus (weich gerundet)
     rbox([w, h * 0.32, d], [0, -h / 2 + h * 0.24, 0], rr, "koerper"),
     // Rückenlehne (gerundet, an der Rückwand -z)
-    rbox([w, h * 0.5, d * 0.24], [0, -h / 2 + h * 0.65, -d / 2 + d * 0.12], rr, "koerper"),
+    rbox(
+      [w, h * 0.5, d * SOFA.lehneTiefe],
+      [0, -h / 2 + h * 0.65, -d / 2 + (d * SOFA.lehneTiefe) / 2],
+      rr,
+      "koerper",
+    ),
     // Linke Armlehne (weich)
     rbox(
-      [armB, h * 0.52, d * 0.9],
-      [-w / 2 + armB / 2, -h / 2 + h * 0.35, d * 0.02],
+      [armB, h * 0.52, d * SOFA.armTiefe],
+      [-w / 2 + armB / 2, -h / 2 + h * 0.35, d * SOFA.armVersatz],
       rr,
       "koerper",
     ),
     // Rechte Armlehne
-    rbox([armB, h * 0.52, d * 0.9], [w / 2 - armB / 2, -h / 2 + h * 0.35, d * 0.02], rr, "koerper"),
+    rbox(
+      [armB, h * 0.52, d * SOFA.armTiefe],
+      [w / 2 - armB / 2, -h / 2 + h * 0.35, d * SOFA.armVersatz],
+      rr,
+      "koerper",
+    ),
     // Sitzkissen links/rechts (weich, hell)
-    rbox([kissB, h * 0.16, d * 0.66], [-kissX, -h / 2 + h * 0.48, d * 0.06], rr, "hell"),
-    rbox([kissB, h * 0.16, d * 0.66], [kissX, -h / 2 + h * 0.48, d * 0.06], rr, "hell"),
+    rbox(
+      [kissB, h * 0.16, d * SOFA.kissenTiefe],
+      [-kissX, -h / 2 + h * 0.48, d * SOFA.kissenVersatzTiefe],
+      rr,
+      "hell",
+    ),
+    rbox(
+      [kissB, h * 0.16, d * SOFA.kissenTiefe],
+      [kissX, -h / 2 + h * 0.48, d * SOFA.kissenVersatzTiefe],
+      rr,
+      "hell",
+    ),
     // Rückenkissen links/rechts (weich)
     rbox([kissB, h * 0.3, d * 0.18], [-kissX, -h / 2 + h * 0.62, -d / 2 + d * 0.2], rr, "hell"),
     rbox([kissB, h * 0.3, d * 0.18], [kissX, -h / 2 + h * 0.62, -d / 2 + d * 0.2], rr, "hell"),
@@ -859,17 +882,28 @@ const tvmoebel: Bauer = (w, d, h) => {
     box([w * 0.2, h * 0.02, d * 0.03], [-w * 0.13, -h / 2 + h * 0.36, d / 2 - d * 0.015], "chrom"),
     box([w * 0.2, h * 0.02, d * 0.03], [w * 0.13, -h / 2 + h * 0.36, d / 2 - d * 0.015], "chrom"),
     // TV-Standfuss (Teller + Säule)
-    box([w * 0.18, h * 0.03, d * 0.14], [0, -h / 2 + h * 0.46, 0], "dunkel"),
-    zyl(w * 0.02, w * 0.02, h * 0.1, [0, -h / 2 + h * 0.5, -d * 0.05], "chrom"),
-    // TV-Rahmen (schlank, dunkel)
-    rbox(
-      [w * 0.86, h * 0.5, d * 0.05],
-      [0, -h / 2 + h * 0.74, -d / 2 + d * 0.12],
-      rr * 0.5,
-      "dunkel",
+    box([w * 0.18, h * 0.03, d * 0.14], [0, -h / 2 + h * TV.korpusOben + h * 0.02, 0], "dunkel"),
+    zyl(
+      w * 0.02,
+      w * 0.02,
+      h * TV.fussHoehe,
+      [0, -h / 2 + h * (TV.korpusOben + TV.fussHoehe / 2), -d * 0.05],
+      "chrom",
     ),
-    // TV-Bildschirm (Glas)
-    box([w * 0.8, h * 0.44, d * 0.02], [0, -h / 2 + h * 0.74, -d / 2 + d * 0.16], "glas"),
+    // TV: Bildschirm im ECHTEN 16:9-Format. Die Höhe ist das Nadelöhr (was über
+    // dem Korpus in der bbox übrig bleibt), die Breite folgt daraus – vorher war
+    // es umgekehrt, wodurch der Fernseher auf breiten Lowboards zum flachen
+    // Briefschlitz wurde. Deckel `maxBreite` schützt schmale, hohe Möbel.
+    ...(() => {
+      const frei = h * (1 - TV.korpusOben - TV.fussHoehe); // Resthöhe in der bbox
+      const rahmenH = Math.max(0, frei * 0.96);
+      const rahmenW = Math.min(rahmenH * TV.seitenverhaeltnis, w * TV.maxBreite);
+      const y = -h / 2 + h * (TV.korpusOben + TV.fussHoehe) + rahmenH / 2;
+      return [
+        rbox([rahmenW, rahmenH, d * 0.05], [0, y, -d / 2 + d * 0.12], rr * 0.5, "dunkel"),
+        box([rahmenW * 0.94, rahmenH * 0.9, d * 0.02], [0, y, -d / 2 + d * 0.16], "glas"),
+      ];
+    })(),
   ];
 };
 

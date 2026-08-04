@@ -529,3 +529,47 @@ def test_solver_mengen_default_eins_unveraendert() -> None:
         created_at="2026-06-11T12:00:00Z",
     )
     assert ohne == eins
+
+
+def test_mehrfach_instanzen_verteilen_sich_um_den_anker() -> None:
+    """4 Stühle mit «near:esstisch» stehen rund um den Tisch, nicht auf einem Haufen.
+
+    Ohne Sektor-Bonus zieht der near-Score jede Instanz auf denselben kürzesten
+    Abstand – die Stühle klumpten dann auf der nächstgelegenen Tischseite.
+    Geprüft wird die Streuung der Winkel um den Tisch: bei gleichmässiger
+    Verteilung liegen mindestens zwei Stühle auf gegenüberliegenden Hälften.
+    """
+    room = _load(FIXTURES / "raummodell.wohnen-sample.json")
+    catalog = _catalog("wohnen")
+    rules = _rules("wohnen")
+    by_id = {c["id"]: c for c in catalog}
+    tisch = next(c for c in catalog if c["funktionsTyp"] == "esstisch")
+    stuhl = next(c for c in catalog if c["funktionsTyp"] == "stuhl")
+
+    plan = solve(
+        room,
+        [tisch["id"], stuhl["id"]],
+        [{"itemId": stuhl["id"], "relation": "near:esstisch:1.3"}],
+        catalog,
+        rules,
+        seed=1,
+        created_at="2026-08-04T12:00:00Z",
+        mengen={stuhl["id"]: 4},
+    )
+    posen = {"esstisch": None, "stuhl": []}
+    for p in plan["placements"]:
+        typ = by_id[p["catalogItemId"]]["funktionsTyp"]
+        if typ == "esstisch":
+            posen["esstisch"] = (p["pose"]["pos"][0], p["pose"]["pos"][1])
+        elif typ == "stuhl":
+            posen["stuhl"].append((p["pose"]["pos"][0], p["pose"]["pos"][1]))
+
+    assert posen["esstisch"] is not None
+    assert len(posen["stuhl"]) >= 2, "mindestens zwei Stühle sollten platziert sein"
+    tx, tz = posen["esstisch"]
+    winkel = [math.degrees(math.atan2(sz - tz, sx - tx)) % 360 for sx, sz in posen["stuhl"]]
+    # Grösster Winkelabstand zwischen zwei Stühlen: bei Klumpenbildung nahe 0°.
+    spanne = max(
+        min(abs(a - b), 360 - abs(a - b)) for i, a in enumerate(winkel) for b in winkel[i + 1 :]
+    )
+    assert spanne > 90.0, f"Stühle klumpen (grösste Winkeldifferenz nur {spanne:.0f}°)"
