@@ -28,6 +28,8 @@ Vorgaben stehen im Brain und werden von dort referenziert.
 
 **In dieser Reihenfolge lesen, bevor du Code änderst:**
 
+0. *(Neue Session frisch gestartet? → [`SESSION-HANDOFF.md`](SESSION-HANDOFF.md)
+   enthält den fertigen Einstiegs-Prompt zum Kopieren.)*
 1. Diese Datei (`CLAUDE.md`).
 2. [`STATUS.md`](STATUS.md) – **wo stehen wir, was ist fertig, was ist als
    Nächstes dran.** Das ist die Übergabe zwischen Sessions.
@@ -61,6 +63,18 @@ Du arbeitest als **erfahrener Entwickler & Sparringspartner** von Bryan:
    entkoppelt/parallel.
 4. **Nach jedem abgeschlossenen Schritt:** `STATUS.md` aktualisieren – das ist
    Pflicht, sonst weiss die nächste Session nicht, wo sie weitermachen soll.
+5. **Modell- & Subagenten-Arbeitsteilung** (Entscheid Bryan, 2026-06-14): Die
+   Hauptsession läuft auf dem **starken Modell** und macht **Planung, Review und
+   alles Heikle selbst**. Klar abgegrenzte, **nicht zu schwierige** Teilaufgaben
+   dürfen an einen **schwächeren Subagenten** delegiert werden – aber nur, wenn
+   du sicher bist, dass er sie schafft. Bewährt hat sich:
+   - **Delegierbar:** Stammdaten/Kataloge nach bestehendem Muster erzeugen,
+     Doku-/Repo-Inventuren, breite Lesesuchen, Boilerplate-Tests.
+   - **NICHT delegieren:** alles Paritätskritische (die zwei Regel-Interpreter),
+     Geometrie/Koordinaten, Metrik-Design, Solver-Kernlogik – dort sind Fehler
+     subtil und schwer zu reviewen.
+   - Subagenten **committen nie selbst**; die Hauptsession reviewt den Diff,
+     fährt die Checks und committet.
 
 ---
 
@@ -130,7 +144,61 @@ Konzept eine Notiz ins Brain (`../FP_Kopf`):
 
 ## 9. Git
 
-- Branch nach Vorgabe der Session; Ziel ist `main` (Bryan: direkt nach
-  `main` pushen, sofern nichts anderes gesagt wird).
+- **Direkt nach `main`** committen und pushen – eine eigene Branch ist **nicht
+  nötig** (Entscheid Bryan, 2026-06-13). Gibt die Session einen Branch vor, darf
+  zusätzlich dorthin gepusht werden; `main` ist aber das Ziel.
 - Commits klar, beschreibend, **auf Deutsch**. Früh & oft pushen.
 - **Keine Pull Requests ohne ausdrücklichen Auftrag von Bryan.**
+
+---
+
+## 10. Verifikation – so prüfst du «grün»
+
+Die CI fährt Lint → Typecheck → Tests → Schema-Check. Lokal exakt so:
+
+```bash
+# Python (aus services/engines/)
+uv run ruff check .
+uv run pytest -q
+# gezielt, z.B. nur Küche:  uv run pytest tests/test_kueche.py -q
+
+# mypy (aus dem Repo-Root – der --config-file ist nötig!)
+uv --project services/engines run mypy \
+   --config-file services/engines/pyproject.toml services/engines/src
+
+# JS/TS (aus dem Repo-Root)
+pnpm -r --if-present lint
+pnpm -r --if-present typecheck
+pnpm -r --if-present test
+pnpm schema-check
+```
+
+> mypy prüft in der CI **nur `src`**, nicht `tests` – Meldungen aus `tests/`
+> (z.B. fehlende `jsonschema`-Stubs) blockieren die CI nicht.
+
+---
+
+## 11. Bekannte Stolpersteine (spart dir Stunden)
+
+- **Client-Imports:** `apps/web` importiert Regel-Code **ausschliesslich** aus
+  `@fp/shared/rules` – **nie** aus `@fp/shared`, sonst landet die Node-only
+  `validation.ts` im Browser-Bundle und der Build bricht.
+- **Goldens & Prettier:** `scripts/update_goldens.py` (Python) schreibt die
+  goldenen Reports, aber Prettier prüft `fixtures/**/*.json` mit. Nach dem
+  Regenerieren immer `pnpm exec prettier --write "fixtures/rule-parity/expected/*.json"`
+  (aus `packages/shared/`), sonst ist der Lint-Schritt rot.
+- **`noUncheckedIndexedAccess`** ist in der tsconfig aktiv: **jeder** Index-
+  Zugriff liefert `T | undefined` – auch bei typisierten Arrays. Im Code wird
+  das mit expliziten Casts gelöst (`arr[i] as T`); folge dem bestehenden Muster.
+- **ESLint `no-unused-vars` = «after-used»:** ungenutzte Parameter **am Ende**
+  der Signatur werden angemeckert (auch mit `_`-Präfix). Lässt du hintere
+  Parameter weg, ist das oft die sauberste Lösung.
+- **Variablen-Shadowing im Interpreter:** in `_eval_circulation` heissen die
+  Rasterdimensionen `nx`/`nz` – benutze für Normalenvektoren **andere** Namen,
+  sonst überschreibst du still das Grid (hat schon einmal gekracht).
+- **Solver-Hot-Path:** `_zulaessig(..., nur_hart=True)` wertet nur harte Regeln
+  aus. Das ist Absicht (Zulässigkeit hängt nur an harten Regeln) und hält die
+  teure `circulation`-Analyse aus der Kandidatenschleife. Nicht «aufräumen».
+- **Diagnose-Disziplin:** Metriken **immer mit dem produktiven Evaluator**
+  messen – Standalone-Nachbauten driften subtil und führen zu falschen Schlüssen
+  (siehe Brain-Learning `Learning-Circulation-Metrik-Fragilitaet`).
