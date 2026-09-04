@@ -6,7 +6,285 @@
 > Abweichungen gibt es. Meilenstein-Definitionen: Brain →
 > `vault/50_Umsetzung/Bauplan-Meilensteine.md`.
 
-**Stand: 2026-06-14**
+**Stand: 2026-07-15**
+
+### LLM-Läufe real: Kurator antwortet echt – Groq-Debugging-Saga (2026-07-15)
+6 Workflow-Läufe (`kurator-llm-eval.yml`, Secret FP_KURATOR_API_KEY) bis zur
+ersten vollständigen echten KI-Antwort. Fehlerkette (je Lauf diagnostiziert):
+1. **413**: Call-A-Prompt zu gross (volle achsenTags-JSON je Kandidat) →
+   v3.2 Prompt-Diät (Kompakt-Stil-Notation, Kandidaten-Budget, adaptive
+   Kürzungs-Leiter, FP_KURATOR_MAX_PROMPT_TOKENS).
+2. **413 trotz Diät**: Groq zählt Prompt + MAXIMALES Antwort-Fenster; ohne
+   max_tokens wird das volle Kontextfenster angenommen → v3.2.1 max_tokens
+   explizit (FP_KURATOR_MAX_ANTWORT_TOKENS) + 429-Backoff.
+3. **400 json_validate_failed**: Qwen3 denkt DEFAULT laut, <think>-Präfix
+   bricht response_format=json_object, der gescheiterte Call verbrennt das
+   Minutenbudget → v3.2.2 reasoning_effort=none für Qwen3 (env-übersteuerbar).
+4. **429**: Free-Tier TPM (Qwen 6k, Llama 12k) drosselt Serien → v3.2.3
+   Backoff 3×/30s + FP_EVAL_PAUSE_S zwischen Läufen.
+**Ergebnis (Llama-3.3-70b-versatile):** 3/9 Diagnose-Kombis mit VOLLER echter
+Antwort, alle 6 Plausibilitäts-Ampeln grün – z.B. wohnen×mittig ohne jeden
+Marker: Konzept (Eiche+Leinen, erdig), 4 Stühle zum Esstisch, Farben je Item,
+Boden parkett-eiche, Wände putz-warm + EINE Täfer-Akzentwand. Rest-Fallbacks
+nur noch 429 (Budget). 413/400 mit Llama komplett weg.
+**Empfehlung:** Space-Secret FP_KURATOR_MODEL auf llama-3.3-70b-versatile –
+Einzelnutzer-App (3 Calls/Plan) liegt locker im 12k-TPM-Budget. Qwen3-Pfad
+bleibt funktionsfähig (Thinking default aus). Offen: Eval-Gate-Vergleich fair
+machen (9 vs 45 Läufe), Norm-Korrektur-Rate erst mit mehr echten C-Calls
+aussagekräftig.
+
+### Welle C – UI-Trio + Diagnose/LLM-Workflow + Norm-Verifikation (2026-07-14/15)
+- **UI-Trio:** Einzelwand-Materialwahl (`apps/web/src/wandauswahl.ts`, Panel-
+  Wandliste 1-basiert angezeigt, 2D-Highlight, Norm weiterhin über
+  `/flaechen/pruefen`) · **«3 Vorschläge»-Karten** in SchrittVorschlag
+  (Mini-2D readonly + Kennzahlen; `/solve` `variantenDetails` → additiv
+  `variantenPlaene` best-first) · **2D-Flächen-Layer** (Default AN, gleiche
+  Auflösung wie 3D via `flaechen2d.ts`, Legende; AUS = alte Darstellung,
+  testbelegt). Offen: Relations-Score in Karten roh/negativ → normalisieren.
+- **Merge-Erkenntnis C×D:** Begehbarkeits-Leiter in `varianten._waehle_begehbar`
+  zentralisiert — der Karten-Kopf ist IMMER der gelieferte begehbare Plan
+  (auch wenn nicht Score-Sieger), Rest best-first; Test präzisiert. Dabei
+  `by_id`-NameError im Reduktions-Zweig gefixt (Folge des Parallel-Refactors).
+- **Diagnose-Harness** `scripts/kurator_diagnose.py` (ADR-0014): Raum×Profil-
+  Matrix, echte Kurator-Antworten + 6 Plausibilitäts-Ampeln; Baseline 45/45
+  ohne ⚠️, byte-deterministisch. **LLM-Lauf:** Workflow
+  `.github/workflows/kurator-llm-eval.yml` (Runner haben Netz zu api.groq.com,
+  Remote-Sessions nicht; Thinking per Input `reasoning`) — **wartet auf
+  Repo-Secret `FP_KURATOR_API_KEY`** (Klartext-Key als Input wird vom
+  Secret-Scanning korrekt blockiert).
+- **Flächen-Normregeln verifiziert:** Küchen-Spritzzone 1.2→**1.5 m**
+  (Fliesenspiegel-OK ~1.5 m ab Boden), Nasswand 2.0 m bestätigt (DIN 18534:
+  ≥20 cm über Brausekopf), Rutschhemmung Ziel bfu GB2/B (erst mit Produkt-
+  daten prüfbar). Quellen: Brain `Quellen-Flaechen-Normen`.
+
+### Welle D – softScore bad/wohnen echt + Begehbarkeit hart am Planende (2026-07-15)
+Zwei Qualitätspunkte aus dem v3-Fund («softScore bad/wohnen immer 0.0») und dem
+circulation-Learning (Metrik vertrauenswürdig, Hürde war nur Hot-Path-Performance).
+- **softScore stil/relation echt befüllt (alle Raumtypen konsistent):** Muster
+  des Küchen-Ergonomie-Patches – der Domänen-Solver schreibt NACH dem
+  Interpreter-Lauf in die vorhandenen Felder; Interpreter/Schema/Goldens
+  unberührt (Paritäts-Gesetz aus dem Weg). `stil` = mittlerer Stil-Score der
+  platzierten Items (Wiederverwendung `kurator.stil_score`, kein Duplikat);
+  `relation` = Anteil erfüllter relationaler/Anordnungs-Wünsche am fertigen
+  Plan (gleiche Quelle `baue_rel_map` wie Platzierung + K-Scoring, binäre
+  v0-Urteile `solver._relation_erfuellt`, ohne Wünsche vakuum-wahr 1.0);
+  `ergonomie` bleibt Küchen-spezifisch (Arbeitsdreieck). Beispielwerte
+  bad-sample seed 1 mit Profil: stil 0.14 · relation 1.0.
+- **Begehbarkeit hart am Planende (Weg «hart am Ende», nicht im Filter):**
+  Messung: circulation kostet das 10–13-fache ALLER harten Regeln (~15 ms Bad /
+  ~33 ms Wohnen vs. 1.4–2.6 ms) bei 22–47 Feasibility-Aufrufen je solve ⇒ hart
+  im Filter wäre ~7–10× langsamer; zudem globale Grid-Eigenschaft, nicht
+  inkrementell. Regel-JSON bleibt **soft** (Parität/Goldens byte-identisch);
+  die Härte lebt in der Liefer-Schleife: `solver.solve_begehbar` (API-Pfad ohne
+  Varianten) prüft den fertigen Report, bei Verletzung deterministischer
+  Re-Solve mit reduzierter Auswahl (letztes P3-/Ergänzungs-Item ohne
+  Anker-Pflicht, max. 3), danach VOLLER Plan mit sichtbarem Hinweis
+  («BEGEHBARKEIT NICHT ERREICHT» im circulation-`ruleResult.hinweis` –
+  constraintReport ist additionalProperties:false, darum kein neues Feld).
+  K-Varianten (`loese_mit_varianten`): Leiter = nächstbeste BEGEHBARE Variante
+  → Reduktions-Re-Solve → Hinweis; Massnahme additiv in
+  `varianteInfo.begehbarkeit`, Rangfolge sonst byte-identisch (dokumentiert +
+  getestet). Küche: letzte P3-Deko-Platzierung entfernen (max. 3) → Hinweis.
+- **Tests:** neues `test_begehbarkeit.py` (54 Tests): Property ⭐ «jeder
+  gelieferte Plan begehbar ODER sichtbarer Hinweis» über bad/wohnen/kueche ×
+  Seeds + Varianten-Pfad, 0-❌-Invariante, Determinismus beider Leitern,
+  echter unfixbarer Bestands-Engpass (Hinweis-Pfad), Reduktions-Mechanik,
+  softScore-Diskriminierung/Defaults. `test_varianten`/`test_solve_endpoint`
+  «best ≥ v0» präzisiert (gilt, ausser die dokumentierte Leiter greift).
+- **Wirkung (echter Evaluator, seeds 0–11):** bad-sample 8 direkt ok · 1 durch
+  Reduktion · 3 Hinweis; wohnen-sample 6 · 1 · 5; Varianten-Pfad wohnen: alle
+  Seeds begehbar (meist via «andere-variante»). Küche unverändert (knapp/ok).
+- **Bewusst offen:** Regel-`hinweis`-Text in `data/rules/basis.json` erwähnt
+  noch «Hochstufung braucht Solver-Support» – Textupdate würde die 3 goldenen
+  Paritäts-Fixtures anfassen (dort eingebettet), bewusst verschoben. Learning-
+  Loop-Notiz ins Brain (Weg-1-Entscheid + Messzahlen) steht aus.
+
+### Kurator v3.1 Welle A – Objekt-Ebenen + Anzahl + Thinking (2026-07-14, ADR-0014)
+Vorgabe: Brain `ADR-0014-objekt-ebenen-und-kurator-kontrolle` + `Objekt-Ebenen-Modell`.
+Eiserne Regel: jede neue KI-Freiheit ↔ deterministische Kontrolle.
+- **Schemas (additiv):** `katalog-item` bekommt `objektEbene` (haupt|ergaenzung),
+  `ankerTyp`, `maxAnzahl` (1..6, Default 1). `kurator-vertrag` v0.6: Response
+  `hauptObjekte` + `ergaenzungen[{itemId,anzahl}]` (beide optional); `auswahl`
+  bleibt Pflicht + expandiert (jede itemId genau einmal). Codegen TS+Python neu.
+- **Daten:** alle 127 Katalog-Items getaggt (bad 11 haupt/29 erg · wohnen 12/28
+  · kueche 38/9). **2 neue Esszimmerstuhl-Items** (wohnen, P2, ergaenzung,
+  ankerTyp esstisch, maxAnzahl 6, `near:esstisch:1.3`) – das 3D-Kit `stuhl` +
+  2D-Symbol existierten bereits (wiederverwendet, kein Duplikat). Neu
+  `data/kurator/anzahl-leitplanken.json` (Instanz-Korridor je Raumtyp/Fläche).
+- **Kurator:** Call A zweistufig (`hauptObjekte` zuerst, dann `ergaenzungen` mit
+  Anker+maxAnzahl je Slot; Anzahl-Leitplanke aus Daten gerendert). Harte
+  Kontrollen `_validiere_ebenen`: Auswahl⊆Kandidaten · P1-Pflicht in haupt ·
+  anzahl 1..maxAnzahl · Anker-Haupt-Pflicht · Platz-Budget über alle Instanzen.
+  WEICH: Korridor (1 Repair, dann Marker `CURATOR_ANZAHL_AUSSERHALB`). Baseline
+  zweiphasig (haupt → verankerte Ergänzungen, Stühle det. bis 4, Korridor-Cap).
+  Thinking: `FP_KURATOR_REASONING` (→ reasoning_effort + reasoning_format hidden,
+  nur bei Env) + `FP_KURATOR_TEMP`. Alte Kataloge ohne `objektEbene` brechen nicht.
+- **Solver/API:** `solve()`/`loese_mit_varianten()` neuer `mengen`-Param
+  (itemId→anzahl → n Placements, eindeutige IDs, `near:esstisch` je Instanz,
+  Determinismus unberührt). `/solve` optionales `mengen`; Baseline-Pfad leitet
+  es aus `ergaenzungen` ab (`mengen_aus_antwort`, kein Vertrags-Extra-Feld).
+  Client: `mengenAusKurator` → /solve. K-Varianten reichen mengen durch.
+- **Eval:** Überlebensrate zählt jetzt Instanzen; neue Spalte «Anker-Erfüllung».
+  Baseline-Report neu (0.84 Überleben / Anker 100 % / 0 ❌ in 45).
+- **Bewusste Abweichungen / offen:** (1) Korridore ggü. ADR-Beispiel etwas höher
+  gewählt, weil Stühle jetzt als Instanzen zählen. (2) Stuhl-Distanz 1.3 m (0.8 m
+  aus der ADR-Skizze kollidiert mit dem 1.4×1.2-Tisch). (3) **Doppelzählung
+  Esstisch↔Stühle:** die Esstisch-Items heissen «(inkl. 4 Stühlen)» und Preis/2D
+  deuten Stühle an – jetzt kommen zusätzlich echte Stuhl-Instanzen. Bewusst NICHT
+  angefasst (Naming/Preis/Rendering = grösserer Eingriff) → Bryan-Entscheid, ob
+  Esstisch entkoppeln (umbenennen/entpreisen) oder Stühle nur als eigene Instanzen.
+- Gates grün (lint/typecheck/test/schema-check); NICHT committet (Orchestrator).
+
+### Kurator-Pipeline v3 – 5 Wellen (2026-07-13, ADR-0013)
+Vorgabe: Brain `Kurator-Pipeline-v3-Konzept` + `ADR-0013-kurator-pipeline-v3`.
+Eiserne Regel: jede neue KI-Freiheit ↔ neue deterministische Kontrolle.
+- **W1 Kohärenz/Norm:** Call A liefert zuerst `konzept` (Vertrag v0.4), Konzept
+  → B+C; Stilprofil neu in B, Auswahl neu in C; **Platz-Budget hart** in
+  `_validiere` (Daumenregel wie Baseline, Unsatisfiability-Guard);
+  **Norm-Kontext aus `data/rules/flaechen.json` pro Raum gerendert**
+  (`norm_kontext_flaechen`: konkrete Nasswand-Indizes; Norm-Prosa aus der
+  Prompt-.md entfernt – eine Quelle); neu `kueche-wand-spritzzone` (1.2 m,
+  zu-verifizieren); Relations-Ziel-Validierung; Few-Shots; temp 0.3 + seed.
+- **W2 Daten:** alle 125 Katalog-Items volle 8 Achsen + `farbVarianten`
+  (16 farbSlug-Enum im Katalog-Schema); 3 falsch getaggte Wohnen-Bilder +
+  Eckschrank-Copy-Paste-Tags korrigiert.
+- **W3 Farben (KI+UI):** Vertrag v0.5 `farben` (itemId→farbSlug, Cross-File-
+  `$ref` aufs Katalog-Enum – Codegen löst auf, kein Duplikat; 2 Testdateien
+  auf Registry-Validierung umgestellt); `placement.farbe` (Plan additiv);
+  eigener Validierungsschritt + Repair + Bereinigung (CURATOR_FARBEN_BEREINIGT);
+  Client `farben.ts` (MANUELL>KI>Default, Default = erste farbVariante);
+  Farb-Picker am selektierten Objekt + Flächen-Material-Picker; manuelle
+  Flächen laufen durch `POST /flaechen/pruefen` (Python bleibt Norm-Quelle).
+  Bewusst: Wand-Material gilt für alle Wände (keine Einzelwand-Selektion).
+- **W4 Eval:** `kurator_eval.py` = 3 Räume × 3 Profile × 5 Seeds; Metriken
+  Überlebensrate/Auslastung/Palette-Treffer/Norm-Korrektur-Rate/Invariante;
+  deterministischer Report `services/engines/reports/kurator_eval.json`.
+  **Baseline-Messlatte: 0.867 / 0.886 / 0.855, 0 ❌ in 45 Läufen.** LLM-Lauf
+  mit FP_KURATOR_URL wiederholen → muss Baseline schlagen (Gate).
+- **W5 K-Varianten:** `varianten.py` (K=3 Sub-Seeds deterministisch, bestes
+  lexikografisch: platziert → −knapp → Relations-/Stil-Score → Index);
+  `/solve` Flag `varianten` (Default false), App nutzt true (Bad/Wohnen;
+  Küche ausgenommen). **Fund:** `constraintReport.softScore` ist bei
+  bad/wohnen immer 0.0 (nur Küche patcht ergonomie) → knapp-Zähler ist das
+  echte Soft-Signal. Offen: LLM-Eval-Lauf; «3 Vorschläge zeigen» (UI-Bonus);
+  Einzelwand-Material-Selektion.
+
+### CI-Fix + 2D-Wand-Semantik + 3D-Polish + Ladebildschirme (2026-07-13)
+- **CI grün:** Prettier-Format der Codegen-Ausgabe gefixt; Merke: Gates immer
+  mit den ROOT-Kommandos fahren (`pnpm lint/typecheck/test` deckt alle
+  Workspaces — apps/web allein reicht nicht).
+- **2D-Wand-Semantik korrigiert:** `floor.polygon` = INNENKANTE (nutzbare
+  Raumfläche, Solver-Realität) → Wand wächst jetzt nach AUSSEN
+  (`aussenPolygon`, Gehrung aussen); Boden = volles Polygon.
+- **3D-Rendering-Polish:** prozedurale Environment (Lightformer-Softbox,
+  offline/CSP-fest), ACES-Tonemapping, ContactShadows; Chrom echt spiegelnd,
+  Glas reflektierend. Kein Post-Processing (bewusst schlank).
+- **Ladebildschirme:** FP-Logo + Puls + Fortschrittsbalken an allen 4
+  Wartepunkten (v.a. Vorschlag/Kurator mit 3 KI-Calls); Piktogramme +20–30%.
+
+### Kurator-Pipeline v2 + Licht + individuelle Flächen (2026-07-12)
+- **Kurator v2 – 3 KI-Calls** (`kurator.py`, Vertrag v0.2 additiv): A Auswahl ·
+  B **Anordnung** (je Item wandIndex/relationen/prioritaet; Solver setzt sie
+  WEICH um – Ranking, nie NoFeasiblePlacement wegen Wandwunsch) · C **Flächen**
+  (materialSlug-Enum 10 Slugs als einzige Quelle, bereich voll/halbhoch/sockel,
+  hoeheM, akzent). Jeder Call validiert + 1 Repair + **Teil-Fallback**
+  (B→relationalRules, C→None). Prompts: `data/prompts/kurator-{rolle,anordnung,
+  flaechen}.md`. Norm-Filter/Parität unangetastet → 0 ❌ bleibt beweisbar.
+- **Licht & Lampen** (Dressing): Platzierungsart `an_decke` (Schema-Enum
+  additiv); Pendelleuchte (wohnen+kueche, über Esstisch/Arbeitsfläche),
+  Tischleuchte (wohnen) – leuchten echt (Emissive + pointLight). Offener Punkt:
+  glTF-Upgrade einer Leuchte braucht das Punktlicht noch (additiv nachrüstbar).
+- **3D-Flächen-Rendering**: Kurator-`flaechen` sichtbar – je Wand eigenes
+  Material (raumhoch/halbhoch/Sockel, Akzentwand), Boden aus Slug; ohne
+  `flaechen` exakt bisheriges stilabgeleitetes Verhalten. Offen: Zusammenspiel
+  Kurator-Flächen vs. manuelle Oberflächen-Variante definieren; 2D zeigt die
+  Flächen (bewusst) noch nicht.
+- HF: /plan macht jetzt bis zu 3 Groq-Calls → wenige Sekunden länger; Fallback-
+  Marker je Call in der Begründung (`CURATOR_ANORDNUNG_FALLBACK` etc.).
+- **Flächen-Normkontrolle (Nachtrag):** `data/rules/flaechen.json` (deklarativ,
+  getrennt vom Paritäts-Set) prüft jeden KI-Flächen-Output hart: Bad-Boden
+  wasserfest, Nasswände ≥2.0 m wasserfest (Heuristik: Fixpunkte ≤0.5 m),
+  Küchenboden abwaschbar. Ablauf: Regeln VORAB im Prompt → pruefe_flaechen →
+  1 Norm-Repair (`…NORMREPAIR`) → deterministische Korrektur
+  (`…NORMKORREKTUR`). Vokabular +tapete-hell/+taefer-holz (Wohnräume: Putz/
+  Tapete/Täfer statt Fliesen). Richtwerte «zu-verifizieren» (SIA 271/DIN 18534).
+
+### Katalog-Ausbau: 13 neue Möbeltypen (2026-07-12)
+- **26 neue Katalog-Items** (je 2 Stil-Varianten, alle P3): Bad waeschekorb/
+  badhocker/abfalleimer/midischrank · Wohnen pouf/vitrine/konsolentisch/
+  barwagen/recamiere · Küche barhocker/servierwagen/vorratsschrank/
+  weinkuehlschrank (elektro). relationalRules nutzen die neue Grammatik
+  (group:sitzgruppe, against-wall, near, corner).
+- **Voll dargestellt:** 13 volumetrische 3D-Kits (`moebel3d.tsx`) + 13
+  2D-Plan-Symbole (`symbole2d.ts`) + MATERIAL_FARBE.
+- **Baseline-Fix** (`kurator.py`): Rest-Slots nach priorityClass P1→P2→P3 statt
+  alphabetisch (latenter Bug: P3-Deko konnte Kernmöbeln die Flächen-Daumenregel
+  aufbrauchen). Solvability-Regression: alle 10 Raum-Fixtures × Seeds 0–5 →
+  0 ❌, kein NoFeasiblePlacement (kleine Räume lassen P3 erwartungsgemäss weg).
+- **Offen:** weitere Wunschlisten-Typen (z.B. Dusch-WC, Raumteiler, Kücheninsel
+  als eigenes Möbel) bei Bedarf nach demselben Muster.
+
+### 3D-Volumetrie + Scene-Dressing für ALLE Raumtypen komplett (2026-07-09)
+- **Modelle** in höherer Volumetrie (rundbox/lathe/torus + Glas/Chrom) für
+  **Bad, Wohnen UND Küche** – alle `moebel3d`-Bauer klar erkennbar, nicht mehr
+  schematisch; Ampel-/Solver-Logik unberührt, bbox-Invariante bleibt.
+- **Scene-Dresser** für alle drei Raumtypen: `data/dressing/{bad,wohnen,kueche}.json`
+  + Kits in `dressing3d-kits.ts`, generischer Loader/Engine, „Deko"-Toggle.
+  Sparsam, „frisch gebaut". Verändert Plan/`constraintReport`/LV NICHT (0 ❌).
+- **Offen/Backlog:** komplett neue Möbeltypen aus Bryans Wunschliste (Recamiere,
+  Weinkühler, Doppelwaschtisch, Barwagen …) = eigener Schritt (Katalog+Regeln+
+  Solver). Deko-Sonderfall „an Gerätegriff hängen" bräuchte neue Platzierungsart.
+  Echtes Spiegel-Chrom bräuchte Environment-Map. Bryans echte `.glb` ersetzen
+  Platzhalter über `apps/web/public/assets/dressing/`.
+
+### 3D-Modelle Bad – höhere Volumetrie (2026-07-09)
+- **Primitiv-System erweitert** (`apps/web/src/moebel3d.tsx`): neben box/zyl/kugel
+  neu **`rundbox`** (RoundedBox), **`lathe`** (Rotationskörper), **`torus`** –
+  plus Material-Rollen **`glas`** (echt transparent) und **`chrom`** (metallisch).
+  Ampel-Farblogik unangetastet (Rolle steuert nur Oberflächen-Physik).
+- **Alle Bad-Objekte + 5 Deko-Kits** auf klar erkennbare, plastische Volumetrie
+  gehoben (WC/Lavabo/Dusche als Flagship, dann Fan-out: Badewanne, Spiegel,
+  Badmöbel, Hochschrank, Regal, Handtuchstange/-heizung, Urinal, Bidet,
+  Badteppich, Wandleuchte, Pflanze; Deko: Seifenspender, Zahnputzbecher,
+  gefaltete Handtücher, Tray, Pflanze). `dressing3d.tsx`-Renderer auf die neuen
+  Primitive erweitert. bbox-Invariante (`passtInBbox`/`clampTeil`) bleibt.
+- **Offen:** Fan-out Wohnen/Küche-Modelle im gleichen Detailgrad; echtes
+  Spiegel-Chrom bräuchte eine Environment-Map (aktuell mattes Metall).
+
+### Scene Dressing – Bad-Durchstich (2026-07-09)
+- **Neue visuelle Deko-Ebene**, client-seitig & getrennt vom Plan (Konzept:
+  Brain `vault/50_Umsetzung/Scene-Dressing-Konzept.md`). `sceneDressing()` in
+  `apps/web/src/dressing.ts` (Seed/Anker/Stil/Klasse-B-Kollision), gerendert als
+  `DressingLayer3D` mit **„Deko"-Toggle** im 3D-Viewer. Verändert
+  `placements`/`constraintReport` NICHT → 0 ❌ unberührt (Regressions-Test).
+- **Ästhetik „frisch gebaut, nicht bewohnt":** 5 sparsame Bad-Objekte
+  (Seifenspender, Zahnputzbecher, Tray, gefaltete Handtücher, Pflanze).
+- **Asset-Drop-in:** `apps/web/public/assets/dressing/<gltfRef>.glb` (README dort);
+  `assetStatus:"modeled"`+`gltfRef` → ersetzt Platzhalter automatisch. Bryan
+  modelliert + lädt hoch, Rest macht die App.
+- Bugfix: Ecken-Footprint (rotiert) stach durch die Wand → inkrementell nach
+  innen rücken. Details: `vault/10_Learnings/Learning-Scene-Dressing-Bad-Durchstich.md`.
+- **Offen:** Fan-out Wohnen/Küche; Klasse C (`an_wand`) in Engine da, ungenutzt.
+
+### Zuletzt (2026-07-08, diese Session)
+- **UI-Feinschliff:** Schein nach innen stärker & überall, mehr CI-Grün,
+  Piktogramme überall grösser (`fp.css`/`theme.ts`/`Piktogramm.tsx` + Ansichten).
+- **Solver/Kurator «Stufe 1»:** reiche Anordnungs-Grammatik (`near`,
+  `against-wall`, `corner`, `facing:<typ>`, `opposite:<typ>`, `group:<id>`,
+  `pair-with:<itemId>`) als weiche Constraints in P2/P3 + **stil-abhängige
+  Platzierung** (v0: Achse `raumgefuehl` → Wand-Nähe, kleines Gewicht). Harter
+  Norm-Filter/Interpreter/Parität unangetastet → 0 ❌ bleibt beweisbar. Neu:
+  `services/engines/src/fp_engines/relationen.py`; `solve()` um `style_profile`
+  additiv erweitert; `kurator-rolle.md` lehrt die Grammatik; `wohnen.json` demo.
+  **Offen (Kalibrierung):** welche Stilachsen welchen Platzierungs-Bias steuern →
+  Brain-Learning `vault/10_Learnings/Learning-Solver-Stufe1-Anordnung-Stil.md`.
+- **2D-Grundriss CAD-Look:** Wand-Aussenkante liegt auf der Raumlinie, Stärke
+  wächst nach innen, Gehrungs-Ecken (`innenPolygon`/`wandBaender` in `plan2d.ts`);
+  Öffnungen sitzen im Band.
+- **Objekt-Panel erweitert:** `ObjektInfoPanel.tsx` – Kosten + Wechsel-Alternativen
+  (Thumbnail = 2D-Symbol, Preis, Masse, Stil-Match). Produktfotos je Item fehlen
+  noch (Asset-Pipeline-Thema) → Thumbnail als Austauschpunkt vorbereitet.
+- **(läuft)** mehr Beispielräume (`packages/shared/fixtures/artefakte/raummodell.*`).
 
 ## Meilensteine
 
@@ -19,7 +297,7 @@
 | **M4** Auswertung voll + Kurator | LV, Bauzeitenplan, Offert-Paket, DXF · Kurator + Mini-Eval · Stil-UI | 🟢 DoD erfüllt |
 | **M5** Durchstich WOHNEN | Sample-Wohnzimmer → Regelsatz/Katalog/Bilder wohnen → Solver mit freier Boden-Platzierung → LV/Bauzeit/Dokumente | 🟢 fertig |
 | **M6** Durchstich KÜCHE | Formwahl + lineare Baugruppe + API + Frontend; Grossraum über Zone geplant | 🟢 DoD erfüllt |
-| **M7** Scan-Integration (+AR) | | ⚪ offen |
+| **M7** Scan-Integration (+AR) | Adapter · Space-Deploy · scan-worker · Upload/`/scan` · Korrektur-Modus fertig; offen: R1-Gate auf Colab (Schritt 5) | 🟡 gestartet |
 
 ## Was konkret existiert
 
@@ -53,6 +331,16 @@
   `packages/shared/fixtures/artefakte/raummodell.r1-wc.json` (6 Wände,
   erster nicht-rechteckiger Grundriss). Offen: Raumhöhe, Türbreite,
   Objektmasse, Neuaufnahme nach Guideline.
+- **M2 (2026-06-14, getesteter Metrik-Kern):** `notebooks/scan-spike/`
+  `eval_metrics.py` – **GPU-freier, abhängigkeitsfreier** Mess-Kern
+  (Wandlängen-Fehler Median/Max, Fläche %, Rechtwinkligkeit, Objekt-Recall) +
+  `gate()` (Go/Anpassen/Pivot aus den Spike-Schwellen). **`test_eval_metrics.py`
+  grün** (5 Tests gegen R1-Ground-Truth: perfekte Schätzung = 0 Fehler, 1.56 m²/
+  5.6 m reproduziert, 5-cm-Störung erkannt, Eckenzahl-Mismatch gemeldet, Recall).
+  Notebook nutzt jetzt diesen Kern und kennt die **Ecken-Antippen-Variante**
+  (`corners/<raum>.json`, Wandgenauigkeit GPU-frei). Die schweren ML-Schritte
+  (Depth Anything V2, Grounding DINO, SAM2) brauchen GPU+Modell-Download →
+  laufen auf **Colab (T4)**, nicht in dieser Umgebung (kein GPU, HF 403).
 
 - **M3 (2026-06-11):** kompletter End-to-End-Klickpfad: Raum wählen
   (Sample-Bad ODER echtes R1-WC) → «Plan vorschlagen» (Baseline-Kurator +
@@ -246,33 +534,371 @@
     ist teuer ~0.4 s/Auswertung; als hard liefe sie je Kandidat). Der billige
     Tür-Korridor-Filter (Schritt 1) verhindert die häufigsten Verletzungen schon
     ohne Grid – ein finaler Hard-Check + Keep-out könnte reichen. Mit Bryan
-    abstimmen, ob/wann hard. Details: Brain `Circulation-Hochstufung-auf-hard`.
+    abstimmen, ob/wann hard. Details: Brain `Learning-Circulation-Metrik-Fragilitaet`.
+- **Küchen-Politur (2026-06-14, Arbeitsdreieck als echter Score):** Der bisher
+  fix auf 0.0 gesetzte `softScore.ergonomie` wird für Küchenpläne mit dem
+  **gemessenen AMK-Arbeitsdreieck** (Spüle–Kochfeld–Kühlschrank) befüllt: drei
+  Seitenlängen + Summe → Trapez-Score [0,1] (Seite ideal 1.2–2.7 m, Summe
+  4–8 m = effizient). Berechnet **nach** der Platzierung (`arbeitsdreieck()` in
+  `kueche.py`) – **ohne Regel-Interpreter, Schema oder Goldens zu berühren**: das
+  Feld existierte bereits im Plan-Schema, der Solver post-prozessiert nur den
+  fertigen `constraintReport` (Paritäts-Gesetz unberührt, Invariante bleibt 0 ❌).
+  `/solve` liefert für Küchen zusätzlich ein `arbeitsdreieck`-Detail (Seiten/
+  Summe/Bewertung); der Viewer zeigt es als Panel (effizient/akzeptabel/beengt/
+  weitläufig). Ehrliche Werte (echter Evaluator): Sample-Küche 3.2×2.6 m =
+  **beengt** (0.26, Summe 2.2 m), Grossraum-Zone = **akzeptabel** (0.67, Summe
+  3.3 m) – differenziert nach Raumgrösse. `formwahl` (Pre-Placement-Ranking)
+  bleibt bewusst beim Proxy (das echte Dreieck ist vor der Platzierung unbekannt).
+  Suite: 187 pytest + 23 vitest + 8 apps/web-vitest grün, mypy/ruff/Prettier/
+  Schema sauber. Brain: Learning-Arbeitsdreieck-Ergonomie-Score.
 
-- **Küchen-Politur (2026-06-14, Eckschrank statt Totraum):** Die Innenecke(n)
-  bei L/U bekommen einen **Eckschrank (Karussell)** – L = 1 Ecke, U = 2, je
-  ch55/eu60. Das grid×grid-Eckquadrat am Wand-Stoss wird aus den Schenkel-Slots
-  reserviert (die beiden überlappenden Erstslots waren ohnehin Totraum), der
-  Eckschrank wird **vor den Füllstücken** gesetzt, damit diese ihm ausweichen.
-  Additiv abgesichert (nur wenn normkonform), Invariante bleibt 0 ❌.
-  Test `test_eckschrank_fuellt_l_u_ecke` (kueche + grossraum × L/U × ch/eu).
-  **180 pytest + 23 vitest + 8 apps/web-vitest grün.**
+- **M7 Schritt 1 (2026-07-05, Scan-Vertrags-Naht):** Neues Paket
+  `fp_engines/scan/` – **SpatialLM-Layout-Parser** (`spatiallm.py`, z-up-
+  Textformat Wall/Door/Window/Bbox) + **Adapter** (`adapter.py`: z-up→y-up
+  **ohne Spiegelung** (x,y,z)→(x,z,−y), Normierung auf min=0, mm-Rundung,
+  Wand-Ketten→Boden-Polygon mit 2-cm-Toleranz, Öffnungen mit hostWall/offset/
+  sill, Objekt-Boxen mit needsReview, **deterministische uuid5-IDs**, ehrlicher
+  `AdapterFehler` bei offener Hülle) + **Scan-Bundle-Posen v0** (`poses.py`:
+  kanonisches `poses.json` – Meter/Sekunden/Quaternion xyzw + gravity; App-
+  Exporte werden am Rand dorthin konvertiert). **Kernbeweis:** handgebautes
+  R1-WC-Layout (`fixtures/scan/r1-wc.layout.txt`) ergibt nach dem Adapter
+  **exakt** das Ground-Truth-Polygon von `raummodell.r1-wc.json` (1.56 m²,
+  6 Wände). 11 neue Tests (Schema+pydantic-valide, Determinismus, Segment-
+  Reihenfolge egal, Posen-Validierung). **Suite 198 grün**, mypy/ruff/Schema ok.
+  Kontext: Brain ADR-0012 (Scan-Kette fix: AR-App-Aufnahme → known-pose Fusion
+  → SpatialLM), Code-Fahrplan in `M2-M7-Scan-Pipeline-Fahrplan`.
+  **Offen im Adapter-Umfeld:** Yaw-Vorzeichen + Winkel/Scale-Konvention gegen
+  echte SpatialLM-Ausgabe verifizieren (R1-Lauf, Schritt 5); Konverter
+  App-Export→poses.json, sobald Voxelio-/ARCore-Exportformat fixiert ist.
 
 ## Nächste Schritte (für die nächste Session)
 
-1. **M7 Scan-Integration (+AR):** Raumerfassung an den Klickpfad anbinden
-   (Scan → Raummodell → Solver). M3-Polituren: **2D-Grundriss + circulation
-   + Drag&Drop + «austauschen» + Tür-Korridor + Metrik-Fix erledigt** – die
-   M3-Editor-Polituren sind komplett, die circulation-Metrik urteilt jetzt
-   sinnvoll. Verbleibender circulation-Folgeschritt: **circulation auf `hard`
-   hochstufen** – Hürde ist nur noch die Hot-Path-Performance (Optionen +
-   Empfehlung im Brain: `Circulation-Hochstufung-auf-hard`). Küchen-Politur:
-   **Eckschrank erledigt (2026-06-14)**; offen: **Arbeitsdreieck als echter
-   Score** (Optionen im Brain: `Arbeitsdreieck-Score-Optionen`), mehr
-   Slot-Breiten (30/45/90) post-POC.
-2. **M2 Scan-Spike weiterführen:** Restmasse R1 (Raumhöhe, Türbreite,
-   Objektmasse) + Neuaufnahme nach Guideline (Bryan); danach
-   `spike_eval.ipynb` in Colab (T4) auf altem+neuem Material laufen lassen,
-   Wandlängen-/Flächen-Fehler gegen die Ground Truth rechnen, P1/P4 ausbauen.
+1. **Scan-Code-Fahrplan (Brain: `M2-M7-Scan-Pipeline-Fahrplan`, von Bryan
+   freigegeben 2026-07):** ✅ Schritt 1 Adapter fertig (s.o.) · ✅ **Schritt 2
+   Space-Deploy-Gerüst (2026-07-05):** `fp_engines/space.py` (EIN Origin:
+   `/api` → Engines, `/` → gebautes Frontend – exakt die Dev-Proxy-Semantik,
+   kein CORS) + `Dockerfile` (multi-stage Node-Build → Python/uv, Port 7860,
+   User 1000) + `.dockerignore` + `deploy-space.yml` (pusht bei jedem
+   main-Push einen frischen Einzel-Commit OHNE notebooks/.git – die 50 MB
+   R1-Videos überschreiten HFs 10-MB-Grenze – mit HF-Frontmatter-README in
+   den Space `Bryan-HSLU/FP_POC`; Secret `HF_TOKEN` liegt in GitHub).
+   2 neue Tests (test_space.py), Suite 200 grün, Smoke lokal ok (API +
+   index.html). **Erster echter Space-Build läuft mit diesem Push** –
+   Ergebnis auf huggingface.co/spaces/Bryan-HSLU/FP_POC prüfen; Groq-Secrets
+   (`FP_KURATOR_URL/_MODEL/_API_KEY`) später in den Space-Settings setzen.
+   · ✅ **Schritt 3 scan-worker (2026-07-05):** neues Paket
+   `services/scan-worker` (eigenes uv-Projekt, Base-Dep nur numpy; gradio als
+   Extra `worker`; torch/spatiallm/open3d NIE als Deps – nur Colab, NC!).
+   **CPU-getesteter Geometrie-Kern:** `kamera.py` (OpenCV-Pinhole-unproject,
+   Quaternion→Pose) · `fusion.py` (Voxel-Zentroid-Downsampling, deterministisch)
+   · `ausrichtung.py` (z-up aus gravity via Rodrigues + `boden_ransac`-Fallback,
+   Boden→z=0) · `skalierung.py` (Wandhöhen-Fallback; Posen metrisch ⇒ Skala 1)
+   · `ply.py` (binary PLY XYZ+RGB = SpatialLM-Contract) · `pipeline.py`
+   (Keyframe-Sampling = Laufzeit-Hebel, TiefenProvider injizierbar) ·
+   `worker.py` (Gradio-App, GPU-Teile guarded) · `notebooks/colab_worker.ipynb`
+   (Starter: PAT-Clone, EINE Setup-Zelle mit Drive-Wheel-Cache-TODO, share-URL
+   → manuell als `FP_SCAN_WORKER_URL` in den Space = Zeiger v0).
+   **Kamera-Konvention festgezurrt** (poses.py-Docstring: OpenCV-Pinhole,
+   T_wc; ARKit-Konverter = R·diag(1,−1,−1)). CI erweitert (lint/typecheck/
+   test + sync). **Suite: 200 engines + 22 scan-worker = 222 grün.**
+   · ✅ **Schritt 5 vorbereitet (2026-07-06):** `_lauf_spatiallm` **verdrahtet** –
+   ruft das offizielle SpatialLM-`inference.py` als Subprozess
+   (`-p scene.ply -o layout.txt -m manycore-research/SpatialLM1.1-Qwen-0.5B`),
+   dessen `to_language_string()`-Ausgabe = unser `layout.txt`-Vertrag (robust
+   gegen SpatialLM-API-Änderungen, kein Nachbau der Vorverarbeitung). Repo-Pfad
+   + Modell über `FP_SPATIALLM_DIR`/`FP_SPATIALLM_MODELL`. Notebook-Setup-Zelle
+   klont SpatialLM, installiert den 1.1-Stack (Poetry + `poe install-sonata`)
+   mit **flash-attn-Wheel-Cache auf Drive**. **Korrektur:** SpatialLM 1.1 nutzt
+   **Sonata + flash-attn** als Backbone, **nicht** TorchSparse (das war nur 1.0)
+   → Wheel-Cache zielt jetzt auf flash-attn.
+   **Offen (= der eigentliche R1-Gate, Schritt 5):** erster echter Colab-Lauf –
+   torch/CUDA-Pins an die Session anpassen (SpatialLM will 2.4.1/CUDA 12.4),
+   Genauigkeit gegen R1 messen, Intrinsics aus AR-Metadaten statt Schätzung.
+   Braucht Bryans AR-App-Aufnahmen (R1/R2/R3).
+   · ✅ **Schritt 4 Upload-UI + `/scan` (2026-07-05):** `POST /scan`
+   (multipart) nimmt ein **vorberechnetes Scan-Bundle** (`layout.txt` einzeln
+   ODER `.zip` mit `layout.txt`/`poses.json`) → `_bundle_dateien` entpackt →
+   `parse_layout` + `layout_to_raummodell` → schema-valides Raummodell +
+   `warnungen` (needsReview-Objekte, fehlende Anschlüsse). `poses.json` wird,
+   falls vorhanden, validiert (Warnung statt Abbruch). Fehler-Envelope:
+   SCAN_INVALID (roomType/Layout kaputt) · SCAN_NO_LAYOUT (nur Video → Live-Weg
+   folgt Schritt 5). Frontend: Header-Bedienung «📷 Scan laden» + Raumtyp-Select
+   → `api.scan` (FormData) → Raum wird in die Liste gehängt und über
+   `raumWaehlen` in den bestehenden Klickpfad eingespeist. **v0 = Vorberechnen**
+   (Demo-Regel); Live-Weiterleitung an `FP_SCAN_WORKER_URL` bleibt Schritt-5-
+   TODO. 6 neue Endpoint-Tests + Live-Smoke (R1-Layout → 1.56 m², 6 Wände,
+   2 Öffnungen). Suite: **206 engines + 22 scan-worker grün**, Frontend
+   lint/typecheck/build sauber.
+   · ✅ **3D-Objekte statt Box-Platzhalter (2026-07-05, Bryan-Wunsch):**
+   `moebel3d.tsx` – alle 31 Katalog-funktionsTypen als Primitiv-Kompositionen
+   (2–7 Teile; WC/Lavabo/Dusche mit Glaswänden/Sofa/Kochfeld …), Fallback =
+   alte Box. **bbox-Treue als Test-Invariante** (`passtInBbox` über 5 Grössen):
+   kein Primitiv verlässt w×d×h, Gruppen-Transform + Klick 1:1 wie vorher →
+   Norm-Ampel-Farben/Logik unangetastet. Hinweis: glTF-Export bleibt bewusst
+   Boxen (Viewer detaillierter als Export – POC-ok).
+   · ✅ **Manueller Raum-Editor (2026-07-05, Bryan-Wunsch, Brain:
+   Raum-Editor-Manuell):** dritte Erstellungsvariante «✏️ Raum erstellen» –
+   `raumbau.ts` (pure, getestet: Rechteck/L-Form-Polygone, Shoelace, Öffnungs-
+   Validierung, R1-L-Form = 6 Wände/1.56 m²) + `RaumEditor.tsx` (SVG-Draufsicht,
+   Werkzeuge Tür/Fenster/Anschluss per Wand-Klick, Pflicht-Anschluss-Hinweis je
+   Raumtyp, nutzt `plan2d`-Transform) → schema-konformes Raummodell
+   (source manuell, `geometryConfirmed true` → keine Unsicherheits-Marge),
+   geht wie Scan/Sample durch `raumWaehlen` in den Klickpfad.
+   apps/web: 30 Tests grün, tsc/eslint/prettier/build sauber.
+   · ✅ **Corporate-Identity-Theme (2026-07-05, Brain: Corporate-Identity):**
+   `theme.ts` mit den 5 CI-Tokens (Dunkelgrün #243D35 primär, Orange #D6914F
+   CTA, Off-White #F0F7F2 Grund, Dunkelblau, Salbeigrau) · Header-Wortmarke
+   FUTURE (weiss) / PLANNING (orange, gesperrt) + Claim «Meet. Match. Build.»
+   · alle alten Marken-Hexwerte in App/Stil/RaumEditor/Viewer2D/Viewer3D auf
+   Tokens · **Ampel-/Statusfarben bewusst unangetastet** (verletzt/knapp/
+   gesperrt + P2/P3; P1 war schon CI-Grün, jetzt via Token + Klarstellungs-
+   Kommentar) · CI-Fonts NICHT eingebettet (Lizenz offen lt. Brain, Kommentar
+   im Code) · index.html-Titel mit Claim.
+   · ✅ **Wizard-UI + Pitch-Grafikstil + Logos + Möbel-Materialfarben
+   (2026-07-06, Bryan-Vorgaben aus CD-Sheet/Flyer/App-Mockups – Brain:
+   Corporate-Identity §Layout- & Grafiksprache):**
+   - **Schritt-für-Schritt-Wizard** statt alles auf einem Screen: 1 Projekt
+     (Sample-Karten/Scan/Raum erstellen) → 2 Stil → 3 Vorschlag (Küche:
+     Formwahl) → 4 Anpassen (Viewer/Ampel/würfeln) → 5 Auswertung & Export.
+     Auto-Weiter nach Raumwahl und Plan; Badge-Navigation; keine Funktion
+     entfernt (Checkliste im Commit).
+   - **Pitch-Grafikstil als Tokens:** harter Schlagschatten OHNE Blur
+     (8px 8px 0) + weisser Innen-Schein auf allen Karten; orange Pill-Buttons;
+     dünne Versal-Titel; heller Verlauf-Grund (dunkler Flyer-Look = Marketing).
+   - **Echte Logos:** `public/FP-Logo-horizontal.png` im hellen Header +
+     Signet als Favicon (aus Brain-assets).
+   - **Möbel-Materialfarben:** MATERIAL_FARBE je funktionsTyp (Keramik/Holz/
+     Salbei/Edelstahl/Terracotta/Grün) – greift NUR bei Ampel-Status ok;
+     verletzt/knapp/gesperrt behalten Statusfarben (Ampel dominiert). Dafür
+     Viewer3D jetzt mit statusById → **Norm-Ampel auch in 3D sichtbar**.
+   apps/web 32 Tests grün, alle Gates sauber. CI-Fonts weiter bewusst nicht
+   eingebettet (Lizenz offen). Bryan liefert eigene Piktogramme nach →
+   gleicher Stil (inner glow + harter Schatten).
+   · ✅ **Schritt 6 Scan-Korrektur-Modus (2026-07-06, Brain: ADR-0003 /
+   M2-M7-Scan-Pipeline-Fahrplan):** nutzergeführte Korrektur gescannter Räume
+   (~8.5 cm Unsicherheit, kein LiDAR). Reine Geometrie `korrektur.ts` (getestet,
+   DOM-frei): `ecken` (eindeutige Ecken via Endpunkt-Matching mit Epsilon –
+   Wand-Array NICHT umlauf-sortiert), `verschiebeEcke` (angrenzende Wände
+   wandern mit), `snappe` (Achsen-Snap auf Nachbar-x/z < 7 cm → rechtwinklig =
+   das Anti-8.5-cm-Werkzeug, dann 5-cm-Raster), `kettePolygon` (Umlauf schliessen
+   analog `_kette` in adapter.py, offene Hülle = Fehler-Objekt statt Wurf →
+   UI blockt «Übernehmen»), `wendeAn` (Öffnungs-offset-Clamp, Fixpunkt behält
+   relatives t auf der Wandachse, Fläche/Polygon neu, Objekte
+   bestätigt→needsReview:false / entfernt raus, geometryConfirmed→true, IDs
+   stabil, 2-Dezimal-Rundung). UI `ScanKorrektur.tsx` (Muster RaumEditor):
+   SVG-Draufsicht, Ecken als ziehbare Griffe (Pointer = Maus **und** Touch/
+   Antippen, live-Snap + Längen), Werkzeuge Tür/Fenster/Anschluss per Wand-Klick,
+   Scan-Objekte als gestrichelte rotierte bbox (needsReview orange), rechte
+   Spalte mit Scan-Warnungen + fehlenden Pflicht-Anschlüssen + Öffnungs-/
+   Anschluss-/Objekt-Listen, «Übernehmen» gesperrt bei Öffnungs-Fehler oder
+   offener Hülle. App.tsx: `scanLaden` öffnet jetzt das Korrektur-Modal (State
+   `korrektur`) statt direkt zu wählen; «Übernehmen» → korrigierter Raum in den
+   Klickpfad, «Abbrechen» → Scan unkorrigiert (geometryConfirmed bleibt false);
+   «📐 Korrigieren»-Knopf im Schritt «Projekt» für gescannte Räume
+   (`meta.captureMethod === "ar"`, defensiv). 16 neue Tests (korrektur.test.ts,
+   inkl. Schema-Validierung des korrigierten Raums). apps/web **52 Tests grün**,
+   tsc/eslint/prettier/build sauber.
+   · ✅ **Bild-Katalog aus Bryans Metadaten + echte Fotos (2026-07-06):**
+   `data/images/{bad,wohnen,kueche}.json` von je 8 Platzhaltern auf **je 30 real
+   getaggte Bilder** (aus Bryans ZIP-Metadaten generiert; alle 8 Achsen + reiche
+   `attributTags` + Palette + Lizenz; schema-sauber, ungültiger `roomType:`-Tag
+   entfernt). **Die echten PNG-Fotos hat Bryan direkt auf `main` hochgeladen**
+   (`data/images/{roomType}/…png`, 90 Dateien ~2 MB) – bildRef ↔ Datei matcht
+   1:1 (0 fehlend). `BildKachel` zeigt als Fallback die Farbpalette, falls ein
+   Foto mal fehlt. Tests robust: Bildzahl-Assert dynamisch, Preset-Test skippt
+   (Bryans Bilder alle istPreset=false). Bryans neue detailliertere `moebel3d`-
+   Objekte via `clampTeil`-Sicherheitsnetz bbox-treu gehalten (Norm-Ampel).
+   · ✅ **Möbel-3D-Varianten-Bibliothek (2026-07-06, Brain:
+   Moebel-3D-Varianten-Bibliothek):** neues optionales Katalog-Feld
+   `modell3d` (Schema additiv + Codegen TS/pydantic) → Viewer-Lookup
+   `modell3d → funktionsTyp-Standard → Box` via `bausatzSchluessel()`.
+   5 erste Varianten-Bausätze (wc-wandhaengend, lavabo-aufsatz, lavabo-doppel,
+   sofa-l, dusche-eck) + 7 Katalog-Items zugeordnet. **Stil entscheidet die
+   Variante** (Kurator-Score über achsenTags – Beleg: Profil warm/natürlich →
+   Wc Klassik + Naturstein-Aufsatzbecken; Profil kühl/modern → wandhängendes
+   Design-WC + Eckdusche). Erweitern = Katalog-Item mit achsenTags (+ optional
+   neuer Bausatz), 3-Schritte-Anleitung im moebel3d-Docstring. Suite: Web 36 +
+   engines 205/1 skip + scan-worker 22 grün.
+   · ✅ **3D-Viewer: Türen/Fenster + stilgetriebene Oberflächen (2026-07-07,
+   Bryan-Wunsch):** Wände jetzt aus massiven Segment-Quadern statt einer Voll-Box
+   → Türen/Fenster sind **echte Löcher** (Vollsegmente + Sturz + Brüstung, ohne
+   CSG). `raum3d.ts` (rein, getestet: `wandSegmente`/`clipZone`/`oeffnungsPose`) +
+   `raum3d.tsx` (`Tuer3D` mit ~20°-Türblatt/Griff, `Fenster3D` mit getöntem Glas +
+   Sprosse, `WandMitOeffnungen`, prozedurale CanvasTexture für Boden/Wand). Boden-
+   & Wandoptik werden aus dem Stilprofil abgeleitet (`oberflaechen.ts`, rein/
+   deterministisch, **kein Schema-Eingriff** – Konvention wie `MATERIAL_FARBE`):
+   Bad→Fliesen+Wandsockel 1.2 m, Wohnen→Parkett, Küche→Stein/Fliesen je
+   Materialität; Achsen temperatur/helligkeit/materialitaet/farbigkeit steuern die
+   Farbe (HSL-Herleitung). Ohne Stilprofil bleibt die heutige neutrale Optik;
+   Türen/Fenster erscheinen immer. Abweichung dokumentiert: Wand-Fliesenzone per
+   Höhen-Clip (2 gestapelte Zonen) statt CSG-Zonenschnitt – robust & dependency-
+   frei. Suite: **Web +21 (raum3d 12 · oberflaechen 9)**, Gates lint/typecheck/
+   test(73)/build grün.
+   · ✅ **3D-Viewer v2: Ansichts-Presets, Orbit+Begehung, 3D-Drag/Rotate,
+   Ebenen, waehlbare Oberflaechen (2026-07-07, Bryan):** `Viewer3D.tsx`
+   generalüberholt. **Ansichts-Presets** (Perspektive/Draufsicht/Front/Seite)
+   als Leiste über dem Canvas – Kamera-Posen aus der Raum-BBox skaliert
+   (`presetKamera`), OrbitControls-Ziel = Raumzentrum, Draufsicht mit winzigem
+   z-Versatz gegen die Gimbal-Entartung. **Zwei Begehungsmodi**: 🌀 Orbit (wie
+   bisher) und 🚶 Begehung = First-Person (Augenhöhe 1.6 m, WASD/Pfeile gehen,
+   Drag umsehen, Doppeltipp = Schritt vorwärts – Maus **und** Touch, ohne
+   PointerLock; **keine** Wandkollision, POC-bewusst). **Direkte Objekt-
+   Interaktion wie im 2D**: gewähltes Möbel per Drag auf der y=0-Ebene
+   verschieben (Raycast → 5-cm-Raster, `verschiebeNach`-Constraints), Doppelklick
+   = +90° (`rotiereNach`); Klick öffnet weiterhin die Elementkarte. Nur in
+   Schritt 4 (`interaktiv`), Vorschau read-only. **Ebenen-Toggles** Ampel
+   (Statusfarben an/aus) + Wände (ausblendbar für freie Sicht von aussen).
+   **Oberflächen als wählbare Objekte**: Klick auf Boden/Wand (kein Möbel
+   getroffen) wählt die Fläche → Elementkarte-Ersatz «Oberfläche» in
+   `SchrittAnpassen.tsx` mit 3 vordefinierten Boden-/Wandvarianten je Raumtyp
+   (`variantenFuer`); die Wahl überschreibt lokal die stilabgeleitete Spez
+   (`wendeVariantenAn`, **rein visuell, kein Schema-/API-Eingriff**) und **bleibt
+   beim «Variante würfeln» erhalten** (eigener State, `loesen` fasst ihn nicht
+   an; nur Raumwechsel setzt zurück). Reine Logik in `viewer3d-logik.ts`
+   (getestet: BBox, Preset-Posen, Begehungs-Schrittvektor, Blickrichtung). Im
+   Begehungsmodus ruhen die Möbel-Pfeiltasten (`viewer3dModus` in App, Konflikt
+   vermeiden). Bewusst weggelassen: Wandkollision (POC), 3D-Labels/Beschriftungs-
+   Ebene (der 3D-Viewer trägt keine Text-Labels), PointerLock (Drag-Look ist
+   robuster + mobiltauglich). Suite: **Web +19 (viewer3d-logik 13 · oberflaechen
+   +6) → 120**, Gates lint/typecheck/test/build grün.
+   · ✅ **Viewer-Feinschliff (2026-07-07, Bryan):** (1) **3D-Bearbeitungsmodus
+   entfernt** – Möbel werden im 3D NICHT mehr verschoben/gedreht (Drag/Rotate +
+   DragEbene raus); 3D = reine Ansicht/Begehung, Klick wählt weiterhin aus
+   (Produktkarte) und Flächen/Oberflächen bleiben wählbar. Bearbeiten läuft nur
+   noch im 2D-Grundriss. (2) **2D-Planlook bei Ampel-aus**: ist die Ampel-Ebene
+   aus, zeichnen die Objektsymbole mit schwarzem Stift (`FARBE_PLAN`) und
+   **weisser Schraffur-Füllung** (SVG-`<pattern>` 45°), Boden wird reinweiss –
+   Architektenplan-Optik; Ampel an = farbig wie bisher. (3) **Zurück zur
+   Titelseite**: «Zurück» auf Schritt 1 führt zurück ins Startmenü
+   (`setPhase("menue")`, Label «← Zur Startseite»); AppRahmen um `zurueckLabel`
+   erweitert. Gates grün, 120 Tests.
+   · ✅ **Space-Deploy entschlackt + HF-Build-Fix (2026-07-07, Bryan):** Der HF-
+   Space bekam bei jedem Deploy ~233 MB Bilder (wahrscheinliche Build-Fehler-
+   Ursache). Fotos `data/images` von **PNG 941×1672 (1.7–2.8 MB)** → **JPEG q82,
+   max 1400px** (197 MB → 19 MB), `bildRef` in bad/kueche/wohnen.json auf `.jpg`
+   (StaticFiles serviert weiter). 43 ungenutzte Piktogramm-Originale (35 MB, teils
+   Umlaut-Dateinamen) entfernt – die App lädt nur die 25 ASCII-Registry-Kopien.
+   Deploy-Bilder gesamt **233 → 37 MB**. Engines 205 + Web 120 Tests grün.
+   · ✅ **2D Layer-System v2 + Wand-/Fenster-Look (2026-07-07, Bryan):** Die vier
+   «Ebenen»-Checkboxen ersetzt durch ein **Layer-Panel** (`layer2d.ts`): 8
+   **Darstellungs-Layer** (Wände/Öffnungen/Objekte/Bounding-Boxen/**Platzbedarf**/
+   Beschriftung/Masse/Ampel, Defaults: Boxen/Platzbedarf/Masse aus) + **Objekt-
+   Layer** (jedes Möbel einzeln ein-/ausblendbar, CAD-artig, `versteckteObjekte`).
+   **Platzbedarf-Layer**: Clearance-Zonen aus den `type:"clearance"`-Regeln
+   (`clearanceRect` in plan2d) als Bewegungsflächen vor den Objekten (halbtransp.
+   + gestrichelt, Tooltip = `hinweis`). **Fenster jetzt IN der Wandstärke** (echte
+   Aussparung via `wandLuecken`, Glas über volle Wandstärke) statt Linie obenauf;
+   **Wand-Look nach Referenzbild** (helle graue Füllung `#d3d3d3` + dünne Kante).
+   `rules` von App an Viewer2D durchgereicht; Planlook (Ampel aus) bleibt.
+   +11 Tests (plan2d clearance/wandLuecken, layer2d) → **Web 131**, Gates grün.
+   · ✅ **UI-Redesign Etappe A: Designsystem + App-Rahmen (2026-07-07,
+   Bryan-Konzept):** Fundament, das die 5 Schritt-Ansichten (Etappe B) nur noch
+   konsumieren. **Designsystem** – globales Stylesheet `apps/web/src/fp.css`
+   (in `main.tsx` importiert): `:root`-Farbrollen als CSS-Variablen
+   (`--fp-primary/-dark/-accent/-muted/-soft/-background/-text`), Typografie-Vars
+   (`--fp-font-display/-body`, Schriftdateien BEWUSST nicht eingebettet – Lizenz
+   offen), vereinheitlichter Kartenstil `.fp-card` (+ `.fp-card-flach`
+   flach, `.fp-card-aktiv` oranger Rand) mit hartem Schlagschatten OHNE Blur
+   (7px 7px 0) + Innenschein, `.fp-button` (Press/Hover-Animation + `:active`
+   scale), `.fp-schritt-neu` (einmalige Einblendung), `.fp-piktogramm-puls`,
+   Responsive-Helfer `.fp-two-column`/`.fp-drei-karten` (@media 820px) + reduce-
+   motion. **Hintergrund reinweiss** (index.html body + `--fp-background`);
+   Off-White nur für Sekundärflächen. `theme.ts` **v2** – Rückwärtskompatibel
+   (THEME/karte/pill/titel/schlagschatten/innerGlow behalten, zeigen auf die
+   neuen Werte) + neu `FP_VAR` (CSS-Var-Strings) & `CSS` (Klassennamen-Konstanten).
+   **App-Rahmen** `AppRahmen.tsx` (Header Logo/Projektname/Menü-Platzhalter ·
+   Fortschrittsweg · Inhalt zentriert max-width 1400 · Footer Zurück/Weiter).
+   **Fortschrittsweg** `Fortschrittsweg.tsx` (Kreis+Label+Linie, aktiv=orange /
+   erledigt=grün+✓ / gesperrt=salbei, mobil scrollbar) auf getesteter Logik
+   `fortschritt.ts` (`schrittZustand`, 6 neue Tests). **Piktogramm-System**
+   `Piktogramm.tsx` – 25 Inline-SVGs + **Drop-in** (`<img /piktogramme/<name>.png>`
+   → onError-Fallback aufs SVG; Ordner `public/piktogramme/` mit README). **Lade-
+   zustände** `Ladezustand.tsx` (pulsierendes Piktogramm + 4 Presets stil/
+   vorschlag/scan/dokumente – Etappe B verdrahtet). App.tsx: nur Rahmen-
+   Präsentation ersetzt (weisser Grund, alter Header/Stepper/Footer → AppRahmen),
+   Schritt-Logik/State unangetastet. **Web 79 Tests grün**, lint/typecheck/build
+   sauber.
+   · ✅ **UI-Redesign Etappe B: die 5 Ansichten (2026-07-07, Bryan-Konzept):**
+   Schritt-Inhalte aus App.tsx in eigene Komponenten gezogen –
+   `SchrittProjekt.tsx` («WAS MÖCHTEST DU PLANEN?», 3 Raumtyp-Karten mit
+   Piktogramm + Auswahlzustand, darunter die 3 Wege Beispiel/Scan/Manuell;
+   Raumtyp-Vorwahl steuert Scan-Raumtyp + filtert Beispiele) ·
+   `SchrittStil.tsx` (bildzentriertes Bewerten inline statt Overlay,
+   Fortschritt «n von m», Like/Dislike/Überspringen mit Piktogrammen,
+   Stilprofil-Karte mit Kurzworten/Spider/Top-3-%-Balken via fp-two-column,
+   «Dein Stilprofil wird genauer.» alle 5 Bewertungen) · `SchrittVorschlag.tsx`
+   (Zustand A Auslöser inkl. Küche-Normprofil/Formwahl; Zustand B «DEIN
+   RAUMVORSCHLAG IST BEREIT» mit 2D-Vorschau, Stilbegründung, Haupt-
+   materialien, Variante/Seed, einfacher Normstatus; EINE orange Hauptaktion
+   «Ansehen & anpassen») · `SchrittAnpassen.tsx` (fp-two-column: Viewer links,
+   Elementkarte rechts mit Normstatus passt/knapp/anpassen als Text+Piktogramm,
+   Tausch-Alternativen, Sperren; Hilfe-Karte ohne Auswahl) ·
+   `SchrittAuswertung.tsx` («DEIN PROJEKT»-Zusammenfassung mit Kosten-Spanne/
+   Gewerke-Zahl/Status + Dokument-Karten-Raster mit Piktogrammen, bestehende
+   api.dokument-Downloads). Ladezustände (stil/vorschlag/scan/dokumente)
+   verdrahtet. Logik/State/API unverändert in App.tsx. Hinweis: Etappe-B-Agent
+   brach am Session-Limit ab – Splice-Reparatur (verwaistes </div>, TS-Narrowing
+   Stil-Bild, Prettier) durch die Hauptsession. **Web 79 Tests grün**,
+   lint/typecheck/build sauber.
+   · ✅ **Stil-Schritt v2: Live-Profil pro Swipe, Swipe-Animation,
+   Konvergenz-Stopp, Bildhöhe fix (2026-07-07, Bryan):** Swipe-Bild auf
+   `min(46vh,420px)` begrenzt (kein Scrollen) · Stil-Analyse steht jetzt IMMER
+   neben dem Bild (fp-two-column immer aktiv; Neutralzustand «Bewerte Bilder,
+   dein Profil entsteht live.») und aktualisiert LIVE nach jeder Bewertung
+   (neuer Prop `onZwischenProfil` → `api.styleProfile`, nur Profil-State, kein
+   Schrittwechsel/Ladezustand; Balken re-animieren via `fp-schritt-neu`) ·
+   Swipe-Animation (Like gleitet rechts + oranger Akzent, Dislike links +
+   dunkel, ~220 ms, reduce-motion respektiert, Überspringen ohne Animation) ·
+   Konvergenz-Stopp: neues getestetes Modul `stilkonvergenz.ts`
+   (`istStabil(verlauf, minBewertungen=8, delta=0.06, fenster=2)`) stoppt das
+   Bewerten sobald das Profil stabil ist («Weiter mit diesem Profil» / «Weiter
+   verfeinern»), statt alle 30 Bilder zu erzwingen. Kleine, dokumentierte
+   Abweichung: finales `onProfil` springt nun automatisch zu Schritt 3
+   (bestätigtes Profil → «weiter»). **Web 86 Tests grün** (79 + 7 neue),
+   lint/typecheck/build sauber.
+   · ✅ **2D-Viewer v2: Wandstärke, Objektsymbole, Ebenen, Messen, Drag&Rotate,
+   Produkt-Panel (2026-07-07, Bryan):** Der 2D-Grundriss zeigt jetzt echte
+   **Objektsymbole** (Architekten-Draufsicht) statt nur beschrifteter Boxen –
+   neues reines Modul `symbole2d.ts`: je funktionsTyp eine Signatur (WC
+   Schüssel+Spülkasten, Lavabo-Becken, Dusche Quadrat+Diagonale+Abfluss,
+   Badewanne, Sofa Sitz/Rücken/Armlehnen, Ess-/Couchtisch, Bett Kissen+Decke,
+   Regal/Sideboard/TV Tiefenlinien, Kochfeld 4 Kreise, Spüle Becken+Armatur,
+   Kühlschrank Türlinie, Leuchten Kreis+Strahlen, Pflanze, Teppich gestrichelt,
+   Schränke, …) – **alle 31 Katalog-funktionsTypen abgedeckt** (Test), Fallback =
+   bisherige Box. Die Symbole nutzen die vorhandene Footprint-Transformation
+   (Position/Yaw/bbox über `rotateY`+`toScreen`, deckungsgleich mit `footprint()`)
+   und die **Ampel-/Materialfarbe** als Strichfarbe. **Wände mit echter
+   `thickness`** als gefüllte Polygone (`wallQuad`, Fallback 0.1 m); Türen mit
+   Aufschlag-Viertelkreis + Fenster als Doppellinie bleiben. **Ebenen-Leiste**
+   (Beschriftung/Boxen/Masse/Ampel, Default alles an ausser Boxen).
+   **Messwerkzeug** «📏 Messen» (zwei Klicks → Linie + Distanz in m, Snap auf
+   Wand-Ecken < 15 cm, Escape/Moduswechsel löscht). **Direkte Interaktion**:
+   gewähltes Objekt per Pointer-Drag verschieben (5-cm-Raster, bestehende
+   `verschiebeNach`-Constraints) + **Rotations-Griff** (Drag rastet 15°,
+   Doppelklick +90° via neues `rotiereNach`); Live-Ampel läuft wie beim Keyboard
+   weiter. **Detail-Panel (Schritt 4)** erweitert: funktionsTyp, Prioritätsklassen-
+   Badge, Materialfarbe-Punkt + Masse; Tausch-Alternativen als kleine Produkt-
+   karten (Name + Farbpunkt + Masse) statt Select. Schritt 3 (Vorschau) bleibt
+   read-only (`interaktiv=false`): Symbole/Wandstärke automatisch, keine
+   Editier-Interaktion. Neue reine, getestete Geometrie in `plan2d.ts`
+   (`wallQuad`, `distanz`, `wandEcken`, `naechsteEcke`, `yawAusZeiger`, `rasten`).
+   App.tsx nur minimal angefasst (Props + `rotiereNach`); Keyboard-Steuerung
+   unangetastet. **Web 101 Tests grün** (86 + 15 neue), lint/typecheck/build
+   sauber. Bewusst weggelassen: typübergreifender Tausch (wie schon dokumentiert),
+   Symbole als Fill (bewusst nur Strichkontur = Architektenlook, Ampel bleibt als
+   Tint-Füllung + Rahmen lesbar).
+   **Als Nächstes:** Presets optional kuratieren · ⚠️ 90 PNG (~180 MB) blähen
+   Repo + Space-Deploy – ggf. Bildgrösse reduzieren/auslagern ·
+   Schritt 5 E2E gegen R1 auf Colab (braucht AR-App-Aufnahmen) ·
+   Bryans Piktogramme. Alt-Punkte unverändert offen: circulation
+   auf `hard` hochstufen (Hot-Path-Performance, mit Bryan abstimmen); Küche
+   post-POC: mehr Slot-Breiten (30/45/90), triangle-aware Slot-Optimierung.
+2. **M2 Scan-Spike weiterführen:** Metrik-Kern + Ecken-Antippen-Pfad stehen &
+   sind getestet (2026-06-14). **Offen – Bryan:** R1-Restmasse (Raumhöhe,
+   Türbreite, Objektmasse) + Neuaufnahme nach Guideline + R2/R3; dann
+   `spike_eval.ipynb` einmal auf **Colab (T4)** laufen lassen (GPU-Schritte gehen
+   hier nicht). **Offen – Code:** P1 automatischer Layout-Fit (GPU) + P4
+   Spiegel/Glas-Maskierung; danach Gate-Entscheid → Learning ins Brain.
 3. Goldens bewusst aktualisieren: `uv run python scripts/update_goldens.py`
    (aus `services/engines/`), nur zusammen mit Interpreter-Änderung committen.
 
@@ -281,64 +907,29 @@
 | Entscheid | Grund | Wo dokumentiert |
 |---|---|---|
 | Eigener Code proprietär (kein LICENSE-File) | Entscheid Bryan 2026-06-11 | README, CLAUDE.md |
-| `circulation` v0 **soft** statt hard (Norm-Regelsatz nennt hard) | Norm-Regelsatz lässt unter «Offene Fragen» hard/soft explizit offen; soft informiert ohne die Solver-Invariante zu brechen. Hochstufung = bewusster Folgeschritt, Hürde ist die Performance | rules/basis.json, rules-README, Brain `Circulation-Hochstufung-auf-hard` |
-| `circulation`-Marge weiterhin v0-genähert (0.05-m-Raster, bbox-Blocker, Manhattan-Distanz) | Ganzzahlig = paritätssicher; achsparallele Bounding-Box je bodenstehendem Objekt. Der **Türmund-Pessimismus ist behoben** (Anker ~minWidth/2 im Korridor-Inneren, 2026-06-14). Verbleibendes Tuning (Euklid/Chamfer statt Manhattan, Wände als echte Hindernis-Zellen, echte Footprints statt bbox) ist post-POC und war für sinnvolle Urteile NICHT nötig | interpreter.py/.ts (Docstring), Learning-Circulation-Metrik-Fragilitaet |
+| `circulation` v0 **soft** statt hard (Norm-Regelsatz nennt hard) | Norm-Regelsatz lässt unter «Offene Fragen» hard/soft explizit offen; soft informiert ohne die Solver-Invariante zu brechen (Solver ist noch nicht verkehrsweg-aware). Hochstufung auf hard = bewusster Folgeschritt mit Solver-Support | rules/basis.json, rules-README, Learning |
+| `circulation`-Marge grob/konservativ (0.05-m-Raster, bbox-Blocker, Türmund-Pessimismus) | v0-Freiraumanalyse: ganzzahlig (paritätssicher), Manhattan-Distanztransform, achsparallele Bounding-Box je bodenstehendem Objekt; Türbreite cappt den Bottleneck. Tuning (Euklid, feiner, türbewusst) post-POC | interpreter.py/.ts (Docstring), Learning |
 | Kollision prüft vertikale Überlappung (Höhenintervalle) | Spiegel ÜBER Lavabo ist keine Kollision – nötig für P2-Wandobjekte | Interpreter beidseitig, Learning im Brain |
 | Editor: Drag&Drop nur im 2D-Grundriss (3D bleibt Pfeiltasten) | 2D hat eine eindeutige Screen→Welt-Umkehrung (toWorld); 3D-Drag bräuchte Raycasting – später | Viewer2D, plan2d.ts |
 | «austauschen» bietet nur gleichen Funktionstyp + gleiche normProfileVariante | hält Plan/Küchenzeile konsistent; typübergreifender Tausch (z.B. Dusche→Badewanne) wäre eine eigene Re-Solve-Logik – post-POC | App.tsx (alternativen) |
 | `door-swing` v0 als Rechteck (Breite×Radius) statt Viertelkreis | identische, einfache Geometrie in TS & Python; konservative Näherung | Code-Kommentar + Fixtures |
-| M5: Bett-Regel «Zugang ≥1 Längsseite» nicht umgesetzt → Wohnzimmer-Fokus | Mit den aktuellen Regel-Typen (clearance/object-distance/host-binding) nicht ausdrückbar; Schlafen-Spezifika auf später verschoben statt Interpreter zu ändern (Paritäts-Gesetz) | STATUS, wohnen.json |
+| M5: Bett-Regel «Zugang ≥1 Längsseite» nicht umgesetzt → Wohnzimmer-Fokus | Mit den aktuellen Regel-Typen (clearance/object-distance/host-binding) nicht ausdrückbar; Schlafen-Spezifika (Bett, beidseitiger Zugang) auf später verschoben statt Interpreter zu ändern (Paritäts-Gesetz) | STATUS, wohnen.json |
 | M5: Esstisch inkl. Stühlen als EIN Footprint | POC-Vereinfachung – Stuhl-Einzelplatzierung wäre eigene Solver-Stufe; Footprint deckt Tisch + ausgezogene Stühle ab, clearance-Regel zusätzlich ≥1.0 m | catalog/wohnen.json (Item-Beschreibung) |
 | M5: relationalRules-Distanzen wohnen als Zentrum-zu-Zentrum kalibriert (z.B. `near:sofa:1.3` statt 0.45) | Der Solver-Relationsfilter misst Zentrumsabstand; bei grossen Ankern (Sofa 2.1×0.95) wäre der ergonomische Kantenabstand 0.40–0.45 m als Zentrumswert kollidierend. Die ergonomische Norm bleibt als **soft** object-distance-Regel (Kantenmass 0.40 m) erhalten | catalog/wohnen.json, rules/wohnen.json |
-| M6-A: Grossraum-Sample mit echter `wall.kind:"offen"`-Kante mitten im Raum | Code verträgt innenliegende Segmente problemlos (kein Hüllen-Closure-Validator; Solver/Interpreter filtern auf `kind=="massiv"`). Die offene Kante modelliert die reale offene Zonengrenze explizit; `zone_room` clippt sie auf die Zonenkante und erhält `kind:"offen"` | grossraum-sample, zonen.py, test_zonen.py |
-| M6-A: GS↔Spüle-«maxDist»-Regel NICHT als `object-distance` umgesetzt | Der Regel-Interpreter kennt bei `object-distance` nur `minDist` (kein maxDist). «Geschirrspüler direkt neben Spüle» ist Baugruppen-/Slot-Logik; Interpreter wird (Paritäts-Gesetz) nicht erweitert | rules/kueche.json, catalog/kueche.json, STATUS |
-| M6-A: clearance je Küchen-Haupttyp statt einer Sammelregel | `appliesTo` matcht auf `funktionsTyp`; eine Regel pro Typ ist die mit den bestehenden Regel-Typen ausdrückbare Form des «Gang vor Zeile ≥ 1.0 m» | rules/kueche.json |
+| M6-A: Grossraum-Sample mit echter `wall.kind:"offen"`-Kante mitten im Raum (statt nur Zonen-Polygone) | Code verträgt innenliegende Segmente problemlos (kein Hüllen-Closure-Validator; Solver/Interpreter filtern auf `kind=="massiv"`). Die offene Kante modelliert die reale offene Zonengrenze explizit; `zone_room` clippt sie auf die Zonenkante und erhält `kind:"offen"`. Die synthetische `virtuell`-Erzeugung greift nur, wenn KEINE Hüllenwand die Zonenkante deckt (separat getestet) | grossraum-sample, zonen.py, test_zonen.py |
+| M6-A: GS↔Spüle-«maxDist»-Regel NICHT als `object-distance` umgesetzt | Der Regel-Interpreter kennt bei `object-distance` nur `minDist` (kein maxDist). «Geschirrspüler direkt neben Spüle» ist Baugruppen-/Slot-Logik → kommt in Phase B; Interpreter wird (Paritäts-Gesetz) nicht erweitert. Nähe bleibt v0 über `relationalRules:["near:spuele:0.9"]` am Katalog-Item | rules/kueche.json, catalog/kueche.json, STATUS |
+| M6-A: clearance je Küchen-Haupttyp (spuele/kochfeld/geschirrspueler/unterschrank) statt einer Sammelregel | `appliesTo` matcht auf `funktionsTyp`; eine Regel pro Typ ist die mit den bestehenden Regel-Typen ausdrückbare Form des «Gang vor Zeile ≥ 1.0 m». Echte Zeilen-/Gang-Geometrie (circulation) kommt mit Phase B | rules/kueche.json |
 | M6-B: Ecke bei L/U → **Eckschrank** (Politur 2026-06-14, behebt den früheren Totraum) | grid×grid-Eckquadrat am Wand-Stoss wird aus den Schenkel-Slots reserviert, ein Eckschrank (Karussell, ch55/eu60) gesetzt – VOR den Füllstücken, damit sie ihm ausweichen. Additiv (nur wenn zulässig), Invariante bleibt 0 ❌. L = 1 Ecke, U = 2 | kueche.py (`_eck_zonen`/`_platziere_eckschraenke`), catalog/kueche.json, test_kueche.py |
-| M6-B: Fenster blockieren Unterschränke NICHT, nur die Hängeschrank-Ebene meidet Fenster | Brüstungsfenster (sill ≥ 0.9 m) erlauben darunter eine Arbeitsfläche/Unterschrank; nur Hängeschränke dürfen nicht vor ein Fenster. Türen blockieren dagegen die ganze Zeile | kueche.py (`_fuelle_haengeschraenke`, `_freies_teilstueck_intervall`) |
-| M6-B: Hängeschrank-Heuristik = Ebene über allen Unterschränken ausser Kochfeld | Über dem Kochfeld hängt der Dunstabzug; sonst wird jede freie Wandposition mit Hängeschrank belegt (vertikal getrennt → keine Kollision dank Höhenintervall-Prüfung) | kueche.py (`_fuelle_haengeschraenke`) |
-| M6-B: GS-«direkt neben Spüle» als Slot-Nachbarschaft (nicht als Regel) | Der Interpreter kennt kein `maxDist` bei object-distance; die Baugruppe setzt den GS deterministisch in den Nachbarslot der Spüle – konstruktiv erfüllt, ohne den Interpreter zu ändern | kueche.py (`_platziere_geschirrspueler`) |
-| M6-B (Review-Fix): P1-Geräte sind Pflicht – fehlt Spüle/GS/Kochfeld/Kühlschrank → 422 NO_FEASIBLE_PLACEMENT (nur Dunstabzug best-effort) | Vorher entstand still ein Rumpf-Plan ohne Kühlschrank (0 ❌, aber fachlich unvollständig) – ehrliches Scheitern statt stiller Degradation | kueche.py (solve_kueche) |
-| M6-B (Review-Fix): Solver-Vorfilter toleriert Berührung (Überlappung ≤ 0.05 cm) | Exakt anliegende Korpusse (Küchenzeile!) erzeugen Float-Krümel-Überlappungen ~1e-16; der Vorfilter war strenger als das Interpreter-Urteil (0.1-cm-Rundung) und verwarf gültige Slots | solver.py (_schnell_unzulaessig, _BERUEHRUNGS_EPS) |
-| M6-B: Ergonomie/Arbeitsdreieck nur als einfacher Proxy im Formwahl-Score | v0: kompaktere I-Zeile besser, L/U/Galley pauschaler Bonus. Ein echtes Mass ist nicht trivial, weil die Formwahl VOR der Platzierung läuft – Optionen samt Empfehlung stehen im Brain | kueche.py (`formwahl`), Brain `Arbeitsdreieck-Score-Optionen` |
-| M6-B: /solve-Response um `room` (effektiver Raum) erweitert | Response ist kein Schema-Vertrag (Plan-Schema bleibt unberührt). Der Grossraum-Fall braucht den abgeleiteten Teilraum für Viewer + Live-Ampel | api.py (`/solve`), App.tsx (`planRoom`) |
-
-## Performance – gemessene Ist-Werte (Stand 2026-06-14)
-
-Ziel-Budgets stehen im Brain (`Engineering-Grundlagen-POC` §6); hier die
-tatsächlich gemessenen Werte, damit man Regressionen erkennt:
-
-| Was | Ist | Bemerkung |
-|---|---|---|
-| `/solve` Bad · Wohnen | < 0.2 s | inkl. Kurator-Auswahl |
-| `/solve` Küche (Baugruppe) | ~0.1–0.2 s | ch und eu vergleichbar |
-| `circulation`-Auswertung | **~0.3–0.4 s** | 0.05-Raster, reines Python – **der teure Posten** |
-| Engine-Suite (`pytest`) | ~12–15 s (180 Tests) | inkl. je 1 circulation-Auswertung pro Solve |
-| `packages/shared` vitest | < 1 s (23 Tests) | Parität + Schemas |
-| `apps/web` vitest | < 1 s (8 Tests) | Geometrie + Render-Smoke |
-
-> **Wichtig:** `circulation` läuft **nur einmal je Plan** (finaler Report), nicht
-> in der Solver-Kandidatenschleife – dort filtert `nur_hart=True` sie heraus.
-> Diese Trennung ist der Grund, warum die Suite schnell bleibt. Siehe Brain:
-> `Circulation-Hochstufung-auf-hard`.
+| M6-B: Fenster blockieren Unterschränke NICHT, nur die Hängeschrank-Ebene meidet Fenster | Brüstungsfenster (sill ≥ 0.9 m) erlauben darunter eine Arbeitsfläche/Unterschrank; nur Hängeschränke dürfen nicht vor ein Fenster. Türen blockieren dagegen die ganze Zeile (Nutzlänge = türfreies Teilstück) | kueche.py (`_fuelle_haengeschraenke`, `_freies_teilstueck_intervall`) |
+| M6-B: Hängeschrank-Heuristik = Ebene über allen Unterschränken ausser Kochfeld | Über dem Kochfeld hängt der Dunstabzug; sonst wird jede freie Wandposition mit Hängeschrank belegt (vertikal getrennt von den Korpussen → keine Kollision dank Höhenintervall-Prüfung des Interpreters). Einfach + deckt den Stauraum-Score | kueche.py (`_fuelle_haengeschraenke`) |
+| M6-B: GS-«direkt neben Spüle» als Slot-Nachbarschaft (nicht als Regel) | Der Interpreter kennt kein `maxDist` bei object-distance (M6-A-Entscheid); die Baugruppe setzt den GS deterministisch in den Nachbarslot der Spüle. Damit ist die Forderung konstruktiv erfüllt, ohne den Interpreter zu ändern | kueche.py (`_platziere_geschirrspueler`) |
+| M6-B (Review-Fix): P1-Geräte sind Pflicht – fehlt Spüle/GS/Kochfeld/Kühlschrank → 422 NO_FEASIBLE_PLACEMENT (nur Dunstabzug best-effort, lueftung-connection ist soft) | Vorher entstand still ein Rumpf-Plan ohne Kühlschrank (constraintReport 0 ❌, aber fachlich unvollständig) – ehrliches Scheitern statt stiller Degradation | kueche.py (solve_kueche) |
+| M6-B (Review-Fix): Solver-Vorfilter toleriert Berührung (Überlappung ≤ 0.05 cm = halbe Rundungsquante) | Exakt anliegende Korpusse (Küchenzeile!) erzeugen Float-Krümel-Überlappungen ~1e-16; der Vorfilter war strenger als das Interpreter-Urteil (0.1-cm-Rundung) und verwarf gültige Slots – deshalb fehlte der Kühlschrank | solver.py (_schnell_unzulaessig, _BERUEHRUNGS_EPS) |
+| M6-B: `formwahl`-Score nutzt für Ergonomie weiterhin einen Proxy (echtes Dreieck erst NACH der Platzierung) | Formwahl läuft VOR der Platzierung → das echte Arbeitsdreieck ist dort unbekannt; der Proxy (kompakte I-Zeile, L/U-Bonus) ist richtungsrichtig. Das **gemessene** Dreieck füllt seit 2026-06-14 `softScore.ergonomie` des fertigen Plans (AMK-Trapez-Score, server-berechnet) – kein Eingriff in Interpreter/Schema/Goldens | kueche.py (`formwahl` Proxy · `arbeitsdreieck` Messung) |
+| M6-B: /solve-Response um `room` (effektiver Raum) erweitert | Response ist kein Schema-Vertrag (Plan-Schema bleibt unberührt). Der Grossraum-Fall braucht den abgeleiteten Teilraum für Viewer + Live-Ampel; additiv am pydantic-Response-Modell | api.py (`/solve`), App.tsx (`planRoom`) |
 
 ## Offene Fragen an Bryan
 
-**Neu / aktuell (entstanden 2026-06-13/14):**
-- **circulation auf `hard` hochstufen?** Metrik ist inzwischen vertrauenswürdig;
-  einzige Hürde ist die Hot-Path-Performance. Optionen + Empfehlung (vorerst
-  soft lassen) im Brain: `Circulation-Hochstufung-auf-hard`.
-- **Arbeitsdreieck – Option A oder B?** A = echtes Mass nach dem Solven
-  (empfohlen), B = form-bewusste Heuristik in der Formwahl. Analyse im Brain:
-  `Arbeitsdreieck-Score-Optionen`.
-- **2D-Grundriss als Default-Ansicht ok?** Der Viewer ist auf 2D vorbelegt
-  (3D ist einen Klick entfernt), weil 2D die normgerechte Beurteilung
-  erlaubt – jederzeit umdrehbar (eine Zeile in `App.tsx`).
-
-**Weiterhin offen (älter):**
-- Mini-Eval mit **echtem LLM** messen (`FP_KURATOR_URL` setzen) + Mensch-Rating;
-  aktuell ist der Baseline-Kurator aktiv.
-- Echte Bad-/Wohn-/Küchen-**Fotos taggen** (ersetzen die SVG-Platzhalter).
-- **R1 neu aufnehmen** nach der Aufnahme-Guideline + Restmasse (Raumhöhe,
-  Türbreite, Objektmasse) → dann Colab-Lauf des Scan-Spikes.
 - AR-Vorschau (Stretch) bestätigen → `vault/50_Umsetzung/AR-Vorschau-Konzept.md`.
 - Erste Katalog-Quelle für echte Items/Preise (POC-Fallback: Sample-Daten).
+- Spike-Testräume R1–R3 aufnehmen (sobald Eval-Notebook steht).
