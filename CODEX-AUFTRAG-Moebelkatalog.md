@@ -9,6 +9,16 @@
 > reviewbar, alles auf einmal wird ein Riesen-Diff. Etappe 1 ist die Basis für
 > alle anderen und liefert die Befunde, mit denen du 2–4 priorisierst.
 
+**Kurzweg:** Da diese Datei auf `main` liegt, genügt Codex auch der Einzeiler
+
+```text
+Lies AGENTS.md und dann CODEX-AUFTRAG-Moebelkatalog.md. Führe Etappe 1 aus –
+nur diese Etappe, nicht die folgenden.
+```
+
+– so bleibt der Auftrag immer synchron mit dem Repo. Die vollen Texte unten
+sind für den Fall, dass du den Prompt lieber selbstständig einfügst.
+
 ---
 
 ## Etappe 1 – Bestandsanalyse & Datenqualität
@@ -16,6 +26,12 @@
 ```text
 Du arbeitest im Repo FP_APP (POC der App «Future Planning»). Lies zuerst
 AGENTS.md vollständig, dann CLAUDE.md §10/§11 und STATUS.md.
+
+ACHTUNG STATUS.md: Sie ist inhaltlich auf dem Stand 2026-07-15. Die Arbeiten
+danach (bis 2026-08-04) sind dort NICHT dokumentiert – darunter genau das,
+was dich betrifft: Farbwelt auf 33 Slugs, +28 neue Möbel, L-Sofa-Symbol,
+Kurator v3.3. Ergänze dein Bild darum mit `git log --oneline -25` und lies
+die Commit-Messages der Katalog-Commits; sie sind ausführlich.
 
 AUFTRAG: Analysiere den Möbelkatalog und behebe die Datenqualitäts-Mängel.
 Noch KEINE neuen Möbel, noch keine neue 3D-Geometrie – erst Befund und
