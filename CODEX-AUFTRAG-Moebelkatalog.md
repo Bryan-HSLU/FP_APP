@@ -79,7 +79,7 @@ GRENZEN
 - achsenTags sind das Herz der Stil-Auswahl: dokumentiere jede Änderung in
   der Zusammenfassung, damit Bryan sie prüfen kann.
 
-VERIFIKATION (AGENTS.md §4) und die Abschluss-Zusammenfassung nach dem dort
+VERIFIKATION (AGENTS.md §5) und die Abschluss-Zusammenfassung nach dem dort
 vorgegebenen Raster. Zusätzlich: Analyse-Ergebnis als Tabelle in der
 PR-Beschreibung, und die Kernbefunde als Abschnitt in STATUS.md.
 ```
@@ -126,7 +126,7 @@ UNANTASTBAR
 - Proportionen, die 2D UND 3D betreffen, gehören nach
   apps/web/src/moebelProportionen.ts – nicht zweimal beschrieben.
 
-Verifikation + Zusammenfassung nach AGENTS.md §4/§8. Nenne in der
+Verifikation + Zusammenfassung nach AGENTS.md §5/§9. Nenne in der
 Zusammenfassung, welche Möbel jetzt wie viele unterscheidbare Silhouetten
 haben (vorher/nachher).
 ```
@@ -161,7 +161,7 @@ UNANTASTBAR: Symbole liegen in lokalen Metern innerhalb der bbox; die
 Projektion macht symbolScreenPrims über toScreen – keine zweite
 Rotationsmathematik einführen.
 
-Verifikation + Zusammenfassung nach AGENTS.md §4/§8.
+Verifikation + Zusammenfassung nach AGENTS.md §5/§9.
 ```
 
 ---
@@ -169,7 +169,7 @@ Verifikation + Zusammenfassung nach AGENTS.md §4/§8.
 ## Etappe 4 – Katalog vermehren (mit Sinn statt Masse)
 
 ```text
-Repo FP_APP. Lies AGENTS.md §5/§6 und den Befund aus Etappe 1.
+Repo FP_APP. Lies AGENTS.md §6/§7 (Gebiet «Stammdaten») und den Befund aus Etappe 1.
 
 AUFTRAG: Den Katalog gezielt erweitern – dort, wo Stil-Ecken oder
 Raumgrössen heute nicht bedient werden.
@@ -208,7 +208,7 @@ es im Slot noch nicht gibt.
 5. Solver-Invariante beweisen: die Property-Tests über bad/wohnen/kueche ×
    Seeds müssen 0 ❌ liefern. Neue Items dürfen keinen Raum unlösbar machen.
 
-Verifikation + Zusammenfassung nach AGENTS.md §4/§8, plus: Tabelle
+Verifikation + Zusammenfassung nach AGENTS.md §5/§9, plus: Tabelle
 «Slot → Stilprofile vorher/nachher» und die neue Item-Zahl je Raumtyp.
 ```
 
