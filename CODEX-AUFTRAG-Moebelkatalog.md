@@ -59,6 +59,24 @@ Erfasse für data/catalog/{bad,wohnen,kueche}.json:
    (apps/web/src/symbole2d.ts), welche einen eigenen 3D-Bausatz
    (apps/web/src/moebel3d.tsx), welche nur den generischen Typ-Standard?
    Welche fehlen in MATERIAL_FARBE?
+6. WICHTIG – Stil-Spannweite Katalog gegen Bilder: Das Stilprofil entsteht
+   aus dem Bild-Swipe (data/images/*.json), die Möbelwahl aus den achsenTags
+   des Katalogs. Deckt der Katalog eine Achse schmaler ab als die Bilder,
+   kann der Nutzer ein Profil erzeugen, das der Katalog gar nicht bedienen
+   kann – die Cosinus-Nähe differenziert dann kaum noch und JEDES Profil
+   bekommt fast dieselben Möbel. Miss je Raumtyp und je Achse min/max über
+   Bilder UND Katalog und nenne die Lücken.
+   Bekannte Ausreisser (2026-09 gemessen, zur Kontrolle): kueche
+   raumgefuehl Bilder -0.8..+1.0 vs. Katalog +0.0..+0.1 – praktisch keine
+   Differenzierung; kueche epoche -0.9..+1.0 vs. -0.2..+0.8; wohnen
+   raumgefuehl -0.7..+1.0 vs. -0.4..+0.5; bad raumgefuehl -0.9..+0.9 vs.
+   -0.2..+0.8. Diese Lücken sind der wahrscheinlichste Grund für den
+   Eindruck «es kommt immer dasselbe».
+7. Kosten-/LV-Kette: Positionen in data/positions/*.json triggern u.a. auf
+   `gewerk`, `funktionsTyp` und `anschluss` (art: "placement"). Prüfe, ob
+   JEDES Katalog-Item mindestens eine Position auslöst – ein Item mit einem
+   gewerk, für das der Raumtyp keine Position kennt, fällt still aus LV,
+   Kostenvoranschlag und Bauzeitenplan. Liste die Treffer.
 
 Ausgangslage zur Kontrolle deiner Zahlen (Stand 2026-08, gemessen):
 156 Items (bad 48 / wohnen 60 / kueche 48), 45 verschiedene funktionsTypen,
@@ -73,7 +91,10 @@ kurator_eval.py / kurator_diagnose.py in demselben Ordner): liest die drei
 Kataloge, prüft die Punkte aus Teil A und gibt einen kompakten,
 deterministischen Report auf stdout aus (Exit-Code != 0 nur bei echten
 Fehlern, nicht bei Hinweisen). Ohne neue Dependencies. So kann jede spätere
-Katalog-Änderung dieselbe Prüfung fahren.
+Katalog-Änderung dieselbe Prüfung fahren. Die Punkte A.6 (Achsen-Spannweite
+Katalog vs. Bilder) und A.7 (LV-Abdeckung je Item) gehören ausdrücklich in
+das Skript – das sind die Prüfungen, die man vor jeder Katalog-Erweiterung
+wieder braucht.
 
 TEIL C – Mängel beheben (Daten, kein neuer Code)
 1. attributTags füllen: Konvention ist "gruppe:wert" (Kleinbuchstaben,
@@ -198,7 +219,9 @@ Lücke schliessen: ein Stilprofil, eine Grössenklasse oder eine Funktion, die
 es im Slot noch nicht gibt.
 
 1. Neue Items je Raumtyp nach den Lücken aus Etappe 1:
-   - Stil-Lücken (z.B. konsequent minimal/kühl, oder warm/klassisch/opulent).
+   - Stil-Lücken, priorisiert nach dem Befund A.6: zuerst die Achsen, auf
+     denen der Katalog schmaler ist als der Bild-Swipe (Stand 2026-09 vor
+     allem raumgefuehl in allen drei Raumtypen und epoche in der Küche).
    - Grössen-Lücken: zu jedem Haupt-Objekt eine kompakte Variante für kleine
      Räume (Gäste-WC 1.56 m², kleine Küche) und eine grosszügige.
    - Funktions-Lücken, die ohne neuen funktionsTyp auskommen.
@@ -212,7 +235,27 @@ es im Slot noch nicht gibt.
    sparsam ergänzen, Leitbild bleibt «frisch gebaut, nicht bewohnt».
    Diese Ebene ist rein visuell und darf placements/constraintReport nicht
    verändern – der bestehende Regressionstest muss grün bleiben.
-4. NACH dem Ausbau messen und berichten:
+   `anchorTypes` dürfen nur auf existierende funktionsTypen zeigen. Neue
+   Sitz-/Liegemöbel brauchen einen Eintrag in ABLAGE_ANTEIL
+   (apps/web/src/moebelProportionen.ts) – sonst schwebt die Deko über der
+   Rückenlehne statt auf der Sitzfläche.
+4. Kette bis zur Auswertung prüfen (Befund A.7): Jedes neue Item muss eine
+   LV-Position auslösen (data/positions/<raumtyp>.json triggert auf gewerk /
+   funktionsTyp / anschluss). Tut es das nicht, ergänze die Position oder
+   wähle ein passendes `gewerk` – ein Möbel, das im Kostenvoranschlag fehlt,
+   ist schlimmer als eines, das es nicht gibt.
+5. KÜCHE ist der heikelste Raumtyp – dort gelten Zusatzregeln:
+   - Korpusse/Geräte tragen `normProfileVariante` ch55 ODER eu60. Neue Items
+     immer als PAAR anlegen, sonst hat ein Normprofil weniger Auswahl und die
+     UI-Funktion «austauschen» (filtert auf gleichen funktionsTyp UND gleiche
+     normProfileVariante) bietet nichts an.
+   - Breiten müssen ins Slot-Raster der Baugruppe passen (kueche.py,
+     Füllstücke 0.05/0.15) – eine krumme Breite bleibt liegen.
+   - Spüle, Geschirrspüler, Kochfeld und Kühlschrank sind P1-Pflicht: fehlt
+     eines im Katalog für ein Normprofil, quittiert /solve mit 422.
+   Ändere `priorityClass` bestehender Items NICHT nebenbei – P1 ist eine
+   Pflichtzusage an den Solver (P1_PFLICHT in kurator.py).
+6. NACH dem Ausbau messen und berichten:
    - uv run pytest tests/test_kurator.py -q  (insbesondere
      test_plan_mit_repair_bleibt_im_minutenbudget – das Groq-Free-Tier-Budget
      von 12 000 TPM ist die harte Grenze; mehr Katalog = längerer Prompt)
@@ -221,8 +264,18 @@ es im Slot noch nicht gibt.
    Wenn das Prompt-Budget kippt: NICHT den Test lockern, sondern die
    Kandidaten-Anzeige sauber begrenzen und das in der Zusammenfassung als
    Entscheidung kennzeichnen.
-5. Solver-Invariante beweisen: die Property-Tests über bad/wohnen/kueche ×
+   Der eingecheckte Eval-Report services/engines/reports/kurator_eval.json
+   verschiebt sich mit dem Katalog – regeneriere ihn bewusst, nenne die
+   Differenz zur alten Messlatte (0.867 / 0.886 / 0.855, 0 ❌ in 45 Läufen)
+   und verstecke eine Verschlechterung nicht.
+7. Solver-Invariante beweisen: die Property-Tests über bad/wohnen/kueche ×
    Seeds müssen 0 ❌ liefern. Neue Items dürfen keinen Raum unlösbar machen.
+
+NICHT Teil dieses Auftrags (nicht anfangen, nur benennen wenn es dir auffällt):
+echte Produktfotos oder glTF-Assets, eine externe Katalog-/Preisquelle, und
+der glTF-Export – der exportiert bewusst weiterhin Boxen, die schöneren
+Bausätze erscheinen dort NICHT. Das ist eine dokumentierte POC-Entscheidung,
+kein Bug.
 
 Verifikation + Zusammenfassung nach AGENTS.md §5/§9, plus: Tabelle
 «Slot → Stilprofile vorher/nachher» und die neue Item-Zahl je Raumtyp.
