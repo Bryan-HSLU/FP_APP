@@ -4,6 +4,7 @@
  *  und kommen aus data/images/ (SVG-Platzhalter, bis Bryan echte Fotos taggt).
  */
 import { useEffect, useState } from "react";
+import { bildUrl } from "./bildUrl";
 import { karte as ciKarte, pill, THEME, titel } from "./theme";
 
 export interface BildItem {
@@ -49,7 +50,7 @@ export function BildKachel({ bild, maxHoehe }: { bild: BildItem; maxHoehe?: numb
         }}
       >
         <img
-          src={`/api/bilder/${bild.bildRef}`}
+          src={bildUrl(bild.bildRef)}
           alt="Stil-Beispiel"
           onError={() => setFehler(true)}
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
@@ -59,7 +60,7 @@ export function BildKachel({ bild, maxHoehe }: { bild: BildItem; maxHoehe?: numb
   }
   return (
     <img
-      src={`/api/bilder/${bild.bildRef}`}
+      src={bildUrl(bild.bildRef)}
       alt="Stil-Beispiel"
       onError={() => setFehler(true)}
       style={{ width: "100%", borderRadius: 8 }}
