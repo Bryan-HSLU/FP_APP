@@ -95,10 +95,17 @@ jobs:
             prj_*) echo "::error::VERCEL_ORG_ID beginnt mit prj_ – das ist die Project-ID (vertauscht?)."; fehler=1 ;;
             *) echo "::warning::VERCEL_ORG_ID beginnt nicht mit team_ ('${VERCEL_ORG_ID:0:5}…'). Bei Hobby-Konten ist es die «Team ID» (Team → Settings → General)." ;;
           esac
-          if konto=$(npx --yes "$VERCEL_CLI" whoami --token="$VERCEL_TOKEN" 2>/dev/null); then
+          # Länge verrät nichts, zeigt aber abgeschnittene/falsch kopierte Werte
+          # (Vercel-Tokens sind kurz, ~24 Zeichen). whoami OHNE Org-Scope: so
+          # trennen sich «Token ungültig» und «Token gültig, aber kein Zugriff
+          # aufs Team» (letzteres zeigt sich erst bei project ls unten).
+          echo "Token-Länge: ${#VERCEL_TOKEN}"
+          if konto=$(env -u VERCEL_ORG_ID -u VERCEL_PROJECT_ID \
+              npx --yes "$VERCEL_CLI" whoami --token="$VERCEL_TOKEN" 2>whoami.err); then
             echo "Token gültig, gehört zu: $konto"
           else
-            echo "::error::VERCEL_TOKEN ist ungültig oder abgelaufen (Account Settings → Tokens)."
+            echo "Vercel meldet:"; grep -iE "error|token|invalid" whoami.err || tail -n 5 whoami.err
+            echo "::error::VERCEL_TOKEN wird von Vercel abgelehnt – neuen Token erzeugen (Account Settings → Tokens) und das Secret mit dem kopierten WERT ersetzen."
             fehler=1
           fi
           if [ "$fehler" = 0 ]; then
