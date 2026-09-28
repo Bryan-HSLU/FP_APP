@@ -1,5 +1,8 @@
-/** API-Client zum lokalen Engines-Dienst (Vite-Proxy: /api → FastAPI :8000). */
+/** API-Client zum Engines-Dienst. Immer relative `/api/*`-Pfade: lokal leitet
+ *  der Vite-Proxy an FastAPI :8000 weiter, im HF-Space mountet `space.py` die
+ *  API unter /api, auf Vercel leitet ein Rewrite an den Space weiter. */
 import type { CatalogItemInput, RoomInput } from "@fp/shared/rules";
+import { istBackendAntwort, istJsonAntwort, warteAufBackend, type BackendStatus } from "./backend";
 import type { FarbSlug } from "./farben";
 import type { FlaechenKonzept } from "./oberflaechen";
 
@@ -147,15 +150,97 @@ export class ApiFehler extends Error {
   }
 }
 
-async function call<T>(pfad: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api${pfad}`, {
-    headers: { "Content-Type": "application/json" },
-    ...init,
-  });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { code?: string; message?: string };
-    throw new ApiFehler(body.code ?? "UNBEKANNT", body.message ?? res.statusText);
+/** Fehlercode, wenn das Backend auch nach dem Wecken nicht antwortet. */
+export const NICHT_ERREICHBAR = "BACKEND_NICHT_ERREICHBAR";
+const TEXT_NICHT_ERREICHBAR =
+  "Der Server ist gerade nicht erreichbar. Bitte in einigen Minuten erneut versuchen.";
+
+let statusHoerer: ((s: BackendStatus) => void) | null = null;
+/** App-weiter Beobachter des Backend-Zustands (für den «wird geweckt»-Hinweis). */
+export function beobachteBackend(hoerer: ((s: BackendStatus) => void) | null): void {
+  statusHoerer = hoerer;
+}
+
+async function pingHealth(): Promise<boolean> {
+  try {
+    const res = await fetch("/api/health", {
+      cache: "no-store",
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!res.ok || !istJsonAntwort(res)) return false;
+    return ((await res.json()) as { status?: string }).status === "ok";
+  } catch {
+    return false;
   }
+}
+
+let laufendesWecken: Promise<boolean> | null = null;
+
+/** Genau EIN Weckvorgang, auch wenn mehrere Aufrufe gleichzeitig warten
+ *  (z.B. die fünf Stammdaten-Abrufe nach der Raumwahl). */
+function weckeBackend(): Promise<boolean> {
+  if (laufendesWecken === null) {
+    statusHoerer?.("wacht");
+    laufendesWecken = warteAufBackend({
+      ping: pingHealth,
+      schlafe: (ms) => new Promise((ok) => setTimeout(ok, ms)),
+      jetzt: () => Date.now(),
+    })
+      .then((bereit) => {
+        statusHoerer?.(bereit ? "bereit" : "nicht-erreichbar");
+        return bereit;
+      })
+      .finally(() => {
+        laufendesWecken = null;
+      });
+  }
+  return laufendesWecken;
+}
+
+async function versuche(pfad: string, init?: RequestInit): Promise<Response | null> {
+  try {
+    return await fetch(pfad, init);
+  } catch {
+    return null; // Netzfehler: wie «Backend nicht bereit» behandeln
+  }
+}
+
+/** fetch, der «Backend schläft/startet» erkennt (HTML-Ladeseite, Proxy-
+ *  Fehlerseite, Netzfehler), das Backend weckt und die Anfrage EINMAL
+ *  wiederholt. Wiederholen ist unbedenklich: alle Endpunkte sind reine
+ *  Berechnungen ohne Server-Zustand. */
+async function holeAntwort(
+  pfad: string,
+  init: RequestInit | undefined,
+  binaer: boolean,
+): Promise<Response> {
+  const erste = await versuche(pfad, init);
+  if (erste !== null && istBackendAntwort(erste, binaer)) return erste;
+  if (!(await weckeBackend())) throw new ApiFehler(NICHT_ERREICHBAR, TEXT_NICHT_ERREICHBAR);
+  const zweite = await versuche(pfad, init);
+  if (zweite === null) throw new ApiFehler(NICHT_ERREICHBAR, TEXT_NICHT_ERREICHBAR);
+  if (istBackendAntwort(zweite, binaer)) return zweite;
+  throw new ApiFehler(
+    "UNERWARTETE_ANTWORT",
+    `Der Server hat unerwartet geantwortet (HTTP ${zweite.status}). Bitte erneut versuchen.`,
+  );
+}
+
+/** Fehler-Envelope der API ({code, message}) in einen ApiFehler übersetzen. */
+async function envelopeFehler(res: Response, codeFallback: string): Promise<ApiFehler> {
+  const body = istJsonAntwort(res)
+    ? ((await res.json().catch(() => ({}))) as { code?: string; message?: string })
+    : {};
+  return new ApiFehler(body.code ?? codeFallback, body.message ?? res.statusText);
+}
+
+async function call<T>(pfad: string, init?: RequestInit): Promise<T> {
+  const res = await holeAntwort(
+    `/api${pfad}`,
+    { headers: { "Content-Type": "application/json" }, ...init },
+    false,
+  );
+  if (!res.ok) throw await envelopeFehler(res, "UNBEKANNT");
   return (await res.json()) as T;
 }
 
@@ -215,11 +300,8 @@ export const api = {
     fd.append("bundle", bundle);
     fd.append("roomType", roomType);
     fd.append("name", name);
-    const res = await fetch("/api/scan", { method: "POST", body: fd });
-    if (!res.ok) {
-      const body = (await res.json().catch(() => ({}))) as { code?: string; message?: string };
-      throw new ApiFehler(body.code ?? "SCAN", body.message ?? res.statusText);
-    }
+    const res = await holeAntwort("/api/scan", { method: "POST", body: fd }, false);
+    if (!res.ok) throw await envelopeFehler(res, "SCAN");
     return (await res.json()) as { room: Room; warnungen: string[] };
   },
   images: (roomType: string) => call<import("./Stil").BildItem[]>(`/images/${roomType}`),
@@ -284,12 +366,16 @@ export const api = {
     call<KV>("/evaluate", { method: "POST", body: JSON.stringify({ room, plan }) }),
   /** Dokument vom Export-Endpunkt herunterladen (Blob → Browser-Download). */
   async dokument(pfad: string, dateiname: string, room: Room, plan: Plan): Promise<void> {
-    const res = await fetch(`/api/export/${pfad}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ room, plan }),
-    });
-    if (!res.ok) throw new ApiFehler("EXPORT", res.statusText);
+    const res = await holeAntwort(
+      `/api/export/${pfad}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ room, plan }),
+      },
+      true,
+    );
+    if (!res.ok) throw await envelopeFehler(res, "EXPORT");
     const url = URL.createObjectURL(await res.blob());
     const a = document.createElement("a");
     a.href = url;

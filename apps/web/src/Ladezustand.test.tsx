@@ -13,6 +13,12 @@ describe("Ladezustand (Render-Smoke)", () => {
     expect(html).toContain("fp-fortschrittsbalken-unbestimmt");
   });
 
+  it("Weck-Variante (Server schläft, s. backend.ts) ist als Status angekündigt", () => {
+    const html = renderToStaticMarkup(<Ladezustand variante="wecken" />);
+    expect(html).toContain("Server wird geweckt");
+    expect(html).toContain('role="status"');
+  });
+
   it("mit bekanntem Fortschritt: bestimmter Balken (feste Breite, keine Unbestimmt-Klasse)", () => {
     const html = renderToStaticMarkup(<Ladezustand variante="scan" fortschritt={40} />);
     expect(html).toContain("width:40%");

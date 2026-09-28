@@ -15,7 +15,7 @@ import { useState } from "react";
 import { CSS, titel as titelStil } from "./theme";
 import { Piktogramm, type PiktogrammName } from "./Piktogramm";
 
-export type LadeVariante = "stil" | "vorschlag" | "scan" | "dokumente";
+export type LadeVariante = "stil" | "vorschlag" | "scan" | "dokumente" | "wecken";
 
 interface Preset {
   piktogramm: PiktogrammName;
@@ -44,6 +44,13 @@ const PRESETS: Record<LadeVariante, Preset> = {
     piktogramm: "dokument",
     titel: "Unterlagen werden vorbereitet",
     text: "Kosten, Mengen und Unterlagen werden vorbereitet.",
+  },
+  // Frontend und Server getrennt ausgeliefert: der Server schläft nach längerer
+  // Pause und braucht beim ersten Aufruf einen Moment (s. backend.ts).
+  wecken: {
+    piktogramm: "zeitplan",
+    titel: "Server wird geweckt",
+    text: "Nach einer längeren Pause startet der Server neu – einen Moment Geduld.",
   },
 };
 

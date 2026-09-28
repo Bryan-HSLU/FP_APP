@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   api,
   ApiFehler,
+  beobachteBackend,
   type Arbeitsdreieck,
   type DressingItem,
   type KatalogItem,
@@ -21,6 +22,8 @@ import {
   type VariantenPlan,
 } from "./api";
 import { AppRahmen } from "./AppRahmen";
+import { type BackendStatus } from "./backend";
+import { Ladezustand } from "./Ladezustand";
 import { Splash, StartMenue } from "./StartMenue";
 import { RaumEditor } from "./RaumEditor";
 import { ScanKorrektur } from "./ScanKorrektur";
@@ -124,12 +127,31 @@ export function App() {
   const [ladenDokumente, setLadenDokumente] = useState(false);
   const [ladenScan, setLadenScan] = useState(false);
 
+  // Backend-Zustand für den «Server wird geweckt»-Hinweis (s. backend.ts): das
+  // Wecken selbst passiert transparent in api.ts, hier wird es nur angezeigt.
+  const [backend, setBackend] = useState<BackendStatus>("unbekannt");
   useEffect(() => {
+    beobachteBackend(setBackend);
+    return () => beobachteBackend(null);
+  }, []);
+
+  // Läuft schon beim Mount (während Splash/Startmenü) – ein schlafender Server
+  // wacht so im Hintergrund auf, während der Nutzer noch das Menü liest.
+  const ladeBeispielraeume = useCallback(() => {
     api
       .rooms()
-      .then(setRooms)
-      .catch(() => setMeldung("Engines-Dienst nicht erreichbar – «pnpm api» starten."));
+      .then((r) => {
+        setRooms(r);
+        setMeldung("");
+      })
+      .catch((e: unknown) => {
+        const text =
+          e instanceof ApiFehler ? e.message : "Beispielräume konnten nicht geladen werden.";
+        // Entwickler-Hinweis nur lokal – echte Nutzer können damit nichts anfangen.
+        setMeldung(import.meta.env.DEV ? `${text} (Lokal: «pnpm api» starten.)` : text);
+      });
   }, []);
+  useEffect(() => ladeBeispielraeume(), [ladeBeispielraeume]);
 
   // Küchen-Zone eines (Gross-)Raums: roomType kueche ODER eine Zone roomType
   // kueche. Liefert {istKueche, zoneId, effektiverRoomType}.
@@ -764,6 +786,25 @@ export function App() {
         weiterDeaktiviert={schritt === 5 || !erreichbar(schritt + 1)}
         weiterLabel={schritt === 4 ? "Zur Auswertung" : "Weiter"}
       >
+        {backend === "wacht" && <Ladezustand variante="wecken" />}
+        {backend === "nicht-erreichbar" && (
+          <div className={CSS.card} role="alert" style={{ padding: 16, marginBottom: 12 }}>
+            <p style={{ margin: "0 0 12px" }}>
+              Der Server antwortet gerade nicht. Das passiert selten nach längerer Pause oder
+              während eines Updates.
+            </p>
+            <button
+              type="button"
+              className={CSS.button}
+              onClick={() => {
+                setBackend("unbekannt");
+                ladeBeispielraeume();
+              }}
+            >
+              Erneut versuchen
+            </button>
+          </div>
+        )}
         {schritt === 1 && (
           <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
             <SchrittProjekt
