@@ -95,23 +95,24 @@ jobs:
             prj_*) echo "::error::VERCEL_ORG_ID beginnt mit prj_ – das ist die Project-ID (vertauscht?)."; fehler=1 ;;
             *) echo "::warning::VERCEL_ORG_ID beginnt nicht mit team_ ('${VERCEL_ORG_ID:0:5}…'). Bei Hobby-Konten ist es die «Team ID» (Team → Settings → General)." ;;
           esac
-          # Länge verrät nichts, zeigt aber abgeschnittene/falsch kopierte Werte
-          # (Vercel-Tokens sind kurz, ~24 Zeichen). whoami OHNE Org-Scope: so
-          # trennen sich «Token ungültig» und «Token gültig, aber kein Zugriff
-          # aufs Team» (letzteres zeigt sich erst bei project ls unten).
+          # Länge verrät nichts, zeigt aber abgeschnittene/falsch kopierte Werte.
           echo "Token-Länge: ${#VERCEL_TOKEN}"
+          # whoami nur als Hinweis: ein aufs Team beschränkter Token kann dort
+          # «User not found» melden und trotzdem deployen dürfen.
           if konto=$(env -u VERCEL_ORG_ID -u VERCEL_PROJECT_ID \
               npx --yes "$VERCEL_CLI" whoami --token="$VERCEL_TOKEN" 2>whoami.err); then
-            echo "Token gültig, gehört zu: $konto"
+            echo "Token gehört zu: $konto"
           else
-            echo "Vercel meldet:"; grep -iE "error|token|invalid" whoami.err || tail -n 5 whoami.err
-            echo "::error::VERCEL_TOKEN wird von Vercel abgelehnt – neuen Token erzeugen (Account Settings → Tokens) und das Secret mit dem kopierten WERT ersetzen."
-            fehler=1
+            echo "::warning::whoami: $(grep -iE 'error' whoami.err | head -n 1)"
           fi
+          # Entscheidend: sieht der Token die Projekte im Team der Org-ID?
           if [ "$fehler" = 0 ]; then
-            echo "Projekte, die dieser Token in der Org sieht:"
-            npx --yes "$VERCEL_CLI" project ls --scope "$VERCEL_ORG_ID" --token="$VERCEL_TOKEN" \
-              || { echo "::error::Mit dieser Org-ID sieht der Token kein Team – VERCEL_ORG_ID prüfen."; fehler=1; }
+            echo "Projekte, die dieser Token im Team sieht:"
+            if ! npx --yes "$VERCEL_CLI" project ls --scope "$VERCEL_ORG_ID" --token="$VERCEL_TOKEN" 2>projekte.err; then
+              echo "Vercel meldet: $(grep -iE 'error' projekte.err | head -n 1)"
+              echo "::error::Der Token hat keinen Zugriff auf das Team/Projekt. Persönlichen Access Token unter Account Settings → Tokens erzeugen (Scope: dein Team), KEINEN API-Key/Projekt-Key, und das Secret VERCEL_TOKEN mit dem kopierten Wert ersetzen."
+              fehler=1
+            fi
           fi
           exit "$fehler"
 
