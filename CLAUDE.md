@@ -202,3 +202,11 @@ pnpm schema-check
 - **Diagnose-Disziplin:** Metriken **immer mit dem produktiven Evaluator**
   messen – Standalone-Nachbauten driften subtil und führen zu falschen Schlüssen
   (siehe Brain-Learning `Learning-Circulation-Metrik-Fragilitaet`).
+- **Zwei Frontend-Eingänge (HF + Vercel, README «Deploy»):** Fotos immer über
+  `bildUrl()` → `/bilder/...` (statisch), nie über `/api/bilder`. Neue
+  API-Aufrufe nur über `call()`/`holeAntwort()` in `api.ts` (Weck-Logik), nie
+  rohes `fetch`. API-Änderungen **additiv** halten – Vercel-Previews sprechen
+  mit dem Produktions-Backend. Lange Endpunkte: Vercel wartet max. **120 s**
+  aufs erste Byte → Deadline (Kurator: `FP_KURATOR_DEADLINE_S`) oder Polling.
+- **`BUILD_SHA`** steht in `.gitignore`, muss im Space-Deploy aber mit:
+  `deploy-space.yml` fügt sie per `git add -f` hinzu – nicht «aufräumen».

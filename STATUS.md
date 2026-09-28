@@ -49,10 +49,19 @@ Eingänge brauchen – wirkt schon jetzt auf HF. Abwägung K1–K7 (Timeouts,
 - **Tests:** web 223→243, engines 434→454 (Deadline mit simulierter Uhr,
   Weck-Logik mit gemocktem fetch + Mutationstest). E2E-Smoke `space.py` lokal:
   Manifest/Icons/`/bilder`/`/api/bilder`/`/api/health` wie erwartet.
-- **Als Nächstes (Phase 2):** `vercel.json` (Build + Rewrite), versatzfreier
-  Prod-Deploy aus dem Workflow (erst wenn `/api/health.build` = neuer SHA),
-  Previews per CLI (Commit-Autor egal); Tests über Preview: 27-MB-Upload durch
-  den Rewrite, Kaltstart live; danach ADR-0015 + `POC-Demo-Architektur-HF` +
+- **Phase 2 (Code fertig, wartet auf Bryans Vercel-Projekt + Secrets):**
+  `vercel.json` (Build aus dem Monorepo-Root, Output `apps/web/dist`, Rewrite
+  `/api/*` → `bryan-hslu-fp-poc.hf.space/api/*`, Git-Deploys AUS) +
+  `deploy-vercel.yml`: Produktion erst, wenn `/api/health.build` = Commit-SHA
+  (max. 20 min, `cancel-in-progress` spart Actions-Minuten), Previews für
+  andere Branches; gebaut per `vercel pull/build/deploy --prebuilt` auf dem
+  Runner (CLI 60.1.3 gepinnt, gleiche Toolchain wie CI, Commit-Autor egal).
+  Ohne Secrets übersprungen. Lokaler `vercel build` geprüft: nur statisch
+  (22 MB, 114 Bilder, Icons, Manifest), KEINE Functions, Routing =
+  filesystem → Rewrite. README «Deploy» + CLAUDE.md §11 nachgeführt.
+- **Als Nächstes:** Bryan legt Projekt `fp-poc` an + 3 Secrets → Preview-Test
+  (27-MB-Upload durch den Rewrite, Kaltstart live, Handy-Durchgang auf beiden
+  URLs) → Produktion; danach ADR-0015 + `POC-Demo-Architektur-HF` +
   Scan-Fahrplan «Schritt 5 = Polling Pflicht».
 
 ### LLM-Läufe real: Kurator antwortet echt – Groq-Debugging-Saga (2026-07-15)

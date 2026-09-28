@@ -40,3 +40,6 @@ Thumbs.db
 
 # Deploy-Artefakt (vom Workflow ins Deploy-Verzeichnis geschrieben, nie hier committen)
 BUILD_SHA
+
+# Vercel-CLI (vercel pull/build legt Projekt-Link + Build-Output lokal ab)
+.vercel/

@@ -69,6 +69,25 @@ pnpm test         # alle Tests (TS + Python), inkl. Regel-Paritätstest
 pnpm lint         # ESLint/Prettier + ruff
 ```
 
+## Deploy – zwei Eingänge, ein Backend
+
+| URL | Frontend | `/api/*` |
+|---|---|---|
+| `bryan-hslu-fp-poc.hf.space` | HF Space (Docker, `space.py`) | derselbe Space |
+| `fp-poc.vercel.app` | Vercel (statisch) | Rewrite → HF Space (`vercel.json`) |
+
+- Jeder Push auf `main` deployt beide: `deploy-space.yml` pusht in den Space
+  (schreibt `BUILD_SHA`), `deploy-vercel.yml` wartet, bis `/api/health` diesen
+  Stand meldet, und deployt erst dann das Frontend – kein Versatz zwischen
+  neuem Frontend und altem Backend. Andere Branches bekommen eine Vercel-Preview
+  (spricht mit dem Produktions-Backend).
+- Nötige GitHub-Secrets: `HF_TOKEN` sowie `VERCEL_TOKEN`, `VERCEL_ORG_ID`,
+  `VERCEL_PROJECT_ID` (ohne sie wird der Vercel-Deploy übersprungen).
+- Schläft der Space (Gratis-Tier, 48 h), zeigt das Vercel-Frontend «Server wird
+  geweckt» und wiederholt die Anfrage (`apps/web/src/backend.ts`).
+- Warum so und nicht anders (Varianten, Limits, Risiken): Brain →
+  `vault/30_Entscheidungen/` (ADR zum Vercel-Eingang).
+
 ## Bau-Fahrplan
 
 Meilensteine M0–M7 mit Definition of Done: Brain →

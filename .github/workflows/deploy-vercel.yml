@@ -1,0 +1,112 @@
+name: Deploy Vercel
+
+# Zweiter Frontend-Eingang (Vercel, fp-poc.vercel.app): statisches Frontend,
+# /api/* per Rewrite an den HF-Space (siehe vercel.json). Der Space bleibt die
+# vollständige Referenz (Frontend + API). Deploys laufen NUR über diesen
+# Workflow – die Git-Deploys von Vercel sind in vercel.json aus: so ist der
+# Commit-Autor egal (Hobby-Plan, privates Repo) und gebaut wird mit derselben
+# Toolchain wie in der CI.
+#
+# - main → Produktion, aber erst wenn der Space nachweislich den neuen Stand
+#   fährt (/api/health liefert build == Commit-SHA). Sonst spräche einige
+#   Minuten lang neues Frontend mit altem Backend.
+# - andere Branches → Preview sofort. Previews sprechen mit dem PRODUKTIONS-
+#   Backend (es gibt nur einen Space) – API-Änderungen darum additiv halten.
+# - Ohne die Secrets VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID wird
+#   alles übersprungen (kein roter Lauf vor der Einrichtung).
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  # Schnelle Folge-Pushes: nur der neueste Lauf wartet/deployt (spart
+  # Actions-Minuten, und ein älterer Stand darf den neueren nie überholen).
+  group: deploy-vercel-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_CLI: vercel@60.1.3
+  # Muss zur Rewrite-Destination in vercel.json passen.
+  SPACE_URL: https://bryan-hslu-fp-poc.hf.space
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Secrets vorhanden?
+        id: pruefe
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::notice::Vercel-Secrets fehlen – Deploy übersprungen."
+            echo "aktiv=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "aktiv=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            echo "umgebung=production" >> "$GITHUB_OUTPUT"
+          else
+            echo "umgebung=preview" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Auf neuen Space-Stand warten (nur Produktion)
+        if: steps.pruefe.outputs.aktiv == 'true' && steps.pruefe.outputs.umgebung == 'production'
+        run: |
+          # Der HF-Docker-Build dauert einige Minuten; max. 20 min warten.
+          for i in $(seq 1 40); do
+            build=$(curl -fsS --max-time 20 "$SPACE_URL/api/health" 2>/dev/null \
+              | jq -r '.build // empty' 2>/dev/null || true)
+            if [ "$build" = "$GITHUB_SHA" ]; then
+              echo "Space fährt $GITHUB_SHA."
+              exit 0
+            fi
+            echo "Space meldet '${build:-keine Antwort}' – warte (Versuch $i/40)."
+            sleep 30
+          done
+          echo "::error::Space fährt nach 20 min nicht den Stand $GITHUB_SHA – Vercel-Deploy abgebrochen (Frontend bleibt auf dem alten, passenden Stand)."
+          exit 1
+
+      - uses: actions/checkout@v4
+        if: steps.pruefe.outputs.aktiv == 'true'
+
+      - uses: pnpm/action-setup@v4 # liest die Version aus packageManager
+        if: steps.pruefe.outputs.aktiv == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.pruefe.outputs.aktiv == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Abhängigkeiten installieren
+        if: steps.pruefe.outputs.aktiv == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Bauen (vercel build auf dem Runner)
+        if: steps.pruefe.outputs.aktiv == 'true'
+        env:
+          UMGEBUNG: ${{ steps.pruefe.outputs.umgebung }}
+        run: |
+          npx --yes "$VERCEL_CLI" pull --yes --environment="$UMGEBUNG" --token="$VERCEL_TOKEN"
+          if [ "$UMGEBUNG" = "production" ]; then
+            npx --yes "$VERCEL_CLI" build --prod --token="$VERCEL_TOKEN"
+          else
+            npx --yes "$VERCEL_CLI" build --token="$VERCEL_TOKEN"
+          fi
+
+      - name: Deployen
+        if: steps.pruefe.outputs.aktiv == 'true'
+        env:
+          UMGEBUNG: ${{ steps.pruefe.outputs.umgebung }}
+        run: |
+          if [ "$UMGEBUNG" = "production" ]; then
+            url=$(npx --yes "$VERCEL_CLI" deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          else
+            url=$(npx --yes "$VERCEL_CLI" deploy --prebuilt --token="$VERCEL_TOKEN")
+          fi
+          echo "Vercel ($UMGEBUNG): $url"
+          echo "### Vercel ($UMGEBUNG): $url" >> "$GITHUB_STEP_SUMMARY"
