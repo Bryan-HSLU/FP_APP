@@ -6,7 +6,54 @@
 > Abweichungen gibt es. Meilenstein-Definitionen: Brain →
 > `vault/50_Umsetzung/Bauplan-Meilensteine.md`.
 
-**Stand: 2026-07-15**
+**Stand: 2026-09-28**
+
+> ⚠️ **Lücke:** Die Arbeiten 2026-07-16 bis 2026-08-04 (Farbwelt 16→33 Slugs,
+> +28 Möbel inkl. Vorfilter-Passung, L-Sofa 2D=3D, Viewer-Fixes, Kurator v3.3
+> mit schlankem Repair und erkannten Abschneidungen) sind hier noch nicht
+> eingetragen – Details stehen in den Commit-Messages `3f3c1ea` … `85a71a3`.
+
+### Vercel-Eingang Phase 1 – Fundament für zwei Frontends (2026-09-28)
+Ziel (mit Bryan besprochen, Variante «K5»): Frontend ZUSÄTZLICH auf Vercel
+(`fp-poc.vercel.app`), `/api/*` per Rewrite an den HF-Space; der Space bleibt
+vollständige Referenz (Frontend + API wie bisher). Phase 1 = alles, was beide
+Eingänge brauchen – wirkt schon jetzt auf HF. Abwägung K1–K7 (Timeouts,
+4.5-MB-Body, Kontingente, Nutzerreise): kommt als ADR-0015 ins Brain.
+- **Swipe-Bilder statisch** unter `/bilder/...` aus dem Build: Vite-Plugin
+  `fpBilder()` (`vite.config.ts`) – Dev-Middleware mit Path-Traversal-Schutz,
+  Build kopiert die 114 Fotos nach `dist/bilder/` (nur beim echten Build).
+  `Stil.tsx` baut URLs über `bildUrl()` (segmentweise kodiert – Dateinamen mit
+  Leerzeichen/Klammern). `/api/bilder` bleibt als Rückfall bestehen.
+- **Weck-Logik** (`backend.ts` + `api.ts`): HTML statt JSON (HF-Ladeseite eines
+  schlafenden Space, auch mit Status 200; Proxy-Fehlerseite) oder Netzfehler →
+  EIN gemeinsamer Weckvorgang (`/health`-Pings 2/3/5 s …, max. 3 min) → Anfrage
+  genau einmal wiederholt (unbedenklich: alle Endpunkte ohne Server-Zustand).
+  App zeigt Ladezustand-Variante `wecken` bzw. Fehlerkarte «Erneut versuchen»;
+  der Hinweis «pnpm api starten» erscheint nur noch im Dev-Modus.
+- **Kurator-Gesamtdeadline** `FP_KURATOR_DEADLINE_S` (Default 90 s, `0` = aus)
+  über alle LLM-Calls inkl. Repairs und 429-Backoff: unter 5 s Restzeit kein
+  neuer Call, HTTP-Timeout auf Restzeit gekürzt, ein Backoff, der das Budget
+  sprengen würde, bricht ab → ehrlicher (Teil-)Fallback + Marker
+  `CURATOR_DEADLINE`. Die ungültige Antwort wird jetzt VOR dem Repair gesichert
+  → die Platz-Rettung greift auch, wenn für den Repair keine Zeit mehr bleibt.
+  Grund: Vercel-Rewrites warten max. 120 s aufs erste Byte. LLM-Eval-Workflow:
+  Deadline aus (misst KI-Qualität unter Drosselung, nicht Fallbacks).
+- **API:** `Cache-Control: no-store` auf allen Antworten ausser `/bilder`
+  (Middleware liest den Pfad VOR `call_next` – Starlette mutiert `root_path` im
+  Mount); `/health` meldet additiv `build` (Git-SHA aus `BUILD_SHA`, schreibt
+  `deploy-space.yml`; `git add -f`, weil die mitkopierte `.gitignore` sie sonst
+  im Deploy verschluckt); `.webmanifest`-MIME in `space.py`.
+- **PWA:** `manifest.webmanifest` («FP POC», standalone, Theme #243D35), Icons
+  180/192/512/512-maskable aus dem Signet (deckend weiss, sonst füllt iOS
+  schwarz), Meta-Tags in `index.html`. Bewusst KEIN Service Worker.
+- **Tests:** web 223→243, engines 434→454 (Deadline mit simulierter Uhr,
+  Weck-Logik mit gemocktem fetch + Mutationstest). E2E-Smoke `space.py` lokal:
+  Manifest/Icons/`/bilder`/`/api/bilder`/`/api/health` wie erwartet.
+- **Als Nächstes (Phase 2):** `vercel.json` (Build + Rewrite), versatzfreier
+  Prod-Deploy aus dem Workflow (erst wenn `/api/health.build` = neuer SHA),
+  Previews per CLI (Commit-Autor egal); Tests über Preview: 27-MB-Upload durch
+  den Rewrite, Kaltstart live; danach ADR-0015 + `POC-Demo-Architektur-HF` +
+  Scan-Fahrplan «Schritt 5 = Polling Pflicht».
 
 ### LLM-Läufe real: Kurator antwortet echt – Groq-Debugging-Saga (2026-07-15)
 6 Workflow-Läufe (`kurator-llm-eval.yml`, Secret FP_KURATOR_API_KEY) bis zur
