@@ -15,6 +15,7 @@ import pytest
 
 from fp_engines.kurator import (
     _ANTWORT_TOKENS_AUSWAHL,
+    _DEADLINE_DEFAULT_S,
     FLAECHEN_REGELN,
     KANDIDATEN_DECKEL,
     KANDIDATEN_MIN,
@@ -23,6 +24,7 @@ from fp_engines.kurator import (
     BaselineKurator,
     LlmKurator,
     _bereinige_farben,
+    _deadline_s,
     _erzeuge_handle_karte,
     _extrahiere_ebenen,
     _footprint,
@@ -1559,3 +1561,198 @@ def test_antwortfenster_deckt_die_groesste_realistische_antwort(
         f"Call-A-Antwort braucht ~{dicht:.0f} Tokens, Fenster ist "
         f"{_ANTWORT_TOKENS_AUSWAHL} – Gefahr abgeschnittener Antworten"
     )
+
+
+# --- Zeitbudget (Kurator-Deadline) --------------------------------------------
+# Hintergrund: Vercel-Rewrites warten max. 120 s auf das erste Antwort-Byte des
+# Space. Ohne Deckel könnte eine 429-Kaskade den /curate-Request darüber tragen.
+# Die Uhr ist simuliert – ein «90-s-Lauf» dauert im Test Millisekunden.
+
+
+class _Uhr:
+    """Simulierte Zeit: HTTP-Calls und Backoff-Schlaf rücken sie vor."""
+
+    def __init__(self) -> None:
+        self.t = 0.0
+        self.schlaefe: list[float] = []
+        self._lock = threading.Lock()  # B und C laufen in zwei Threads
+
+    def jetzt(self) -> float:
+        with self._lock:
+            return self.t
+
+    def vor(self, sekunden: float) -> None:
+        with self._lock:
+            self.t += sekunden
+
+    def schlafe(self, sekunden: float) -> None:
+        self.schlaefe.append(sekunden)
+        self.vor(sekunden)
+
+
+def _llm_mit_uhr(
+    monkeypatch: pytest.MonkeyPatch,
+    antworten: list[Any],
+    dauer: dict[str, float],
+    *,
+    immer_429: bool = False,
+    timeouts: list[tuple[str, float]] | None = None,
+) -> tuple[LlmKurator, _Uhr]:
+    """LLM-Port mit gestubbtem HTTP UND simulierter Uhr.
+
+    `dauer` = Sekunden, die ein Call je Art (a/b/c) auf der Uhr verbraucht;
+    `immer_429` lässt jeden Request mit Retry-After 30 s gedrosselt enden.
+    """
+    monkeypatch.delenv("FP_KURATOR_DEADLINE_S", raising=False)
+    uhr = _Uhr()
+    schlangen = _Warteschlangen(antworten)
+
+    def fake_post(url: str, **kwargs: Any) -> httpx.Response:
+        payload = kwargs["json"]
+        typ = _call_typ(payload)
+        if timeouts is not None:
+            timeouts.append((typ, kwargs["timeout"]))
+        uhr.vor(dauer.get(typ, 1.0))
+        request = httpx.Request("POST", url)
+        if immer_429:
+            return httpx.Response(429, headers={"retry-after": "30"}, json={}, request=request)
+        inhalt = schlangen.hole(payload)
+        body = {"choices": [{"message": {"content": json.dumps(inhalt)}}]}
+        return httpx.Response(200, json=body, request=request)
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    port = LlmKurator(url="http://test/v1", model="test", api_key=None)
+    port._uhr = uhr.jetzt
+    port._schlafe = uhr.schlafe
+    return port, uhr
+
+
+def test_deadline_429_kaskade_endet_rechtzeitig_im_baseline_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Dauer-Drosselung: der Lauf gibt VOR der Deadline auf und liefert den
+    ehrlichen Baseline-Plan – statt 3×30 s Backoff pro Call durchzuwarten."""
+    port, uhr = _llm_mit_uhr(monkeypatch, [], {"a": 1.0}, immer_429=True)
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert uhr.t <= _DEADLINE_DEFAULT_S
+    assert "CURATOR_FALLBACK_USED (Zeitbudget erschöpft" in ergebnis["begruendung"]
+    assert "CURATOR_DEADLINE" in ergebnis["begruendung"]
+    # Kein Schlaf durfte das Budget sprengen: nach jedem blieb Zeit für einen Call.
+    assert sum(uhr.schlaefe) < _DEADLINE_DEFAULT_S
+    assert ergebnis["auswahl"]  # Baseline liefert trotzdem einen brauchbaren Plan
+
+
+def test_deadline_langsamer_call_a_teilfallback_fuer_b_und_c(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Call A frisst fast das ganze Budget: seine KI-Auswahl bleibt erhalten, B und
+    C werden gar nicht erst begonnen (Teil-Fallbacks) – sichtbar markiert."""
+    port, uhr = _llm_mit_uhr(
+        monkeypatch,
+        [_auswahl_ok(), _anordnung_ok(), _flaechen_ok()],
+        {"a": _DEADLINE_DEFAULT_S - 3.0},
+    )
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert ergebnis["auswahl"] == AUSWAHL_IDS  # KI-Entscheidung überlebt
+    assert "CURATOR_FALLBACK_USED" not in ergebnis["begruendung"]
+    assert "CURATOR_ANORDNUNG_FALLBACK" in ergebnis["begruendung"]
+    assert "CURATOR_FLAECHEN_FALLBACK" in ergebnis["begruendung"]
+    assert "CURATOR_DEADLINE" in ergebnis["begruendung"]
+    assert uhr.t <= _DEADLINE_DEFAULT_S
+
+
+def test_deadline_kuerzt_http_timeout_auf_restzeit(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Nach 70 s Call A bleiben 20 s: B und C dürfen höchstens so lange warten."""
+    timeouts: list[tuple[str, float]] = []
+    port, _ = _llm_mit_uhr(
+        monkeypatch,
+        [_auswahl_ok(), _anordnung_ok(), _flaechen_ok()],
+        {"a": 70.0, "b": 1.0, "c": 1.0},
+        timeouts=timeouts,
+    )
+    port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    nach_a = {typ: t for typ, t in timeouts if typ in ("b", "c")}
+    assert set(nach_a) == {"b", "c"}
+    # 90 − 70 = 20 s Rest; B/C starten nebenläufig, also höchstens 20 s (und
+    # sicher unter dem Standard-Timeout von 30 s).
+    assert all(t <= _DEADLINE_DEFAULT_S - 70.0 for t in nach_a.values())
+
+
+def test_deadline_waehrend_repair_platz_rettung_greift_trotzdem(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Überladene Auswahl, aber keine Zeit mehr für den Repair: die KI-Auswahl wird
+    trotzdem deterministisch getrimmt statt verworfen (Antwort vor dem Repair
+    gesichert)."""
+    haupt = _haupt("esstisch", "sofa", "tvmoebel")
+    ueberladen = {
+        "konzept": "Warm und viel zu voll.",
+        "hauptObjekte": haupt,
+        "ergaenzungen": [
+            {"itemId": STUHL, "anzahl": 6},
+            {"itemId": _w("couchtisch"), "anzahl": 1},
+            {"itemId": _w("teppich"), "anzahl": 1},
+        ],
+        "begruendung": "zu viel",
+    }
+    port, _ = _llm_mit_uhr(
+        monkeypatch,
+        [ueberladen, _anordnung_w(), _flaechen_w()],
+        {"a": _DEADLINE_DEFAULT_S - 2.0},
+    )
+    ergebnis = _kuratiere_wohnen(port)
+    assert "CURATOR_PLATZ_REDUZIERT" in ergebnis["begruendung"]
+    assert "CURATOR_FALLBACK_USED" not in ergebnis["begruendung"]
+    assert "CURATOR_DEADLINE" in ergebnis["begruendung"]
+    assert ergebnis["hauptObjekte"] == haupt
+    slots = vorfilter(PROFIL, WOHNEN_ROOM, WOHNEN_CATALOG, None)
+    budget = _platz_budget(WOHNEN_ROOM, slots, "wohnen")
+    assert _validiere_ebenen(ergebnis, slots, "wohnen", None, budget, WOHNEN_BY) is None
+
+
+def test_ohne_zeitdruck_kein_deadline_marker(monkeypatch: pytest.MonkeyPatch) -> None:
+    port, _ = _llm_mit_uhr(
+        monkeypatch, [_auswahl_ok(), _anordnung_ok(), _flaechen_ok()], {"a": 3.0}
+    )
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert "CURATOR_DEADLINE" not in ergebnis["begruendung"]
+    assert ergebnis["flaechen"] == _flaechen_ok()["flaechen"]
+
+
+def test_deadline_gilt_nur_waehrend_eines_laufs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Nach dem Lauf ist die Deadline weg – Einzel-Calls (z.B. /kurator/status)
+    bleiben unbegrenzt wie bisher."""
+    port, _ = _llm_mit_uhr(
+        monkeypatch, [_auswahl_ok(), _anordnung_ok(), _flaechen_ok()], {"a": 1.0}
+    )
+    port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert port._restzeit() == float("inf")
+
+
+def test_deadline_per_env_abschaltbar(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Eval-/Diagnose-Läufe warten Drosselung bewusst ab: FP_KURATOR_DEADLINE_S=0."""
+    port, _ = _llm_mit_uhr(
+        monkeypatch,
+        [_auswahl_ok(), _anordnung_ok(), _flaechen_ok()],
+        {"a": 200.0},
+    )
+    monkeypatch.setenv("FP_KURATOR_DEADLINE_S", "0")
+    port.deadline_s = _deadline_s()
+    ergebnis = port.kuratiere(PROFIL, ROOM, CATALOG, None, seed=1)
+    assert "CURATOR_DEADLINE" not in ergebnis["begruendung"]
+    assert ergebnis["flaechen"] == _flaechen_ok()["flaechen"]
+
+
+@pytest.mark.parametrize(
+    ("roh", "erwartet"),
+    [
+        ("", _DEADLINE_DEFAULT_S),
+        ("45", 45.0),
+        (" 60 ", 60.0),
+        ("abc", _DEADLINE_DEFAULT_S),  # ungültig → Default statt Absturz
+        ("-5", 0.0),  # negativ = abgeschaltet
+    ],
+)
+def test_deadline_env_werte(monkeypatch: pytest.MonkeyPatch, roh: str, erwartet: float) -> None:
+    monkeypatch.setenv("FP_KURATOR_DEADLINE_S", roh)
+    assert _deadline_s() == erwartet

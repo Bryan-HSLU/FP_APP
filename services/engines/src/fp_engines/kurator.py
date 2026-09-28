@@ -125,6 +125,39 @@ _ANTWORT_TOKENS_FLAECHEN = 500
 # Strukturen und bleiben fokussiert.
 TEMP_AUSWAHL = 0.6
 TEMP_FOKUSSIERT = 0.3
+# Gesamt-Zeitbudget EINES `kuratiere`-Laufs über alle LLM-Calls inkl. Repairs
+# und 429-Backoff (Default für FP_KURATOR_DEADLINE_S). Hergeleitet aus dem
+# Vercel-Rewrite, der max. 120 s auf das erste Antwort-Byte des Space wartet
+# (Changelog 2025-05); 90 s lassen Luft für Space-Warteschlange und Netz. Ohne
+# Deckel kann eine 429-Kaskade (bis 3×30 s Backoff je Call) den Request über
+# diese Grenze tragen – der Nutzer bekäme eine Proxy-Fehlerseite statt eines
+# Plans. Mit Deckel bekommt er rechtzeitig den ehrlichen Baseline-Fallback.
+_DEADLINE_DEFAULT_S = 90.0
+# Unter dieser Restzeit wird kein LLM-Call mehr begonnen: ein Groq-Call braucht
+# einige Sekunden, ein angefangener und abgebrochener Call verbrennt trotzdem
+# das Tokens/Minute-Budget (und bremst damit den nächsten Nutzer).
+_MIN_CALL_S = 5.0
+
+
+def _deadline_s() -> float:
+    """Zeitbudget je Kurator-Lauf aus FP_KURATOR_DEADLINE_S; <= 0 schaltet es ab.
+
+    Abschalten ist für Eval-/Diagnose-Läufe gedacht, die 429-Drosselung bewusst
+    abwarten, um die KI-Qualität zu messen (sonst mässen sie Fallbacks).
+    Ungültige Werte fallen mit Warnung auf den Default zurück, statt den
+    Kurator lahmzulegen.
+    """
+    roh = (os.environ.get("FP_KURATOR_DEADLINE_S") or "").strip()
+    if not roh:
+        return _DEADLINE_DEFAULT_S
+    try:
+        wert = float(roh)
+    except ValueError:
+        log.warning("FP_KURATOR_DEADLINE_S=%r ungültig – Default %.0f s", roh, _DEADLINE_DEFAULT_S)
+        return _DEADLINE_DEFAULT_S
+    return max(wert, 0.0)
+
+
 # Footprint-Daumenregel (identisch Baseline & Platz-Budget-Validierung, s.u.):
 # belegte Bodenfläche eines boden-montierten Items = Breite × Tiefe × 2.5
 # (2.5 = Möbelfläche + Bewegungsfläche). Wand-montierte Items belegen 0.
@@ -159,6 +192,19 @@ class AntwortAbgeschnitten(Exception):
     def __init__(self, zeichen: int):
         self.zeichen = zeichen
         super().__init__(f"Antwort abgeschnitten nach {zeichen} Zeichen (max_tokens erreicht)")
+
+
+class ZeitbudgetErschoepft(Exception):
+    """Die Restzeit bis zur Kurator-Deadline reicht für keinen LLM-Call mehr.
+
+    Wird wie ein HTTP-Fehler behandelt (Teil-Fallback bzw. Baseline), aber mit
+    eigener Ursache im Marker – «Zeitbudget erschöpft» ist eine andere Diagnose
+    als ein Provider-Fehler.
+    """
+
+    def __init__(self, deadline_s: float):
+        self.deadline_s = deadline_s
+        super().__init__(f"Zeitbudget erschöpft ({deadline_s:.0f} s)")
 
 
 KANDIDATEN_MARKER = "## Haupt-Objekte (raumprägend – ZUERST wählen)"
@@ -375,6 +421,8 @@ def _fehler_ursache(e: Exception) -> str:
         return f"HTTP {e.response.status_code}"
     if isinstance(e, AntwortAbgeschnitten):
         return "Antwort abgeschnitten (max_tokens zu klein)"
+    if isinstance(e, ZeitbudgetErschoepft):
+        return str(e)
     if isinstance(e, httpx.HTTPError):
         return f"HTTP {type(e).__name__}"
     return type(e).__name__
@@ -1653,18 +1701,44 @@ class LlmKurator:
         # der Platz-Rettung in `kuratiere` (s. `trimme_platz_budget`).
         self._letzte_ungueltige: dict[str, Any] | None = None
         self._letzter_fehler: str | None = None
+        # Zeitbudget je `kuratiere`-Lauf (s. `_DEADLINE_DEFAULT_S`). `_deadline`
+        # ist nur WÄHREND eines Laufs gesetzt – Einzel-Calls ausserhalb (z.B. der
+        # /kurator/status-Testcall) bleiben unbegrenzt wie bisher.
+        self.deadline_s: float = _deadline_s()
+        self._deadline: float | None = None
+        self._deadline_erreicht = False
+        # Uhr + Schlaf als Attribute, damit Tests die Zeit simulieren können,
+        # statt echte Minuten zu warten.
+        self._uhr: Callable[[], float] = time.monotonic
+        self._schlafe: Callable[[float], None] = time.sleep
+
+    def _restzeit(self) -> float:
+        """Sekunden bis zur Deadline des laufenden Kurator-Laufs (∞ ohne Deadline)."""
+        if self._deadline is None:
+            return math.inf
+        return self._deadline - self._uhr()
 
     def _post_mit_backoff(self, headers: dict[str, str], payload: dict[str, Any]) -> httpx.Response:
         """POST mit kleinem 429-Backoff (max. 3 Wiederholungen, Retry-After
         respektiert, Deckel 30 s). Free-Tier-Limits (Tokens/Minute) drosseln
         Serien-Läufe wie Eval/Diagnose – ohne Backoff kippt jeder gedrosselte
-        Call in den Baseline-Fallback statt kurz zu warten."""
+        Call in den Baseline-Fallback statt kurz zu warten.
+
+        Läuft eine Kurator-Deadline, wird kein Call mehr begonnen, wenn weniger
+        als `_MIN_CALL_S` übrig sind, das HTTP-Timeout wird auf die Restzeit
+        gekürzt, und ein Backoff, der das Budget sprengen würde, bricht sofort
+        ab (`ZeitbudgetErschoepft`) – ein verkürztes Warten brächte nur den
+        nächsten 429.
+        """
         for versuch in range(4):
+            rest = self._restzeit()
+            if rest < _MIN_CALL_S:
+                raise ZeitbudgetErschoepft(self.deadline_s)
             res = httpx.post(
                 f"{self.url}/chat/completions",
                 headers=headers,
                 json=payload,
-                timeout=self.timeout_s,
+                timeout=min(self.timeout_s, rest),
             )
             if res.status_code != 429 or versuch == 3:
                 return res
@@ -1673,8 +1747,10 @@ class LlmKurator:
                 warte = min(float(retry_after), 30.0) if retry_after else 8.0 * (versuch + 1)
             except ValueError:
                 warte = 8.0 * (versuch + 1)
+            if warte > self._restzeit() - _MIN_CALL_S:
+                raise ZeitbudgetErschoepft(self.deadline_s)
             log.info("kurator: 429 rate-limit, warte %.1fs (versuch %d)", warte, versuch + 1)
-            time.sleep(warte)
+            self._schlafe(warte)
         return res  # unerreichbar, beruhigt den Typchecker
 
     # --- Prompt-Bau ---------------------------------------------------------
@@ -2043,6 +2119,12 @@ class LlmKurator:
             antwort = uebersetze(roh) if uebersetze else roh
             fehler = validiere(antwort)
             if fehler is not None:
+                # Schon VOR dem Repair festhalten: reicht die Zeit für den Repair
+                # nicht mehr (Deadline), kann `kuratiere` eine reine Platz-
+                # Überbelegung trotzdem noch deterministisch retten, statt die
+                # KI-Auswahl zu verwerfen.
+                self._letzte_ungueltige = antwort
+                self._letzter_fehler = fehler
                 # Repair-Retry (max. 1) mit konkretem Fehlerhinweis (Konzept §5).
                 # Die ausführliche Rollen-Beschreibung (~1300 Tokens) wird dabei
                 # durch eine Kurzfassung ersetzt: das Modell hat die Regeln im
@@ -2056,6 +2138,8 @@ class LlmKurator:
                 antwort = uebersetze(roh) if uebersetze else roh
                 fehler = validiere(antwort)
             if fehler is None:
+                self._letzte_ungueltige = None
+                self._letzter_fehler = None
                 return antwort
             log.warning("kurator[%s]: nach repair weiterhin ungültig (%s)", name, fehler)
             # Antwort + Grund aufheben: bei reiner Platz-Überbelegung rettet der
@@ -2067,9 +2151,21 @@ class LlmKurator:
             # Repair» allein ist beim Debuggen im Space wertlos – erst «Platz-
             # Budget überschritten: 9.4 > 7.2» macht die Ursache sichtbar.
             self._letzte_ursache = f"ungültig nach Repair: {fehler[:180]}"
-        except (httpx.HTTPError, json.JSONDecodeError, KeyError, AntwortAbgeschnitten) as e:
+        except (
+            httpx.HTTPError,
+            json.JSONDecodeError,
+            KeyError,
+            AntwortAbgeschnitten,
+            ZeitbudgetErschoepft,
+        ) as e:
             log.warning("kurator[%s]: llm-aufruf fehlgeschlagen (%s)", name, e)
             self._letzte_ursache = _fehler_ursache(e)
+            # Auch ein Timeout zählt als Deadline-Schnitt, wenn es nur deshalb
+            # kam, weil das HTTP-Timeout auf die Restzeit gekürzt war.
+            if isinstance(e, ZeitbudgetErschoepft) or (
+                isinstance(e, httpx.TimeoutException) and self._restzeit() < _MIN_CALL_S
+            ):
+                self._deadline_erreicht = True
         return None
 
     def _trimme_letzte_auswahl(
@@ -2257,6 +2353,34 @@ class LlmKurator:
     # --- Pipeline ------------------------------------------------------------
 
     def kuratiere(
+        self,
+        stilprofil: dict[str, Any],
+        room: dict[str, Any],
+        catalog: list[dict[str, Any]],
+        budget: float | None,
+        seed: int,
+    ) -> dict[str, Any]:
+        """Ein Kurator-Lauf unter Zeitbudget (s. `_DEADLINE_DEFAULT_S`).
+
+        Hat die Deadline einen Call oder Repair verhindert, trägt die Begründung
+        den Marker CURATOR_DEADLINE – zusätzlich zum jeweiligen (Teil-)Fallback-
+        Marker, damit im Space sofort sichtbar ist, dass es die Zeit war und
+        nicht der Provider.
+        """
+        self._deadline = self._uhr() + self.deadline_s if self.deadline_s > 0 else None
+        self._deadline_erreicht = False
+        try:
+            ergebnis = self._kuratiere_im_budget(stilprofil, room, catalog, budget, seed)
+        finally:
+            self._deadline = None
+        if self._deadline_erreicht:
+            ergebnis["begruendung"] = (
+                str(ergebnis.get("begruendung", ""))
+                + f" (Zeitbudget {self.deadline_s:.0f} s: CURATOR_DEADLINE)"
+            )
+        return ergebnis
+
+    def _kuratiere_im_budget(
         self,
         stilprofil: dict[str, Any],
         room: dict[str, Any],

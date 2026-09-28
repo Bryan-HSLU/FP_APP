@@ -42,6 +42,11 @@ jobs:
       FP_KURATOR_MAX_ANTWORT_TOKENS: "900"
       FP_EVAL_PAUSE_S: "20"
       FP_EVAL_LLM_SEEDS: "1"
+      # Kurator-Deadline AUS: die Eval soll KI-Qualitaet unter Drosselung messen
+      # und wartet 429-Backoffs bewusst ab. Die 90-s-Deadline ist ein Schutz fuer
+      # den interaktiven Pfad (Vercel-Rewrite, 120 s) und wuerde hier Fallbacks
+      # statt KI-Antworten zaehlen.
+      FP_KURATOR_DEADLINE_S: "0"
     steps:
       - uses: actions/checkout@v4
 
