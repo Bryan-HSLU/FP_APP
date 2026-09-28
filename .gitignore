@@ -37,3 +37,6 @@ Thumbs.db
 # Env
 .env
 .env.*
+
+# Deploy-Artefakt (vom Workflow ins Deploy-Verzeichnis geschrieben, nie hier committen)
+BUILD_SHA

@@ -13,10 +13,11 @@ from pathlib import Path
 from typing import Annotated, Any
 
 import httpx
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.middleware.base import RequestResponseEndpoint
 
 from fp_engines import __version__
 from fp_engines.auswertung import evaluate_plan
@@ -47,10 +48,54 @@ app = FastAPI(title="Future Planning – Engines", version=__version__)
 app.mount("/bilder", StaticFiles(directory=REPO_ROOT / "data" / "images"), name="bilder")
 
 
+@app.middleware("http")
+async def _no_store_ausser_bilder(request: Request, call_next: RequestResponseEndpoint) -> Response:
+    """Verhindert, dass ein CDN/Proxy vor dem Space (Vercel-Rewrite → HF-Space)
+    Plan-/Kurator-Antworten zwischenspeichert; Bilder unter /bilder dürfen
+    gecacht werden. `request.url.path` enthält im gemounteten Betrieb
+    (space.py: diese App unter /api) den vollen Pfad inkl. Mount-Präfix –
+    `root_path` wird deshalb abgezogen, um den Pfad relativ zu DIESER App zu
+    bekommen (in beiden Betriebsarten getestet, siehe test_deploy_header.py).
+    """
+    # root_path/Pfad VOR call_next lesen: Starlette mutiert scope["root_path"]
+    # beim Routing durch einen Mount (z.B. /bilder selbst) in-place – danach
+    # gelesen, würde der Bilder-Mount fälschlich wie das äussere /api aussehen.
+    root_path = request.scope.get("root_path", "")
+    pfad = request.url.path
+    if root_path and pfad.startswith(root_path):
+        pfad = pfad[len(root_path) :] or "/"
+    response = await call_next(request)
+    if not pfad.startswith("/bilder") and "cache-control" not in response.headers:
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+def _build_sha() -> str:
+    """Git-SHA des laufenden Deploys – Env-Override hat Vorrang vor der Datei.
+
+    Grund fürs Feld: der Vercel-Deploy soll erst live gehen, wenn der HF-Space
+    nachweislich den neuen Code-Stand fährt. `FP_BUILD_SHA` erlaubt einen
+    manuellen/CI-Override; `BUILD_SHA` (vom Deploy-Workflow ins Deploy-Verzeichnis
+    geschrieben, siehe deploy-space.yml) ist der Normalfall im Space. Pro Aufruf
+    gelesen statt einmalig beim Import gecacht: die Datei existiert im lokalen
+    Dev-Betrieb i.d.R. nicht und kann sich (anders als der Prozess) nicht ändern –
+    das Neulesen kostet nichts, macht aber Tests einfacher (kein Reimport nötig).
+    """
+    env = os.environ.get("FP_BUILD_SHA", "").strip()
+    if env:
+        return env
+    sha_datei = REPO_ROOT / "BUILD_SHA"
+    if sha_datei.is_file():
+        inhalt = sha_datei.read_text(encoding="utf-8").strip()
+        if inhalt:
+            return inhalt
+    return "dev"
+
+
 @app.get("/health")
 def health() -> dict[str, Any]:
-    """Lebenszeichen für Setup-Script und Frontend-Proxy."""
-    return {"status": "ok", "version": __version__}
+    """Lebenszeichen für Setup-Script und Frontend-Proxy; `build` = Deploy-Stand."""
+    return {"status": "ok", "version": __version__, "build": _build_sha()}
 
 
 @app.get("/kurator/status")

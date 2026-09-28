@@ -9,12 +9,17 @@ lokalem Dev-Setup und Deploy. So bleibt `services/engines/src/fp_engines/api.py`
 unverändert wiederverwendbar; dieses Modul ist reine Deploy-Verdrahtung.
 """
 
+import mimetypes
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from fp_engines.api import app as api_app
+
+# Pythons mimetypes kennt .webmanifest je nach System nicht → StaticFiles würde
+# sonst application/octet-stream ausliefern und Browser lehnen das PWA-Manifest ab.
+mimetypes.add_type("application/manifest+json", ".webmanifest")
 
 # Gleiche Herleitung wie in api.py: von src/fp_engines/space.py vier Ebenen
 # hoch zum Repo-Root (fp_engines -> src -> engines -> services -> Repo-Root).
