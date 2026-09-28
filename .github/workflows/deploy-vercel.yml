@@ -70,6 +70,44 @@ jobs:
           echo "::error::Space fährt nach 20 min nicht den Stand $GITHUB_SHA – Vercel-Deploy abgebrochen (Frontend bleibt auf dem alten, passenden Stand)."
           exit 1
 
+      - name: Vercel-Konfiguration prüfen
+        if: steps.pruefe.outputs.aktiv == 'true'
+        # Klare Meldung statt Vercels «Could not retrieve Project Settings»:
+        # Leerraum aus dem Einfügen, vertauschte IDs, falsche Org-ID (User- statt
+        # Team-ID), ungültiger Token. Die IDs sind nicht geheim; vom Token wird
+        # nichts ausgegeben.
+        run: |
+          fehler=0
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            wert="${!name}"
+            if [ "$wert" != "$(printf '%s' "$wert" | tr -d '[:space:]')" ]; then
+              echo "::error::$name enthält Leerzeichen oder Zeilenumbruch – Secret ohne Leerraum neu eintragen."
+              fehler=1
+            fi
+          done
+          case "$VERCEL_PROJECT_ID" in
+            prj_*) echo "Project-ID: prj_… (Länge ${#VERCEL_PROJECT_ID})" ;;
+            team_*) echo "::error::VERCEL_PROJECT_ID beginnt mit team_ – das ist die Org-/Team-ID (vertauscht?)."; fehler=1 ;;
+            *) echo "::error::VERCEL_PROJECT_ID muss mit prj_ beginnen (Projekt → Settings → General → Project ID)."; fehler=1 ;;
+          esac
+          case "$VERCEL_ORG_ID" in
+            team_*) echo "Org-ID: team_… (Länge ${#VERCEL_ORG_ID})" ;;
+            prj_*) echo "::error::VERCEL_ORG_ID beginnt mit prj_ – das ist die Project-ID (vertauscht?)."; fehler=1 ;;
+            *) echo "::warning::VERCEL_ORG_ID beginnt nicht mit team_ ('${VERCEL_ORG_ID:0:5}…'). Bei Hobby-Konten ist es die «Team ID» (Team → Settings → General)." ;;
+          esac
+          if konto=$(npx --yes "$VERCEL_CLI" whoami --token="$VERCEL_TOKEN" 2>/dev/null); then
+            echo "Token gültig, gehört zu: $konto"
+          else
+            echo "::error::VERCEL_TOKEN ist ungültig oder abgelaufen (Account Settings → Tokens)."
+            fehler=1
+          fi
+          if [ "$fehler" = 0 ]; then
+            echo "Projekte, die dieser Token in der Org sieht:"
+            npx --yes "$VERCEL_CLI" project ls --scope "$VERCEL_ORG_ID" --token="$VERCEL_TOKEN" \
+              || { echo "::error::Mit dieser Org-ID sieht der Token kein Team – VERCEL_ORG_ID prüfen."; fehler=1; }
+          fi
+          exit "$fehler"
+
       - uses: actions/checkout@v4
         if: steps.pruefe.outputs.aktiv == 'true'
 
