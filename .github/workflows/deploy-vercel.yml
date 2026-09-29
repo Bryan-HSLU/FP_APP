@@ -1,6 +1,6 @@
 name: Deploy Vercel
 
-# Zweiter Frontend-Eingang (Vercel, fp-poc.vercel.app): statisches Frontend,
+# Zweiter Frontend-Eingang (Vercel, fp-poc-seven.vercel.app): statisches Frontend,
 # /api/* per Rewrite an den HF-Space (siehe vercel.json). Der Space bleibt die
 # vollständige Referenz (Frontend + API). Deploys laufen NUR über diesen
 # Workflow – die Git-Deploys von Vercel sind in vercel.json aus: so ist der
@@ -110,7 +110,7 @@ jobs:
             echo "Projekte, die dieser Token im Team sieht:"
             if ! npx --yes "$VERCEL_CLI" project ls --scope "$VERCEL_ORG_ID" --token="$VERCEL_TOKEN" 2>projekte.err; then
               echo "Vercel meldet: $(grep -iE 'error' projekte.err | head -n 1)"
-              echo "::error::Der Token hat keinen Zugriff auf das Team/Projekt. Persönlichen Access Token unter Account Settings → Tokens erzeugen (Scope: dein Team), KEINEN API-Key/Projekt-Key, und das Secret VERCEL_TOKEN mit dem kopierten Wert ersetzen."
+              echo "::error::Der Token hat keinen Zugriff auf das Team/Projekt. Persönlichen Token unter Account Settings → Tokens erzeugen (Scope «Full Account»), KEINEN Team-/Projekt-Token oder API-Key, und das Secret VERCEL_TOKEN mit dem kopierten Wert ersetzen."
               fehler=1
             fi
           fi

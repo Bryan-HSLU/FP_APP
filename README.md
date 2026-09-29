@@ -74,7 +74,7 @@ pnpm lint         # ESLint/Prettier + ruff
 | URL | Frontend | `/api/*` |
 |---|---|---|
 | `bryan-hslu-fp-poc.hf.space` | HF Space (Docker, `space.py`) | derselbe Space |
-| `fp-poc.vercel.app` | Vercel (statisch) | Rewrite → HF Space (`vercel.json`) |
+| `fp-poc-seven.vercel.app` | Vercel (statisch) | Rewrite → HF Space (`vercel.json`) |
 
 - Jeder Push auf `main` deployt beide: `deploy-space.yml` pusht in den Space
   (schreibt `BUILD_SHA`), `deploy-vercel.yml` wartet, bis `/api/health` diesen
@@ -83,10 +83,12 @@ pnpm lint         # ESLint/Prettier + ruff
   (spricht mit dem Produktions-Backend).
 - Nötige GitHub-Secrets: `HF_TOKEN` sowie `VERCEL_TOKEN`, `VERCEL_ORG_ID`,
   `VERCEL_PROJECT_ID` (ohne sie wird der Vercel-Deploy übersprungen).
+  `VERCEL_TOKEN` = persönlicher Token (Account Settings → Tokens, Scope «Full
+  Account»); ein Team-/Projekt-Token scheitert mit «User not found».
 - Schläft der Space (Gratis-Tier, 48 h), zeigt das Vercel-Frontend «Server wird
   geweckt» und wiederholt die Anfrage (`apps/web/src/backend.ts`).
 - Warum so und nicht anders (Varianten, Limits, Risiken): Brain →
-  `vault/30_Entscheidungen/` (ADR zum Vercel-Eingang).
+  `vault/30_Entscheidungen/ADR-0015-vercel-zweiter-frontend-eingang.md`.
 
 ## Bau-Fahrplan
 

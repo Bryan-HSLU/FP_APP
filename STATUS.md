@@ -6,16 +6,36 @@
 > Abweichungen gibt es. Meilenstein-Definitionen: Brain →
 > `vault/50_Umsetzung/Bauplan-Meilensteine.md`.
 
-**Stand: 2026-09-28**
+**Stand: 2026-09-29**
 
-> ⚠️ **Lücke:** Die Arbeiten 2026-07-16 bis 2026-08-04 (Farbwelt 16→33 Slugs,
-> +28 Möbel inkl. Vorfilter-Passung, L-Sofa 2D=3D, Viewer-Fixes, Kurator v3.3
-> mit schlankem Repair und erkannten Abschneidungen) sind hier noch nicht
-> eingetragen – Details stehen in den Commit-Messages `3f3c1ea` … `85a71a3`.
+> ℹ️ Die Arbeiten 2026-07-16 bis 2026-08-04 (Farbwelt 16→33 Slugs, +28 Möbel
+> inkl. Vorfilter-Passung, L-Sofa 2D=3D, Viewer-Fixes, Kurator v3.3 mit
+> schlankem Repair und erkannten Abschneidungen) sind nicht als eigener
+> Abschnitt hier, sondern als Learning im Brain zusammengefasst:
+> `vault/10_Learnings/Learning-Kurator-v33-Katalog-Varianten-Tokenbudget.md`
+> (Details: Commits `3f3c1ea` … `85a71a3`).
+
+### Vercel-Eingang Phase 2 – erster Deploy grün (2026-09-29)
+- **Preview live** (Workflow «Deploy Vercel» Lauf #8, Branch
+  `claude/keen-meitner-0qijkc`): Build 14 s, Upload 20.8 MB, Vercel-Projekt
+  `bryan-125a/fp-poc`. Produktions-Domain ist **`fp-poc-seven.vercel.app`**
+  (`fp-poc.vercel.app` war vergeben; in Vercel → Domains änderbar).
+- **Token-Odyssee** (Läufe #1–#7, «Could not retrieve Project Settings» bzw.
+  «User not found (404)»): IDs waren korrekt, der Token nicht nutzbar. Gelöst
+  mit neu erzeugtem persönlichem Token (Account Settings → Tokens, Scope «Full
+  Account»). Dafür neuer Workflow-Schritt «Vercel-Konfiguration prüfen»
+  (Leerraum, `prj_`/`team_`-Präfixe inkl. Vertauschung, Token-Länge,
+  `project ls` im Team) – bleibt drin, spart beim nächsten Mal die Suche.
+- **Brain nachgeführt:** ADR-0015, Learning Vercel-Eingang,
+  `POC-Demo-Architektur-HF`, Scan-Fahrplan («Job + Polling Pflicht»).
+- **Als Nächstes:** Bryan testet die Preview am Handy (Checkliste: Start/Weck-
+  schirm, Bad/Wohnen/Küche + Vorschlag, Swipe-Fotos, Export, Scan-Bundle,
+  Vergleich HF). Danach Branch → `main` = erster Produktions-Deploy (wartet auf
+  `/api/health.build`). Offen: 27-MB-Upload durch den Rewrite + Kaltstart live.
 
 ### Vercel-Eingang Phase 1 – Fundament für zwei Frontends (2026-09-28)
 Ziel (mit Bryan besprochen, Variante «K5»): Frontend ZUSÄTZLICH auf Vercel
-(`fp-poc.vercel.app`), `/api/*` per Rewrite an den HF-Space; der Space bleibt
+(`fp-poc-seven.vercel.app`), `/api/*` per Rewrite an den HF-Space; der Space bleibt
 vollständige Referenz (Frontend + API wie bisher). Phase 1 = alles, was beide
 Eingänge brauchen – wirkt schon jetzt auf HF. Abwägung K1–K7 (Timeouts,
 4.5-MB-Body, Kontingente, Nutzerreise): kommt als ADR-0015 ins Brain.
