@@ -6,7 +6,7 @@
 > Abweichungen gibt es. Meilenstein-Definitionen: Brain →
 > `vault/50_Umsetzung/Bauplan-Meilensteine.md`.
 
-**Stand: 2026-09-29**
+**Stand: 2026-09-30**
 
 > ℹ️ Die Arbeiten 2026-07-16 bis 2026-08-04 (Farbwelt 16→33 Slugs, +28 Möbel
 > inkl. Vorfilter-Passung, L-Sofa 2D=3D, Viewer-Fixes, Kurator v3.3 mit
@@ -14,6 +14,31 @@
 > Abschnitt hier, sondern als Learning im Brain zusammengefasst:
 > `vault/10_Learnings/Learning-Kurator-v33-Katalog-Varianten-Tokenbudget.md`
 > (Details: Commits `3f3c1ea` … `85a71a3`).
+
+### Scan ohne LiDAR: Video → MapAnything im Colab-Worker (2026-09-30, ADR-0016)
+Bryans Vorgabe: Scan **muss ohne LiDAR** gehen (USP). Recherche: keine Gratis-
+iOS-App exportiert ohne LiDAR Video + Posen (Stray Scanner nur LiDAR,
+NeRFCapture nur Einzelbilder) → AR-Posen-Pflicht aus ADR-0012 fällt.
+- **Neuer Standardweg** in `services/scan-worker`: normales Video →
+  `frames` (Schärfe = Laplace-Varianz, zeitbasiert N Keyframes/s, Default 3,
+  verwackelte < 35 % Median raus, max. 120) → **MapAnything**
+  (`facebook/map-anything-apache`, Apache) → `rekonstruktion` (Hochachse aus
+  Bild-oben aller Kameras, gedrehtes Video erkannt, Verfeinerung per
+  Bodenebene im unteren Höhenband + SVD-Fit ≤ 10°, Boden → z = 0, Diagnose
+  Raum-/Kamerahöhe) → optional Massstab aus bekannter Raumhöhe →
+  `fuse_mit_farben` (2 cm) → PLY → SpatialLM. GPU-Speicherfehler → Wiederholung
+  mit halb so vielen Frames. AR-Posen-Weg bleibt (`.zip` mit `poses.json`).
+- **SpatialLM in eigenem venv** (`FP_SPATIALLM_PYTHON`, pinnt torch 2.4.1),
+  MapAnything im Colab-Python; GPU-Speicher dazwischen freigegeben.
+  Notebook `colab_worker.ipynb` entsprechend (Setup, Regler, Filmtipps).
+- **Tests:** scan-worker 22 → 41 (Frame-Auswahl; synthetischer Raum in
+  beliebig gedrehtem Weltsystem inkl. gedrehtem Video und 4° Handy-Kippung;
+  Verdrahtung mit gestubbten GPU-Teilen inkl. Speicher-Rückfall).
+  **Nicht getestet: echter Colab-Lauf** (Installation, T4-Speicher, Qualität).
+- **Als Nächstes:** Bryan startet Colab mit den alten R1-Videos (erster Lauf =
+  Gate für Installation/Speicher) → R1 neu filmen (normale Kamera-App) +
+  Restmasse → Messung gegen Ground Truth → Learning. Danach M7: Massstab-
+  Bestätigung im Korrektur-Modus, Live-Weg als Job + Polling.
 
 ### Vercel-Eingang Phase 2 – erster Deploy grün (2026-09-29)
 - **Preview live** (Workflow «Deploy Vercel» Lauf #8, Branch

@@ -1,7 +1,7 @@
 [project]
 name = "fp-scan-worker"
 version = "0.1.0"
-description = "Future Planning POC – GPU-Scan-Worker (Colab/T4): AR-Posen + Video → known-pose Tiefen-Fusion → z-up .ply → SpatialLM → layout.txt. Geometrie-Kern CPU-only (numpy)."
+description = "Future Planning POC – GPU-Scan-Worker (Colab/T4): Handy-Video → MapAnything → z-up .ply → SpatialLM → layout.txt (optional AR-Posen-Weg). Geometrie-Kern CPU-only (numpy)."
 requires-python = ">=3.12"
 dependencies = [
     "numpy>=2.1",
@@ -47,5 +47,7 @@ testpaths = ["tests"]
 # GPU-/Colab-only-Bausteine ohne (installierte) Typ-Stubs: guarded Imports im
 # Code, hier nur die fehlenden Stubs stummschalten.
 [[tool.mypy.overrides]]
-module = ["open3d.*", "gradio.*", "cv2.*", "torch.*", "transformers.*", "PIL.*"]
+module = [
+    "open3d.*", "gradio.*", "cv2.*", "torch.*", "transformers.*", "PIL.*", "mapanything.*",
+]
 ignore_missing_imports = true
